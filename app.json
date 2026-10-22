@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Villalbilla C.F",
+    "name": "VillalbillaCF",
     "slug": "villalbilla-cf",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -13,7 +13,7 @@
       "versionCode": 1
     },
     "web": {
-      "name": "Villalbilla C.F.",
+      "name": "VillalbillaCF",
       "favicon": "./assets/escudo-transparente.png"
     },
     "plugins": [

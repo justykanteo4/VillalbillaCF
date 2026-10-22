@@ -55,7 +55,7 @@ export default function TrainerAccess({onSuccess}){
 
   return <View style={{padding:22,gap:18,backgroundColor:'#151f2d',borderRadius:20}}>
     <Text style={{fontSize:25,fontWeight:'800',color:'#fff'}}>Área de entrenadores</Text>
-    {!authUser?<><Text style={text}>Entra con tu cuenta. Después elige tu equipo y quién eres en el cuerpo técnico. El administrador del club aprobará tu acceso.</Text><AccessMethods onSuccess={async signedIn=>{su(signedIn);try{sprofile(await getProfile(signedIn))}catch(e){se(e.message||'No se pudo crear tu perfil.');}}}/></>:!user?<Text style={text}>Comprobando tu cuenta…</Text>:<>
+    {!authUser?<><Text style={text}>Elige cómo quieres entrar. Si todavía no tienes cuenta, puedes crearla más abajo.</Text><AccessMethods onSuccess={async signedIn=>{su(signedIn);try{sprofile(await getProfile(signedIn))}catch(e){se(e.message||'No se pudo crear tu perfil.');}}}/></>:!user?<Text style={text}>Comprobando tu cuenta…</Text>:<>
       <Text style={text}>{user.name||authUser.displayName||authUser.email} · {user.email||authUser.email}</Text>
       {user.status==='admin'?<>
         <Text style={{...text,color:'#91adff',fontWeight:'800'}}>ADMINISTRADOR DEL CLUB</Text>

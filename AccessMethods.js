@@ -11,11 +11,16 @@ import {
 } from 'firebase/auth';
 import GoogleSignIn from './GoogleSignIn';
 
-const text={color:'#dce6f2',lineHeight:22},input={padding:14,borderRadius:10,color:'#fff',backgroundColor:'#0b121d',borderWidth:1,borderColor:'#34475e'},button={padding:14,borderRadius:10,backgroundColor:'#25364c'};
+const text={color:'#dce6f2',fontSize:16,lineHeight:24};
+const input={padding:16,minHeight:54,borderRadius:12,fontSize:16,color:'#fff',backgroundColor:'#0b121d',borderWidth:1,borderColor:'#647890'};
+const button={padding:16,minHeight:54,borderRadius:12,alignItems:'center',justifyContent:'center',backgroundColor:'#c52321'};
+const buttonText={color:'#fff',fontSize:17,fontWeight:'700',textAlign:'center'};
+const secondary={...button,backgroundColor:'#25364c',borderWidth:1,borderColor:'#647890'};
+const actionStyle=disabled=>({opacity:disabled?0.45:1});
 const EMAIL_KEY='villalbilla.email.link';
 
 export default function AccessMethods({onSuccess}){
-  const [method,sm]=useState('Google'),[email,se]=useState(''),[password,sp]=useState(''),[register,sr]=useState(false),[busy,sb]=useState(false),[message,smsg]=useState('');
+  const [method,sm]=useState('Correo y contraseña'),[email,se]=useState(''),[password,sp]=useState(''),[register,sr]=useState(false),[busy,sb]=useState(false),[message,smsg]=useState('');
   const handledLinks=useRef(new Set());
 
   async function completeEmailLink(url){
@@ -96,18 +101,40 @@ export default function AccessMethods({onSuccess}){
 
   if(!firebaseConfigured)return <Text style={text}>Firebase aún no está conectado. Cuando se añada la configuración del club, aquí se activarán los inicios de sesión.</Text>;
 
-  return <View style={{gap:16}}>
-    <Text style={text}>La sesión se conservará en este dispositivo. Las solicitudes nuevas las aprueba el administrador del club.</Text>
-    <View style={{gap:8}}>{['Google','Correo de un solo uso','Correo y contraseña'].map(m=><Pressable key={m} accessibilityRole="button" accessibilityState={{selected:method===m}} onPress={()=>{sm(m);smsg('');sp('')}} style={[button,method===m&&{backgroundColor:'#b42122'}]}><Text style={text}>{m}</Text></Pressable>)}</View>
-    {method==='Google'?<GoogleSignIn onSuccess={onSuccess}/>:<>
-      <TextInput accessibilityLabel="Correo de acceso" autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="Tu correo electrónico" placeholderTextColor="#91a5be" value={email} onChangeText={se} style={input}/>
-      {method==='Correo y contraseña'?<>
-        <TextInput accessibilityLabel="Contraseña de acceso" secureTextEntry autoCapitalize="none" placeholder={register?'Contraseña nueva (mínimo 12 caracteres)':'Contraseña'} placeholderTextColor="#91a5be" value={password} onChangeText={sp} style={input}/>
-        <Pressable onPress={()=>{sr(!register);smsg('');sp('')}}><Text style={{color:'#91adff'}}>{register?'Ya tengo cuenta':'Crear cuenta'}</Text></Pressable>
-        {!register&&<Pressable disabled={busy} onPress={resetPassword}><Text style={{color:'#91adff'}}>He olvidado mi contraseña</Text></Pressable>}
-        <Pressable accessibilityRole="button" disabled={busy||!email||password.length<(register?12:1)} style={[button,{backgroundColor:'#b42122'}]} onPress={submitPassword}><Text style={text}>{busy?'Procesando…':register?'Crear cuenta':'Entrar'}</Text></Pressable>
-      </>:<Pressable accessibilityRole="button" disabled={busy||!email} style={[button,{backgroundColor:'#b42122'}]} onPress={sendLink}><Text style={text}>{busy?'Enviando…':'Enviar enlace de un solo uso'}</Text></Pressable>}
-    </>}
-    {!!message&&<Text style={{color:'#ffc1c9',lineHeight:22}}>{message}</Text>}
+  const passwordMethod=method==='Correo y contraseña';
+  const passwordDisabled=busy||!email.trim()||password.length<(register?12:1);
+  const emailDisabled=busy||!email.trim();
+
+  return <View style={{gap:18}}>
+    <GoogleSignIn onSuccess={onSuccess}/>
+    <View style={{flexDirection:'row',alignItems:'center',gap:12}}>
+      <View style={{height:1,backgroundColor:'#53667f',flex:1}}/>
+      <Text style={{...text,color:'#b8c8dc',fontSize:14}}>O entra con tu correo</Text>
+      <View style={{height:1,backgroundColor:'#53667f',flex:1}}/>
+    </View>
+    <View accessibilityRole="tablist" style={{flexDirection:'row',gap:8}}>{[
+      ['Correo y contraseña','Con contraseña'],['Correo de un solo uso','Sin contraseña'],
+    ].map(([value,label])=><Pressable key={value} accessibilityRole="tab" accessibilityState={{selected:method===value,disabled:busy}} disabled={busy} onPress={()=>{sm(value);smsg('');sp('');sr(false)}} style={[secondary,{flex:1,paddingHorizontal:8,borderWidth:2},method===value&&{backgroundColor:'#1b2e69',borderColor:'#a8c2ff'},actionStyle(busy)]}><Text style={{...buttonText,fontSize:15}}>{label}</Text></Pressable>)}</View>
+    <Text accessibilityRole="header" style={{color:'#fff',fontSize:20,fontWeight:'700'}}>{passwordMethod?(register?'Crea tu cuenta de entrenador':'Entra con correo y contraseña'):'Recibe un enlace para entrar'}</Text>
+    {!passwordMethod&&<Text style={text}>Te enviaremos un enlace al correo que indiques. Ábrelo en este mismo dispositivo. No necesitas contraseña.</Text>}
+    <View style={{gap:8}}>
+      <Text style={{...text,fontWeight:'600'}}>Correo electrónico</Text>
+      <TextInput accessibilityLabel="Correo electrónico" editable={!busy} autoCapitalize="none" autoCorrect={false} autoComplete="email" keyboardType="email-address" placeholder="nombre@ejemplo.com" placeholderTextColor="#a8b9ce" value={email} onChangeText={se} style={input}/>
+    </View>
+    {passwordMethod?<>
+      <View style={{gap:8}}>
+        <Text style={{...text,fontWeight:'600'}}>{register?'Nueva contraseña':'Contraseña'}</Text>
+        <TextInput accessibilityLabel={register?'Nueva contraseña':'Contraseña'} editable={!busy} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete={register?'new-password':'current-password'} placeholder={register?'Mínimo 12 caracteres':'Escribe tu contraseña'} placeholderTextColor="#a8b9ce" value={password} onChangeText={sp} style={input}/>
+      </View>
+      <Pressable accessibilityRole="button" accessibilityState={{disabled:passwordDisabled,busy}} disabled={passwordDisabled} style={[button,actionStyle(passwordDisabled)]} onPress={submitPassword}><Text style={buttonText}>{busy?'Procesando…':register?'Crear mi cuenta':'Entrar a entrenadores'}</Text></Pressable>
+      {!register&&<Pressable accessibilityRole="button" accessibilityState={{disabled:emailDisabled}} disabled={emailDisabled} style={[secondary,actionStyle(emailDisabled)]} onPress={resetPassword}><Text style={buttonText}>Recuperar mi contraseña</Text></Pressable>}
+      {!register&&<Text style={{...text,fontSize:14,color:'#b8c8dc'}}>Para recuperar la contraseña, escribe primero tu correo.</Text>}
+      <View style={{gap:10,paddingTop:6}}>
+        <Text style={{...text,textAlign:'center'}}>{register?'¿Ya tienes una cuenta?':'¿Es la primera vez que entras?'}</Text>
+        <Pressable accessibilityRole="button" accessibilityState={{disabled:busy}} disabled={busy} style={[secondary,actionStyle(busy)]} onPress={()=>{sr(!register);smsg('');sp('')}}><Text style={buttonText}>{register?'Volver a iniciar sesión':'Crear una cuenta nueva'}</Text></Pressable>
+      </View>
+    </>:<Pressable accessibilityRole="button" accessibilityState={{disabled:emailDisabled,busy}} disabled={emailDisabled} style={[button,actionStyle(emailDisabled)]} onPress={sendLink}><Text style={buttonText}>{busy?'Enviando enlace…':'Enviar enlace a mi correo'}</Text></Pressable>}
+    {!!message&&<View accessibilityLiveRegion="polite" style={{padding:14,borderRadius:12,backgroundColor:'#302333',borderWidth:1,borderColor:'#ba8196'}}><Text style={{...text,color:'#ffe0e7'}}>{message}</Text></View>}
+    <Text style={{...text,fontSize:14,color:'#b8c8dc'}}>La sesión se guardará en este dispositivo. Si eres nuevo, el administrador del club debe aprobar tu acceso.</Text>
   </View>;
 }

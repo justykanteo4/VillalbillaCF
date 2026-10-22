@@ -17,9 +17,15 @@ importers:
       expo:
         specifier: ~55.0.31
         version: 55.0.31(@babel/core@7.29.7(supports-color@10.2.2))(@expo/dom-webview@55.0.6)(react-dom@19.2.0(react@19.2.0))(react-native-webview@13.17.0(react-native@0.83.10(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2))(react@19.2.0))(react-native@0.83.10(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2)
+      expo-asset:
+        specifier: ~55.0.20
+        version: 55.0.20(expo@55.0.31)(react-native@0.83.10(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2)
       expo-auth-session:
         specifier: ~55.0.19
         version: 55.0.19(expo@55.0.31)(react-native@0.83.10(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2)
+      expo-file-system:
+        specifier: ~55.0.26
+        version: 55.0.26(expo@55.0.31)(react-native@0.83.10(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2))
       expo-image-manipulator:
         specifier: ~55.0.21
         version: 55.0.21(expo@55.0.31)
@@ -29,6 +35,9 @@ importers:
       expo-secure-store:
         specifier: ~55.0.18
         version: 55.0.18(expo@55.0.31)
+      expo-sharing:
+        specifier: ~55.0.25
+        version: 55.0.25(expo@55.0.31)(react-native@0.83.10(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2)
       expo-status-bar:
         specifier: ~55.0.6
         version: 55.0.6(react-native@0.83.10(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2))(react@19.2.0)
@@ -796,6 +805,9 @@ packages:
 
   '@expo/config-plugins@55.0.11':
     resolution: {integrity: sha512-85ZSmIK8rMfvYbG/2IHtwnykVdb6LI0ZavduM3ZwUMThyyVegYjVsO5Zek2ec8xzPhCmYX0ar5onnFEcwUDUlw==}
+
+  '@expo/config-plugins@55.0.12':
+    resolution: {integrity: sha512-Z6KlUKqQDZaGU7jag1AaX2wCyFLvGwH/FTEjjIvLV0wTbrj1I91LhlVKYsI6BhUuzan0DOxvYBs9p88jGY5Lrw==}
 
   '@expo/config-types@55.0.6':
     resolution: {integrity: sha512-S+GJKYoIjnWlert/9vXuTohaTsMbyOLSVxdIgPgoq3P4N1p4CWrfyZLnz6qRug8wYSO5fcYcS9mFleyEP8wRLg==}
@@ -2161,6 +2173,13 @@ packages:
     resolution: {integrity: sha512-yuNHbxobUKCXWn9Z/H+lgYk6heXEFub6q1h8Yo9kCLxgL2afluWZ/YylbtxgHgmFwDVUmi6milQYfL+wwQMlzw==}
     engines: {node: '>=20.16.0'}
 
+  expo-sharing@55.0.25:
+    resolution: {integrity: sha512-DCbHXLbLChwwEc6vAyZkGVlzfJohXtcSR+Tf2qsczBtby0GS3cVqeBcH3UmJSG2ogJS18qLj2AYpn+iN/rpfNQ==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+      react-native: '*'
+
   expo-status-bar@55.0.6:
     resolution: {integrity: sha512-ijOUptfdiqYt7rObZ6jrPQ8sE5YN/8MxKCIJx0b7TY4nGkSJxhPIxeoW4GXcXCA8mTQ9PiOHH/ThLZgRVZvUlQ==}
     peerDependencies:
@@ -3446,6 +3465,10 @@ packages:
     resolution: {integrity: sha512-kCz5k7J7XbJtjABOvkc5lJmkiDh8VhjVCGNiqdKCscmVpdVUpEAyXv1xmCLkQJ5dsHqx3IPO4XW+NTDhU/fatA==}
     engines: {node: '>=10.0.0'}
 
+  xcode@4.0.0:
+    resolution: {integrity: sha512-dDaoWzc9EP2fp9FS9PVZUkyvFxY4y1TOV9pcKaKLk++Ei/qb97XDFEVP7GnW7Osii/TzVABJ0jq2F+9/lq0TVA==}
+    engines: {node: '>=14.17.0'}
+
   xml2js@0.6.0:
     resolution: {integrity: sha512-eLTh0kA8uHceqesPqSE+VvO1CDDJWMwlQfB6LuN6T8w6MaDJ8Txm8P7s5cHD0miF0V+GGTZrDQfxPZQVsur33w==}
     engines: {node: '>=4.0.0'}
@@ -4298,6 +4321,24 @@ snapshots:
       semver: 7.8.5
       slugify: 1.6.9
       xcode: 3.0.1
+      xml2js: 0.6.0
+    transitivePeerDependencies:
+      - supports-color
+
+  '@expo/config-plugins@55.0.12(supports-color@10.2.2)':
+    dependencies:
+      '@expo/config-types': 55.0.6
+      '@expo/json-file': 10.0.16
+      '@expo/plist': 0.5.4
+      '@expo/sdk-runtime-versions': 1.0.1
+      chalk: 4.1.2
+      debug: 4.4.3(supports-color@10.2.2)
+      getenv: 2.0.0
+      glob: 13.0.6
+      resolve-from: 5.0.0
+      semver: 7.8.5
+      slugify: 1.6.9
+      xcode: 4.0.0
       xml2js: 0.6.0
     transitivePeerDependencies:
       - supports-color
@@ -5940,6 +5981,17 @@ snapshots:
 
   expo-server@55.0.12: {}
 
+  expo-sharing@55.0.25(expo@55.0.31)(react-native@0.83.10(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2):
+    dependencies:
+      '@expo/config-plugins': 55.0.12(supports-color@10.2.2)
+      '@expo/config-types': 55.0.6
+      '@expo/plist': 0.5.4
+      expo: 55.0.31(@babel/core@7.29.7(supports-color@10.2.2))(@expo/dom-webview@55.0.6)(react-dom@19.2.0(react@19.2.0))(react-native-webview@13.17.0(react-native@0.83.10(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2))(react@19.2.0))(react-native@0.83.10(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2)
+      react: 19.2.0
+      react-native: 0.83.10(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2)
+    transitivePeerDependencies:
+      - supports-color
+
   expo-status-bar@55.0.6(react-native@0.83.10(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.0)(supports-color@10.2.2))(react@19.2.0):
     dependencies:
       react: 19.2.0
@@ -7378,6 +7430,10 @@ snapshots:
     dependencies:
       simple-plist: 1.3.1
       uuid: 7.0.3
+
+  xcode@4.0.0:
+    dependencies:
+      simple-plist: 1.3.1
 
   xml2js@0.6.0:
     dependencies:

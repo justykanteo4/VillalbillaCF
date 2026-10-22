@@ -5,3 +5,5 @@ allowBuilds:
   workerd: true
 minimumReleaseAgeExclude:
   - expo-auth-session@55.0.19
+  - '@expo/config-plugins@55.0.12'
+  - expo-sharing@55.0.25

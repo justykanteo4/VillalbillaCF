@@ -3,7 +3,7 @@
     "name": "VillalbillaCF",
     "slug": "villalbilla-cf",
     "icon": "./assets/app-icon-crest.png",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "ios": {
@@ -11,7 +11,7 @@
     },
     "android": {
       "package": "com.villalbilla.cf",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon-crest.png",
         "monochromeImage": "./assets/app-icon-crest.png",
@@ -36,6 +36,14 @@
         "projectId": "8aa9b217-1386-4b74-9a15-9e93d127030b"
       }
     },
-    "owner": "justykanteo4"
+    "owner": "justykanteo4",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8aa9b217-1386-4b74-9a15-9e93d127030b",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    }
   }
 }

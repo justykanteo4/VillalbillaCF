@@ -2,16 +2,18 @@
   "expo": {
     "name": "VillalbillaCF",
     "slug": "villalbilla-cf",
+    "scheme": "villalbilla-cf",
     "icon": "./assets/app-icon-crest.png",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.villalbilla.cf"
     },
     "android": {
       "package": "com.villalbilla.cf",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon-crest.png",
         "monochromeImage": "./assets/app-icon-crest.png",

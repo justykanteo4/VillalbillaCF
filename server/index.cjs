@@ -8,6 +8,7 @@ const {field}=require('./fields.cjs');
 const {weather}=require('./weather.cjs');
 const {getPlayers,teamRoster}=require('./players.cjs');
 const {playerMinutes}=require('./minutes.cjs');
+const {teamStaff}=require('./staff.cjs');
 const sessionStore=require('./sessions.cjs'),emailAuth=require('./email-auth.cjs');
 const root=path.resolve(__dirname,'../dist');
 function json(res,status,data){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data))}
@@ -23,6 +24,7 @@ const server=http.createServer(async(req,res)=>{try{
  if(u.pathname==='/api/players'&&req.method==='GET'){const data=await getPlayers(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/player-minutes'&&req.method==='GET'){const data=await playerMinutes(u.searchParams.get('team'),u.searchParams.get('player'));return json(res,data?200:404,data||{error:'Jugador no encontrado.'})}
  if(u.pathname==='/api/team-roster'&&req.method==='GET'){const data=await teamRoster(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
+ if(u.pathname==='/api/team-staff'&&req.method==='GET'){const data=await teamStaff(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/team-ranking'&&req.method==='GET'){const data=await getPlayers(u.searchParams.get('team'));if(!data)return json(res,404,{error:'Equipo no encontrado.'});let minutesError=false;let players=data.players.map(p=>({...p,minutes:null}));if(u.searchParams.get('metric')==='minutes'){try{const totals=await require('./minutes.cjs').teamMinutes(data);if(!totals.unsupported)players=players.map(p=>{if(p.minutesAllowed!==true)return p;let total=0,partial=false;for(const record of totals.records){if(record.error||record.minutes[p.id]===null)partial=true;else total+=record.minutes[p.id]??0}return {...p,minutes:total,minutesPartial:partial}})}catch{minutesError=true}}return json(res,200,{players,minutesError})}
  if(u.pathname==='/api/news'&&req.method==='GET')return json(res,200,await refreshNews());
  if(u.pathname==='/api/instagram'&&req.method==='GET')return json(res,200,await instagram());

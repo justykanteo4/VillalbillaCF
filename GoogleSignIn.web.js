@@ -1,4 +1,16 @@
-import React,{useEffect,useRef,useState} from 'react';
-import {View,Text} from 'react-native';
-import {api} from './api';
-export default function GoogleSignIn({onSuccess}){const container=useRef(null),[message,setMessage]=useState('Preparando acceso con Google…');useEffect(()=>{let active=true;async function setup(){try{const config=await api('/api/auth/config');if(!config.configured){setMessage('El acceso con Google está preparado. Falta conectar el proyecto de Google del club para activarlo.');return}const {nonce}=await api('/api/auth/challenge',{method:'POST'});if(!window.google?.accounts?.id)await new Promise((resolve,reject)=>{const existing=document.querySelector('script[data-google-villalbilla]');if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return}const script=document.createElement('script');script.src='https://accounts.google.com/gsi/client';script.dataset.googleVillalbilla='1';script.onload=resolve;script.onerror=reject;document.head.appendChild(script)});if(!active)return;window.google.accounts.id.initialize({client_id:config.clientId,nonce,callback:async r=>{try{const d=await api('/api/auth/google',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:r.credential,nonce})});if(active)onSuccess(d.token)}catch(e){if(active)setMessage(e.message)}}});window.google.accounts.id.renderButton(container.current,{theme:'outline',size:'large',text:'continue_with',shape:'pill',width:260});setMessage('')}catch{if(active)setMessage('No se pudo preparar Google. Recarga la página para intentarlo de nuevo.')}}setup();return()=>{active=false}},[]);return <View style={{gap:14}}><div ref={container}/>{!!message&&<Text style={{color:'#aab8cb',lineHeight:22}}>{message}</Text>}</View>}
+import React,{useState} from 'react';
+import {Pressable,Text,View} from 'react-native';
+import {GoogleAuthProvider,signInWithPopup} from 'firebase/auth';
+import {auth} from './firebase';
+
+export default function GoogleSignIn({onSuccess}){
+  const [error,setError]=useState(''),[busy,setBusy]=useState(false);
+  async function login(){
+    if(!auth){setError('Firebase todavía no está conectado.');return;}
+    setBusy(true);setError('');
+    try{const result=await signInWithPopup(auth,new GoogleAuthProvider());onSuccess(result.user);}
+    catch(e){setError(e.code==='auth/popup-closed-by-user'?'Se cerró el inicio de sesión. Inténtalo otra vez.':e.message||'No se pudo iniciar sesión con Google.');}
+    finally{setBusy(false)}
+  }
+  return <View style={{gap:12}}><Pressable accessibilityRole="button" disabled={busy} onPress={login} style={{padding:14,borderRadius:12,backgroundColor:'#c52321',alignItems:'center'}}><Text style={{color:'#fff',fontWeight:'700'}}>{busy?'Abriendo Google…':'Continuar con Google'}</Text></Pressable>{!!error&&<Text style={{color:'#ffc1c9',lineHeight:22}}>{error}</Text>}</View>;
+}

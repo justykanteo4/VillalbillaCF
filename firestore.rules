@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.email == 'albaresfernandez@gmail.com';
+    }
+
+    function approvedFor(teamId) {
+      let path = /databases/$(database)/documents/trainerProfiles/$(request.auth.uid);
+      return signedIn() && exists(path)
+        && get(path).data.status == 'approved'
+        && get(path).data.claim.teamId == teamId;
+    }
+
+    match /trainerProfiles/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.status == 'unassigned'
+        && request.resource.data.claim == null;
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.status == 'pending'
+        && request.resource.data.claim is map
+        && request.resource.data.claim.teamId is string
+        && request.resource.data.claim.name is string
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['claim', 'status', 'updatedAt']));
+      allow delete: if false;
+    }
+
+    match /teamWorkspaces/{teamId} {
+      allow read, write: if isAdmin() || approvedFor(teamId);
+    }
+  }
+}

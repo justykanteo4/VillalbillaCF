@@ -7,6 +7,7 @@ import fields from './server/fields.cjs';
 import weather from './server/weather.cjs';
 import players from './server/players.cjs';
 import minutes from './server/minutes.cjs';
+import staff from './server/staff.cjs';
 
 const json = (value, status = 200, origin = '*', maxAge = 0) => new Response(JSON.stringify(value), {
   status,
@@ -53,6 +54,10 @@ async function data(request, env) {
   }
   if (url.pathname === '/api/team-roster') {
     const result = await players.teamRoster(p.get('team'));
+    return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
+  }
+  if (url.pathname === '/api/team-staff') {
+    const result = await staff.teamStaff(p.get('team'));
     return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/team-ranking') {

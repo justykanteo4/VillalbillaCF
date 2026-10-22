@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
-import {Animated,PanResponder,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
+import {Animated,Modal,PanResponder,Platform,Pressable,ScrollView,Share,StyleSheet,Text,TextInput,View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import seed from './players-seed.json';
 import teams from './teams.json';
@@ -9,17 +9,17 @@ const ELEVEN={
   '4-4-2':[[50,90],[13,75],[38,75],[62,75],[87,75],[13,54],[38,54],[62,54],[87,54],[35,29],[65,29]],
   '4-2-3-1':[[50,90],[13,75],[38,75],[62,75],[87,75],[37,58],[63,58],[18,41],[50,39],[82,41],[50,22]],
 };
-const SEVEN={
-  '2-3-1':[[50,90],[31,73],[69,73],[17,51],[50,55],[83,51],[50,27]],
-  '3-2-1':[[50,90],[18,73],[50,76],[82,73],[35,52],[65,52],[50,27]],
-};
-const colors={panel:'#151f2d',dark:'#0b121d',line:'#d9eee0',text:'#edf3fa',muted:'#aab8cb',blue:'#91adff',red:'#c52321',border:'#34475e'};
+const SEVEN={'2-3-1':[[50,90],[31,73],[69,73],[17,51],[50,55],[83,51],[50,27]],'3-2-1':[[50,90],[18,73],[50,76],[82,73],[35,52],[65,52],[50,27]]};
+const colors={panel:'#151f2d',dark:'#0b121d',line:'#e2f0df',text:'#edf3fa',muted:'#aab8cb',blue:'#91adff',red:'#c52321',border:'#34475e'};
 const defaultFormation=id=>String(teams.find(team=>team.id===id)?.gameType)==='2'?'2-3-1':'4-3-3';
 const formationMap=isSeven=>isSeven?SEVEN:ELEVEN;
-const slotPoint=point=>Array.isArray(point)?{x:point[0],y:point[1]}:point;
-const emptyPlan=(teamId)=>({id:'plan-default',name:'Nuevo partido',formation:defaultFormation(teamId),starters:[],positions:{}});
+const pointOf=point=>Array.isArray(point)?{x:point[0],y:point[1]}:point;
+const emptyPlan=teamId=>({id:'plan-default',name:'Nuevo partido',formation:defaultFormation(teamId),starters:[],positions:{}});
 const shirtNumber=p=>{const n=parseInt(p.number,10);return Number.isFinite(n)?n:999};
-function normalized(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
+const normalized=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function playerPosition(player,manual){return manual[player.id]||player.position||''}
+function positionRank(value){const v=normalized(value);if(/portero|guardameta/.test(v))return 0;if(/defens|central|lateral|carriler|libero/.test(v))return 1;if(/medio|medioc|centrocamp|mediapunta|pivote|interior|volante/.test(v))return 2;if(/delanter|extremo|punta|atacante/.test(v))return 3;return 4}
+function slotPosition(y){if(y>=84)return 'Portero';if(y>=65)return 'Defensa';if(y>=39)return 'Mediocentro';return 'Delantero'}
 
 function PlayerBadge({player,photo,compact=false}){
   return <View style={[styles.badge,compact&&styles.badgeCompact]}>
@@ -29,125 +29,107 @@ function PlayerBadge({player,photo,compact=false}){
   </View>;
 }
 
-function DraggablePlayer({player,photo,onDrop,children,style,compact=false}){
-  const drag=useRef(new Animated.ValueXY()).current;
-  const dropRef=useRef(onDrop);dropRef.current=onDrop;
+function DraggablePlayer({player,photo,onDrop,onPress,children,style,compact=false}){
+  const drag=useRef(new Animated.ValueXY()).current,dropRef=useRef(onDrop);dropRef.current=onDrop;
   const pan=useMemo(()=>PanResponder.create({
     onStartShouldSetPanResponder:()=>false,
-    onMoveShouldSetPanResponder:(_,g)=>Math.abs(g.dx)+Math.abs(g.dy)>8,
+    onMoveShouldSetPanResponder:(_,g)=>Math.abs(g.dx)+Math.abs(g.dy)>7,
     onPanResponderGrant:()=>drag.setOffset({x:drag.x._value,y:drag.y._value}),
     onPanResponderMove:Animated.event([null,{dx:drag.x,dy:drag.y}],{useNativeDriver:false}),
     onPanResponderRelease:(_,g)=>{drag.flattenOffset();dropRef.current?.(player,g.moveX,g.moveY);Animated.spring(drag,{toValue:{x:0,y:0},useNativeDriver:true,speed:24,bounciness:3}).start()},
     onPanResponderTerminate:()=>{drag.flattenOffset();Animated.spring(drag,{toValue:{x:0,y:0},useNativeDriver:true}).start()},
   }),[drag,player]);
-  return <Animated.View {...pan.panHandlers} style={[style,{transform:[{translateX:drag.x},{translateY:drag.y}]}]}>
-    {children||<PlayerBadge player={player} photo={photo} compact={compact}/>}
-  </Animated.View>;
+  return <Animated.View {...pan.panHandlers} style={[style,{transform:[{translateX:drag.x},{translateY:drag.y}]}]}>{onPress?<Pressable accessibilityRole="button" accessibilityLabel={'Elegir jugador para cambiar '+player.name} onPress={onPress}>{children||<PlayerBadge player={player} photo={photo} compact={compact}/>}</Pressable>:children||<PlayerBadge player={player} photo={photo} compact={compact}/>}</Animated.View>;
 }
 
 export default function LineupSimulator({teamId,players=[],lineups=[],onChange}){
-  const isSeven=String(teams.find(team=>team.id===teamId)?.gameType)==='2';
-  const formations=formationMap(isSeven),maxPlayers=isSeven?7:11;
+  const isSeven=String(teams.find(team=>team.id===teamId)?.gameType)==='2',formations=formationMap(isSeven),maxPlayers=isSeven?7:11;
   const seeded=seed.teams.find(team=>team.id===teamId)?.players||[];
   const roster=useMemo(()=>{
-    const merged=seeded.map(p=>{
-      const live=players.find(row=>String(row.federationId||row.id)===String(p.id)||normalized(row.name)===normalized(p.name));
-      return {...p,...(live||{}),id:String(p.id),name:live?.name||p.name,number:p.number??live?.number??null};
-    });
+    const merged=seeded.map(p=>{const live=players.find(row=>String(row.federationId||row.id)===String(p.id)||normalized(row.name)===normalized(p.name));return {...p,...(live||{}),id:String(p.id),name:live?.name||p.name,number:p.number??live?.number??null}});
     for(const p of players){const key=String(p.federationId||p.id);if(!merged.some(item=>item.id===key||normalized(item.name)===normalized(p.name)))merged.push({...p,id:key,number:p.number??null})}
-    return merged.sort((a,b)=>shirtNumber(a)-shirtNumber(b)||a.name.localeCompare(b.name,'es'));
+    return merged;
   },[teamId,players]);
-  const [photos,setPhotos]=useState({}),[activeId,setActiveId]=useState(lineups[0]?.id||'plan-default'),[layout,setLayout]=useState(null),[error,setError]=useState(''),[picker,setPicker]=useState(false);
-  const fieldRef=useRef(null),fieldRect=useRef(null);
-  const plans=lineups.length?lineups:[emptyPlan(teamId)];
-  const activePlan=plans.find(item=>item.id===activeId)||plans[0];
-  const slots=formations[activePlan.formation]||Object.values(formations)[0];
-  const placed=new Set(activePlan.starters||[]);
-  const available=roster.filter(p=>!placed.has(p.id));
+  const [photos,setPhotos]=useState({}),[manualPositions,setManualPositions]=useState({}),[activeId,setActiveId]=useState(lineups[0]?.id||'plan-default'),[error,setError]=useState(''),[planPicker,setPlanPicker]=useState(false),[slotPicker,setSlotPicker]=useState(null),[fullScreen,setFullScreen]=useState(false),[camera,setCamera]=useState({rotate:0,tilt:47,x:0,y:0});
+  const normalField=useRef(null),fullField=useRef(null),fieldRect=useRef(null);
+  const plans=lineups.length?lineups:[emptyPlan(teamId)],activePlan=plans.find(item=>item.id===activeId)||plans[0],slots=formations[activePlan.formation]||Object.values(formations)[0],starters=activePlan.starters||[],placed=new Set(starters);
+  const orderedRoster=useMemo(()=>roster.slice().sort((a,b)=>positionRank(playerPosition(a,manualPositions))-positionRank(playerPosition(b,manualPositions))||shirtNumber(a)-shirtNumber(b)||a.name.localeCompare(b.name,'es')),[roster,manualPositions]);
+  const available=orderedRoster.filter(player=>!placed.has(player.id));
 
-  useEffect(()=>{let active=true;setPhotos({});AsyncStorage.getItem('villalbilla.player-photos.'+teamId).then(raw=>{if(active&&raw)setPhotos(JSON.parse(raw))}).catch(()=>{if(active)setError('No se pudieron cargar las fotos guardadas.')});return()=>{active=false}},[teamId]);
-  useEffect(()=>{fieldRef.current?.measureInWindow((x,y,width,height)=>{if(width&&height)fieldRect.current={x,y,width,height}})},[layout,teamId]);
+  useEffect(()=>{let active=true;setPhotos({});setManualPositions({});Promise.all([AsyncStorage.getItem('villalbilla.player-photos.'+teamId),AsyncStorage.getItem('villalbilla.manual-positions.'+teamId)]).then(([rawPhotos,rawPositions])=>{if(!active)return;if(rawPhotos)setPhotos(JSON.parse(rawPhotos));if(rawPositions)setManualPositions(JSON.parse(rawPositions))}).catch(()=>{if(active)setError('No se pudieron cargar las fotos o posiciones guardadas.')});return()=>{active=false}},[teamId]);
+  useEffect(()=>{const ref=fullScreen?fullField.current:normalField.current;ref?.measureInWindow((x,y,width,height)=>{if(width&&height)fieldRect.current={x,y,width,height}})},[fullScreen,teamId,activePlan.formation]);
 
-  function updatePlan(patch){
-    const base=plans;
-    const next=base.map(item=>item.id===activePlan.id?{...item,...patch}:item);
-    setError('');onChange?.(next);
-  }
+  function updatePlan(patch){const next=plans.map(item=>item.id===activePlan.id?{...item,...patch}:item);setError('');onChange?.(next)}
   function receiveDrop(player,screenX,screenY){
     const rect=fieldRect.current;if(!rect)return;
     const inside=screenX>=rect.x&&screenX<=rect.x+rect.width&&screenY>=rect.y&&screenY<=rect.y+rect.height;
-    let starters=[...(activePlan.starters||[])],positions={...(activePlan.positions||{})};
-    if(inside){
-      if(!starters.includes(player.id)&&starters.length>=maxPlayers){setError('El campo admite '+maxPlayers+' jugadores en esta modalidad.');return}
-      if(!starters.includes(player.id))starters.push(player.id);
-      positions[player.id]={x:Math.max(7,Math.min(93,((screenX-rect.x)/rect.width)*100)),y:Math.max(8,Math.min(92,((screenY-rect.y)/rect.height)*100))};
-    }else if(starters.includes(player.id)){
-      starters=starters.filter(id=>id!==player.id);delete positions[player.id];
-    }else return;
-    updatePlan({starters,positions});
+    const nextStarters=[...starters],positions={...(activePlan.positions||{})};
+    if(inside){if(!nextStarters.includes(player.id)&&nextStarters.length>=maxPlayers){setError('El campo admite '+maxPlayers+' jugadores en esta modalidad.');return}if(!nextStarters.includes(player.id))nextStarters.push(player.id);positions[player.id]={x:Math.max(8,Math.min(92,((screenX-rect.x)/rect.width)*100)),y:Math.max(8,Math.min(92,((screenY-rect.y)/rect.height)*100))}}
+    else if(nextStarters.includes(player.id)){nextStarters.splice(nextStarters.indexOf(player.id),1);delete positions[player.id]}else return;
+    updatePlan({starters:nextStarters,positions});
   }
-  function addPlayer(player){
-    if((activePlan.starters||[]).length>=maxPlayers){setError('El campo admite '+maxPlayers+' jugadores en esta modalidad.');return}
-    const index=(activePlan.starters||[]).length;
-    updatePlan({starters:[...(activePlan.starters||[]),player.id],positions:{...(activePlan.positions||{}),[player.id]:slotPoint(slots[index]||[50,50])}});
-  }
-  function autoFill(){
-    const candidates=[...roster].sort((a,b)=>((/portero/i.test(a.position||'')?0:1)-(/portero/i.test(b.position||'')?0:1))||shirtNumber(a)-shirtNumber(b));
-    const starters=candidates.slice(0,maxPlayers).map(p=>p.id);
-    const positions=Object.fromEntries(starters.map((id,index)=>[id,slotPoint(slots[index])]));
-    updatePlan({starters,positions});
-  }
+  function addPlayer(player){if(starters.length>=maxPlayers){setError('El campo admite '+maxPlayers+' jugadores en esta modalidad.');return}const index=starters.length;updatePlan({starters:[...starters,player.id],positions:{...(activePlan.positions||{}),[player.id]:pointOf(slots[index]||[50,50])}})}
+  function autoFill(){const candidates=orderedRoster.slice().sort((a,b)=>positionRank(playerPosition(a,manualPositions))-positionRank(playerPosition(b,manualPositions))||shirtNumber(a)-shirtNumber(b));const selected=candidates.slice(0,maxPlayers),positions=Object.fromEntries(selected.map((p,index)=>[p.id,pointOf(slots[index])]));updatePlan({starters:selected.map(p=>p.id),positions})}
   function clearField(){updatePlan({starters:[],positions:{}})}
-  function changeFormation(value){
-    const nextSlots=formations[value],starters=activePlan.starters||[];
-    const positions=Object.fromEntries(starters.map((id,index)=>[id,slotPoint(nextSlots[index]||slots[index]||[50,50])]));
-    updatePlan({formation:value,positions});
+  function changeFormation(value){const nextSlots=formations[value],positions=Object.fromEntries(starters.map((id,index)=>[id,pointOf(nextSlots[index]||slots[index]||[50,50])]));updatePlan({formation:value,positions})}
+  function choosePlayer(player){const {index}=slotPicker;if(!Number.isInteger(index))return;const target=pointOf(slots[index]||[50,50]),positions={...(activePlan.positions||{})},nextStarters=[...starters];const occupant=starters.find(id=>id!==player.id&&Math.hypot((positions[id]?.x??-100)-target.x,(positions[id]?.y??-100)-target.y)<8);if(occupant){nextStarters.splice(nextStarters.indexOf(occupant),1);delete positions[occupant]}if(!nextStarters.includes(player.id)){if(nextStarters.length>=maxPlayers){setError('El campo admite '+maxPlayers+' jugadores en esta modalidad.');return}nextStarters.push(player.id)}positions[player.id]=target;setSlotPicker(null);updatePlan({starters:nextStarters,positions})}
+  function addPlan(){const id='plan-'+Date.now().toString(36),next=[...plans,{id,name:'Partido '+(plans.length+1),formation:defaultFormation(teamId),starters:[],positions:{}}];setActiveId(id);setPlanPicker(false);setError('');onChange?.(next)}
+  function removePlan(){if(plans.length<=1)return;const next=plans.filter(item=>item.id!==activePlan.id);setActiveId(next[0].id);onChange?.(next);setError('')}
+  function exportLineup(){
+    const placedPlayers=starters.map(id=>roster.find(player=>player.id===id)).filter(Boolean),filename=(activePlan.name||'alineacion').trim().replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+    if(Platform.OS==='web'&&typeof document!=='undefined'){
+      const width=700,height=1000,escape=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[char]));
+      const badges=placedPlayers.map(player=>{const p=pointOf(activePlan.positions?.[player.id]||slots[starters.indexOf(player.id)]||[50,50]),x=p.x/100*width,y=p.y/100*height,name=escape(player.name),number=escape(player.number??'—'),photo=photos[player.id];return `<g transform="translate(${x},${y})"><circle r="36" fill="#14243a" stroke="#f5f4df" stroke-width="4"/>${photo?`<image href="${photo}" x="-30" y="-30" width="60" height="60" clip-path="url(#clip)" preserveAspectRatio="xMidYMid slice"/>`:`<text text-anchor="middle" y="8" fill="white" font-size="25" font-weight="700">${escape(name.charAt(0))}</text>`}<rect x="18" y="-40" width="32" height="23" rx="11" fill="#c52321"/><text x="34" y="-24" fill="white" text-anchor="middle" font-size="13" font-weight="700">${number}</text><text text-anchor="middle" y="53" fill="white" font-size="15" font-weight="700" stroke="#0b121d" stroke-width="3" paint-order="stroke">${name}</text></g>`}).join('');
+      const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs><clipPath id="clip" clipPathUnits="userSpaceOnUse"><circle cx="0" cy="0" r="30"/></clipPath></defs><rect width="100%" height="100%" rx="24" fill="#197348"/><rect x="20" y="20" width="660" height="960" fill="none" stroke="#e2f0df" stroke-width="4"/><path d="M20 500H680M20 130H680V20M20 870H680V980" fill="none" stroke="#e2f0df" stroke-width="4"/><circle cx="350" cy="500" r="100" fill="none" stroke="#e2f0df" stroke-width="4"/><circle cx="350" cy="500" r="5" fill="#e2f0df"/>${badges}<text x="350" y="995" text-anchor="middle" fill="white" font-size="17">${escape(activePlan.name||'Alineación')} · ${escape(activePlan.formation)}</text></svg>`;
+      const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'})),anchor=document.createElement('a');anchor.href=url;anchor.download=(filename||'alineacion')+'.svg';anchor.click();URL.revokeObjectURL(url);return;
+    }
+    const message=[(activePlan.name||'Alineación')+' · '+activePlan.formation,...placedPlayers.map(player=>`${player.number??'—'} · ${player.name} · ${playerPosition(player,manualPositions)||'Sin posición'}`)].join('\n');Share.share({title:'Alineación '+(activePlan.name||''),message}).catch(()=>setError('No se pudo compartir la alineación.'));
   }
-  function addPlan(){
-    const id='plan-'+Date.now().toString(36),next=[...plans,{id,name:'Partido '+(plans.length+1),formation:defaultFormation(teamId),starters:[],positions:{}}];
-    setActiveId(id);setPicker(false);setError('');onChange?.(next);
+
+  function pitch(full=false){
+    const ref=full?fullField:normalField;
+    return <View ref={ref} collapsable={false} onLayout={event=>{const {x,y,width,height}=event.nativeEvent.layout;if(full&&width&&height){ref.current?.measureInWindow((sx,sy,sw,sh)=>{if(sw&&sh)fieldRect.current={x:sx,y:sy,width:sw,height:sh}})}else if(width&&height)ref.current?.measureInWindow((sx,sy,sw,sh)=>{if(sw&&sh)fieldRect.current={x:sx,y:sy,width:sw,height:sh}})}} style={[styles.field,full&&styles.fieldFull]}>
+      <View pointerEvents="none" style={styles.fieldBorder}/><View pointerEvents="none" style={styles.halfLine}/><View pointerEvents="none" style={styles.centerCircle}/><View pointerEvents="none" style={styles.centerSpot}/>
+      <View pointerEvents="none" style={[styles.box,styles.topBox]}/><View pointerEvents="none" style={[styles.smallBox,styles.topSmallBox]}/><View pointerEvents="none" style={[styles.box,styles.bottomBox]}/><View pointerEvents="none" style={[styles.smallBox,styles.bottomSmallBox]}/>
+      {slots.map((raw,index)=>{const pt=pointOf(raw),role=slotPosition(pt.y);return <Pressable key={'slot-'+index} accessibilityRole="button" accessibilityLabel={'Elegir '+role+' para esta posición'} onPress={()=>setSlotPicker({index,position:role})} style={[styles.targetTouch,{left:pt.x+'%',top:pt.y+'%'}]}><View style={styles.targetDot}/></Pressable>})}
+      {starters.map(id=>{const player=roster.find(row=>row.id===id);if(!player)return null;const pt=pointOf(activePlan.positions?.[id]||slots[starters.indexOf(id)]||[50,50]),slotIndex=slots.reduce((best,raw,index)=>{const slot=pointOf(raw),old=pointOf(slots[best]||raw);return Math.hypot(slot.x-pt.x,slot.y-pt.y)<Math.hypot(old.x-pt.x,old.y-pt.y)?index:best},0);return <DraggablePlayer key={id} player={player} photo={photos[id]} onDrop={receiveDrop} onPress={()=>setSlotPicker({index:slotIndex,position:slotPosition(pointOf(slots[slotIndex]).y)})} compact style={[styles.fieldPlayer,{left:pt.x+'%',top:pt.y+'%'}]}><PlayerBadge player={player} photo={photos[id]} compact/></DraggablePlayer>})}
+      {!starters.length&&<View pointerEvents="none" style={styles.fieldHint}><Text style={styles.hintTitle}>Toca un punto o arrastra aquí</Text><Text style={styles.hintText}>Elige jugadores por posición</Text></View>}
+    </View>;
   }
-  function renamePlan(name){updatePlan({name})}
-  function removePlan(){
-    if(plans.length<=1)return;
-    const next=plans.filter(item=>item.id!==activePlan.id);setActiveId(next[0].id);onChange?.(next);setError('');
-  }
+  const filteredForSlot=slotPicker?orderedRoster.filter(player=>positionRank(playerPosition(player,manualPositions))===positionRank(slotPicker.position)) :[];
+  const viewTransform=fullScreen?[{perspective:900},{rotateX:`${camera.tilt}deg`},{rotateZ:`${camera.rotate}deg`},{translateX:camera.x},{translateY:camera.y}]:undefined;
+  const cameraButton=(label,action)=> <Pressable accessibilityRole="button" onPress={action} style={styles.cameraButton}><Text style={styles.secondaryText}>{label}</Text></Pressable>;
 
   return <View style={styles.root}>
     <Text style={styles.title}>Simulador de alineación</Text>
-    <Text style={styles.muted}>Organiza el once inicial de cada partido. Arrastra las fichas al campo y muévelas a la posición que quieras. Se guarda con el vestuario del equipo.</Text>
-    <View style={styles.planBar}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Elegir alineación" onPress={()=>setPicker(!picker)} style={styles.planSelect}><Text numberOfLines={1} style={styles.planSelectText}>⚽ {activePlan.name||'Partido'}　⌄</Text></Pressable>
-      <Pressable accessibilityRole="button" onPress={addPlan} style={styles.action}><Text style={styles.actionText}>＋ Partido</Text></Pressable>
-    </View>
-    {picker&&<View style={styles.planList}>{plans.map(plan=><Pressable key={plan.id} accessibilityRole="button" onPress={()=>{setActiveId(plan.id);setPicker(false);setError('')}} style={[styles.planOption,plan.id===activePlan.id&&styles.planOptionActive]}><Text style={styles.planOptionText}>{plan.name||'Partido'}</Text></Pressable>)}</View>}
-    <TextInput accessibilityLabel="Nombre del partido" value={activePlan.name||''} onChangeText={renamePlan} placeholder="Rival o nombre del partido" placeholderTextColor="#91a5be" style={styles.input}/>
+    <Text style={styles.muted}>Ordena los jugadores por posición. Arrástralos al campo o toca un círculo para elegir el jugador de ese puesto. Guarda la alineación con el vestuario del equipo.</Text>
+    <View style={styles.planBar}><Pressable accessibilityRole="button" accessibilityLabel="Elegir alineación" onPress={()=>setPlanPicker(!planPicker)} style={styles.planSelect}><Text numberOfLines={1} style={styles.planSelectText}>⚽ {activePlan.name||'Partido'}　⌄</Text></Pressable><Pressable accessibilityRole="button" onPress={addPlan} style={styles.action}><Text style={styles.actionText}>＋ Partido</Text></Pressable></View>
+    {planPicker&&<View style={styles.planList}>{plans.map(plan=><Pressable key={plan.id} accessibilityRole="button" onPress={()=>{setActiveId(plan.id);setPlanPicker(false);setError('')}} style={[styles.planOption,plan.id===activePlan.id&&styles.planOptionActive]}><Text style={styles.planOptionText}>{plan.name||'Partido'}</Text></Pressable>)}</View>}
+    <TextInput accessibilityLabel="Nombre del partido" value={activePlan.name||''} onChangeText={name=>updatePlan({name})} placeholder="Rival o nombre del partido" placeholderTextColor="#91a5be" style={styles.input}/>
     <View style={styles.formationRow}><Text style={styles.sectionTitle}>Sistema</Text>{Object.keys(formations).map(formation=><Pressable key={formation} accessibilityRole="button" accessibilityState={{selected:activePlan.formation===formation}} onPress={()=>changeFormation(formation)} style={[styles.formation,activePlan.formation===formation&&styles.formationActive]}><Text style={styles.formationText}>{formation}</Text></Pressable>)}</View>
-    <View style={styles.counterRow}><Text style={styles.sectionTitle}>{isSeven?'Siete inicial':'Once inicial'}</Text><Text style={styles.counter}>{activePlan.starters?.length||0} / {maxPlayers}</Text></View>
-    <View ref={fieldRef} collapsable={false} onLayout={event=>setLayout(event.nativeEvent.layout)} style={styles.field}>
-      <View pointerEvents="none" style={styles.fieldBorder}/>
-      <View pointerEvents="none" style={styles.halfLine}/><View pointerEvents="none" style={styles.centerCircle}/><View pointerEvents="none" style={styles.centerSpot}/>
-      <View pointerEvents="none" style={[styles.box,styles.topBox]}/><View pointerEvents="none" style={[styles.smallBox,styles.topSmallBox]}/><View pointerEvents="none" style={[styles.box,styles.bottomBox]}/><View pointerEvents="none" style={[styles.smallBox,styles.bottomSmallBox]}/>
-      {slots.map(([x,y],i)=><View pointerEvents="none" key={i} style={[styles.targetDot,{left:x+'%',top:y+'%'}]}/>)}
-      {(activePlan.starters||[]).map(id=>{
-        const player=roster.find(row=>row.id===id);if(!player)return null;
-        const point=slotPoint(activePlan.positions?.[id]||slots[(activePlan.starters||[]).indexOf(id)]||[50,50]);
-        return <DraggablePlayer key={id} player={player} photo={photos[id]} onDrop={receiveDrop} compact style={[styles.fieldPlayer,{left:point.x+'%',top:point.y+'%'}]}><PlayerBadge player={player} photo={photos[id]} compact/></DraggablePlayer>;
-      })}
-      {!activePlan.starters?.length&&<View pointerEvents="none" style={styles.fieldHint}><Text style={styles.hintTitle}>Arrastra aquí a tus jugadores</Text><Text style={styles.hintText}>También puedes usar «Colocar» en la lista</Text></View>}
-    </View>
+    <View style={styles.counterRow}><Text style={styles.sectionTitle}>{isSeven?'Siete inicial':'Once inicial'}</Text><Text style={styles.counter}>{starters.length} / {maxPlayers}</Text></View>
+    <View style={styles.fieldFrame}>{pitch(false)}</View>
     {!!error&&<Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-    <View style={styles.toolbar}><Pressable accessibilityRole="button" onPress={autoFill} style={styles.action}><Text style={styles.actionText}>Completar por dorsal</Text></Pressable><Pressable accessibilityRole="button" onPress={clearField} style={styles.secondary}><Text style={styles.secondaryText}>Vaciar campo</Text></Pressable>{plans.length>1&&<Pressable accessibilityRole="button" onPress={removePlan} style={styles.secondary}><Text style={styles.secondaryText}>Eliminar partido</Text></Pressable>}</View>
-    <Text style={styles.sectionTitle}>Plantilla · arrastra o coloca</Text>
+    <View style={styles.toolbar}><Pressable accessibilityRole="button" onPress={autoFill} style={styles.action}><Text style={styles.actionText}>Completar alineación</Text></Pressable><Pressable accessibilityRole="button" onPress={()=>{setFullScreen(true);setCamera({rotate:0,tilt:47,x:0,y:0})}} style={styles.secondary}><Text style={styles.secondaryText}>⛶ Pantalla completa 3D</Text></Pressable><Pressable accessibilityRole="button" onPress={exportLineup} style={styles.secondary}><Text style={styles.secondaryText}>⇧ Exportar</Text></Pressable><Pressable accessibilityRole="button" onPress={clearField} style={styles.secondary}><Text style={styles.secondaryText}>Vaciar campo</Text></Pressable>{plans.length>1&&<Pressable accessibilityRole="button" onPress={removePlan} style={styles.secondary}><Text style={styles.secondaryText}>Eliminar partido</Text></Pressable>}</View>
+    <Text style={styles.sectionTitle}>Jugadores · por posición y dorsal</Text>
     {!available.length&&<Text style={styles.muted}>Todos los jugadores de la plantilla están en el campo.</Text>}
     <ScrollView style={styles.rosterList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-      {available.map(player=><DraggablePlayer key={player.id} player={player} photo={photos[player.id]} onDrop={receiveDrop} style={styles.rosterRow}>
-        <View style={styles.rosterContent}><PlayerBadge player={player} photo={photos[player.id]} compact/><Pressable accessibilityRole="button" accessibilityLabel={'Colocar a '+player.name} onPress={()=>addPlayer(player)} style={styles.addButton}><Text style={styles.addButtonText}>Colocar</Text></Pressable></View>
-      </DraggablePlayer>)}
-      {(activePlan.starters||[]).map(id=>{const player=roster.find(row=>row.id===id);if(!player)return null;return <View key={id} style={[styles.rosterRow,styles.rosterChosen]}><View style={styles.rosterContent}><PlayerBadge player={player} photo={photos[id]} compact/><Pressable accessibilityRole="button" accessibilityLabel={'Quitar a '+player.name+' del campo'} onPress={()=>{const starters=activePlan.starters.filter(item=>item!==id),positions={...activePlan.positions};delete positions[id];updatePlan({starters,positions})}} style={styles.removeButton}><Text style={styles.removeText}>Quitar</Text></Pressable></View></View>})}
+      {available.map((player,index)=>{const pos=playerPosition(player,manualPositions)||'Sin posición asignada',previous=index?playerPosition(available[index-1],manualPositions)||'Sin posición asignada':null;return <React.Fragment key={player.id}>{pos!==previous&&<Text style={styles.groupTitle}>{pos.toUpperCase()}</Text>}<DraggablePlayer player={player} photo={photos[player.id]} onDrop={receiveDrop} style={styles.rosterRow}><View style={styles.rosterContent}><PlayerBadge player={player} photo={photos[player.id]} compact/><View style={styles.playerMeta}><Text style={styles.metaText}>#{player.number??'—'} · {pos}</Text></View><Pressable accessibilityRole="button" accessibilityLabel={'Colocar a '+player.name} onPress={()=>addPlayer(player)} style={styles.addButton}><Text style={styles.addButtonText}>Colocar</Text></Pressable></View></DraggablePlayer></React.Fragment>})}
+      {starters.map(id=>{const player=roster.find(row=>row.id===id);if(!player)return null;return <View key={id} style={[styles.rosterRow,styles.rosterChosen]}><View style={styles.rosterContent}><PlayerBadge player={player} photo={photos[id]} compact/><View style={styles.playerMeta}><Text style={styles.metaText}>#{player.number??'—'} · {playerPosition(player,manualPositions)||'Sin posición asignada'}</Text></View><Pressable accessibilityRole="button" accessibilityLabel={'Quitar a '+player.name+' del campo'} onPress={()=>{const next=starters.filter(item=>item!==id),positions={...(activePlan.positions||{})};delete positions[id];updatePlan({starters:next,positions})}} style={styles.removeButton}><Text style={styles.removeText}>Quitar</Text></Pressable></View></View>})}
     </ScrollView>
     <Text style={styles.footnote}>Las alineaciones se guardan para los entrenadores aprobados de este equipo.</Text>
+
+    <Modal visible={!!slotPicker} animationType="fade" transparent onRequestClose={()=>setSlotPicker(null)}><View style={styles.modalBackdrop}><View style={styles.pickerCard}><Text style={styles.pickerTitle}>Elige {slotPicker?.position?.toLowerCase()}</Text><Text style={styles.muted}>Jugadores guardados para esta posición</Text><ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled">{filteredForSlot.map(player=><Pressable key={player.id} accessibilityRole="button" onPress={()=>choosePlayer(player)} style={styles.pickerPlayer}><PlayerBadge player={player} photo={photos[player.id]} compact/><View style={{flex:1}}><Text style={styles.pickerName}>{player.name}</Text><Text style={styles.muted}>Dorsal {player.number??'—'}</Text></View></Pressable>)}{!filteredForSlot.length&&<Text style={styles.muted}>No hay jugadores con posición de {slotPicker?.position?.toLowerCase()} asignada. Edita su posición en Plantilla.</Text>}</ScrollView><Pressable accessibilityRole="button" onPress={()=>setSlotPicker(null)} style={styles.secondary}><Text style={styles.secondaryText}>Cerrar</Text></Pressable></View></View></Modal>
+    <Modal visible={fullScreen} animationType="slide" supportedOrientations={['portrait','landscape']} onRequestClose={()=>setFullScreen(false)}><View style={styles.fullScreen}>
+      <View style={styles.fullHeader}><View style={{flex:1}}><Text style={styles.title}>Vista 3D · {activePlan.name||'Partido'}</Text><Text style={styles.muted}>{activePlan.formation} · toca los puntos para asignar jugadores</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Cerrar pantalla completa" onPress={()=>setFullScreen(false)} style={styles.closeButton}><Text style={styles.closeText}>✕</Text></Pressable></View>
+      <View style={styles.cameraControls}>{cameraButton('Girar ↶',()=>setCamera(old=>({...old,rotate:old.rotate-12})))}{cameraButton('Girar ↷',()=>setCamera(old=>({...old,rotate:old.rotate+12})))}{cameraButton('Más inclinación',()=>setCamera(old=>({...old,tilt:Math.min(68,old.tilt+4)})))}{cameraButton('Menos inclinación',()=>setCamera(old=>({...old,tilt:Math.max(20,old.tilt-4)})))}</View>
+      <View style={styles.fullFieldStage}><View style={[styles.transformedField,{transform:viewTransform}]}>{pitch(true)}</View></View>
+      <View style={styles.panControls}>{cameraButton('←',()=>setCamera(old=>({...old,x:old.x-14})))}<View style={{gap:5}}>{cameraButton('↑',()=>setCamera(old=>({...old,y:old.y-14}))) }{cameraButton('↓',()=>setCamera(old=>({...old,y:old.y+14})))}</View>{cameraButton('→',()=>setCamera(old=>({...old,x:old.x+14})))}</View>
+      <View style={styles.fullBottom}><Pressable accessibilityRole="button" onPress={exportLineup} style={styles.action}><Text style={styles.actionText}>⇧ Exportar alineación</Text></Pressable><Pressable accessibilityRole="button" onPress={()=>setFullScreen(false)} style={styles.secondary}><Text style={styles.secondaryText}>Volver</Text></Pressable></View>
+    </View></Modal>
   </View>;
 }
 
-const styles=StyleSheet.create({root:{gap:13,padding:16,borderRadius:20,borderWidth:1,borderColor:'#2c3e54',backgroundColor:colors.panel},title:{fontSize:24,fontWeight:'800',color:colors.text},muted:{fontSize:13,lineHeight:20,color:colors.muted},planBar:{flexDirection:'row',gap:8},planSelect:{flex:1,justifyContent:'center',minHeight:42,paddingHorizontal:12,borderRadius:10,backgroundColor:'#101c2b',borderWidth:1,borderColor:colors.border},planSelectText:{color:colors.text,fontWeight:'700'},planList:{gap:6,padding:8,borderRadius:12,backgroundColor:colors.dark},planOption:{padding:10,borderRadius:8,backgroundColor:'#192a40'},planOptionActive:{backgroundColor:'#263a66'},planOptionText:{color:colors.text},action:{paddingHorizontal:12,paddingVertical:11,borderRadius:10,backgroundColor:'#1b2e69',alignItems:'center',justifyContent:'center'},actionText:{color:'#fff',fontSize:12,fontWeight:'800'},input:{minHeight:44,borderWidth:1,borderColor:colors.border,backgroundColor:'#101c2b',borderRadius:10,paddingHorizontal:12,color:colors.text},formationRow:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:7},sectionTitle:{color:colors.text,fontSize:15,fontWeight:'800'},formation:{paddingVertical:8,paddingHorizontal:11,borderRadius:9,backgroundColor:'#25364c'},formationActive:{backgroundColor:colors.red},formationText:{color:colors.text,fontSize:12,fontWeight:'800'},counterRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},counter:{color:colors.blue,fontSize:16,fontWeight:'900'},field:{width:'100%',maxWidth:430,aspectRatio:0.79,alignSelf:'center',position:'relative',overflow:'hidden',borderRadius:17,backgroundColor:'#197348',borderWidth:2,borderColor:'#9bd1a7'},fieldBorder:{position:'absolute',left:'3%',top:'2%',width:'94%',height:'96%',borderWidth:1.5,borderColor:colors.line,borderRadius:4},halfLine:{position:'absolute',left:'3%',top:'50%',width:'94%',borderTopWidth:1.5,borderColor:colors.line},centerCircle:{position:'absolute',left:'35%',top:'39%',width:'30%',aspectRatio:1,borderWidth:1.5,borderColor:colors.line,borderRadius:300},centerSpot:{position:'absolute',left:'49%',top:'49%',width:7,height:7,borderRadius:5,backgroundColor:colors.line},box:{position:'absolute',left:'20%',width:'60%',height:'13%',borderWidth:1.5,borderColor:colors.line},topBox:{top:'2%',borderTopWidth:0},bottomBox:{bottom:'2%',borderBottomWidth:0},smallBox:{position:'absolute',left:'36%',width:'28%',height:'5%',borderWidth:1.5,borderColor:colors.line},topSmallBox:{top:'2%',borderTopWidth:0},bottomSmallBox:{bottom:'2%',borderBottomWidth:0},targetDot:{position:'absolute',width:12,height:12,marginLeft:-6,marginTop:-6,borderRadius:8,borderWidth:1.5,borderColor:'#dcffe0',backgroundColor:'rgba(8,45,24,0.45)'},fieldPlayer:{position:'absolute',width:76,height:76,marginLeft:-38,marginTop:-38,zIndex:3,alignItems:'center',justifyContent:'center'},badge:{alignItems:'center',justifyContent:'center',width:86,minHeight:89,gap:2},badgeCompact:{width:72,minHeight:52,gap:1},photo:{width:48,height:48,borderRadius:25,borderWidth:2,borderColor:'#f4f5dd',backgroundColor:'#e7eee8'},photoCompact:{width:31,height:31,borderWidth:1.5},photoFallback:{alignItems:'center',justifyContent:'center',backgroundColor:'#dce6d4'},initial:{fontSize:18,fontWeight:'900',color:'#173a25'},numberBadge:{position:'absolute',top:0,right:18,minWidth:20,height:20,borderRadius:10,paddingHorizontal:4,alignItems:'center',justifyContent:'center',backgroundColor:'#c52321',borderWidth:1,borderColor:'#fff'},numberText:{fontSize:10,fontWeight:'900',color:'#fff'},playerName:{maxWidth:80,color:'#fff',fontSize:10,fontWeight:'900',textAlign:'center',textShadowColor:'#092417',textShadowOffset:{width:1,height:1},textShadowRadius:3},playerNameCompact:{maxWidth:70,fontSize:8},fieldHint:{position:'absolute',alignSelf:'center',top:'46%',alignItems:'center',gap:4,padding:10,borderRadius:10,backgroundColor:'rgba(8,45,24,0.68)'},hintTitle:{fontSize:15,fontWeight:'800',color:'#fff'},hintText:{fontSize:11,color:'#e5f3e7'},toolbar:{flexDirection:'row',flexWrap:'wrap',gap:7},secondary:{paddingHorizontal:11,paddingVertical:10,borderRadius:10,backgroundColor:'#25364c',alignItems:'center',justifyContent:'center'},secondaryText:{fontSize:12,fontWeight:'700',color:colors.text},error:{color:'#ffc1c9',backgroundColor:'#40202b',borderRadius:9,padding:10},rosterList:{maxHeight:350,flexGrow:0},rosterRow:{minHeight:56,paddingVertical:5,borderBottomWidth:1,borderColor:'#2d3e52'},rosterChosen:{opacity:0.85},rosterContent:{flexDirection:'row',alignItems:'center',gap:8},addButton:{marginLeft:'auto',paddingHorizontal:12,paddingVertical:8,borderRadius:9,backgroundColor:'#25364c'},addButtonText:{fontSize:11,fontWeight:'800',color:'#fff'},removeButton:{marginLeft:'auto',paddingHorizontal:11,paddingVertical:8,borderRadius:9,backgroundColor:'#40202b'},removeText:{fontSize:11,fontWeight:'800',color:'#ffc1c9'},footnote:{fontSize:11,lineHeight:17,color:colors.muted}});
+const styles=StyleSheet.create({
+  root:{gap:13,padding:16,borderRadius:20,borderWidth:1,borderColor:'#2c3e54',backgroundColor:colors.panel},title:{fontSize:24,fontWeight:'800',color:colors.text},muted:{fontSize:13,lineHeight:20,color:colors.muted},planBar:{flexDirection:'row',gap:8},planSelect:{flex:1,justifyContent:'center',minHeight:42,paddingHorizontal:12,borderRadius:10,backgroundColor:'#101c2b',borderWidth:1,borderColor:colors.border},planSelectText:{color:colors.text,fontWeight:'700'},planList:{gap:6,padding:8,borderRadius:12,backgroundColor:colors.dark},planOption:{padding:10,borderRadius:8,backgroundColor:'#192a40'},planOptionActive:{backgroundColor:'#263a66'},planOptionText:{color:colors.text},action:{paddingHorizontal:12,paddingVertical:11,borderRadius:10,backgroundColor:'#1b2e69',alignItems:'center',justifyContent:'center'},actionText:{color:'#fff',fontSize:12,fontWeight:'800'},input:{minHeight:44,borderWidth:1,borderColor:colors.border,backgroundColor:'#101c2b',borderRadius:10,paddingHorizontal:12,color:colors.text},formationRow:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:7},sectionTitle:{color:colors.text,fontSize:15,fontWeight:'800'},formation:{paddingVertical:8,paddingHorizontal:11,borderRadius:9,backgroundColor:'#25364c'},formationActive:{backgroundColor:colors.red},formationText:{color:colors.text,fontSize:12,fontWeight:'800'},counterRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},counter:{color:colors.blue,fontSize:16,fontWeight:'900'},fieldFrame:{width:'100%',maxWidth:460,alignSelf:'center',paddingHorizontal:20},field:{width:'100%',aspectRatio:0.78,alignSelf:'center',position:'relative',overflow:'hidden',borderRadius:17,backgroundColor:'#197348',borderWidth:2,borderColor:'#9bd1a7'},fieldFull:{maxWidth:460,aspectRatio:0.70},fieldBorder:{position:'absolute',left:'3%',top:'2%',width:'94%',height:'96%',borderWidth:1.5,borderColor:colors.line,borderRadius:4},halfLine:{position:'absolute',left:'3%',top:'50%',width:'94%',borderTopWidth:1.5,borderColor:colors.line},centerCircle:{position:'absolute',left:'35%',top:'39%',width:'30%',aspectRatio:1,borderWidth:1.5,borderColor:colors.line,borderRadius:300},centerSpot:{position:'absolute',left:'49%',top:'49%',width:7,height:7,borderRadius:5,backgroundColor:colors.line},box:{position:'absolute',left:'20%',width:'60%',height:'13%',borderWidth:1.5,borderColor:colors.line},topBox:{top:'2%',borderTopWidth:0},bottomBox:{bottom:'2%',borderBottomWidth:0},smallBox:{position:'absolute',left:'36%',width:'28%',height:'5%',borderWidth:1.5,borderColor:colors.line},topSmallBox:{top:'2%',borderTopWidth:0},bottomSmallBox:{bottom:'2%',borderBottomWidth:0},targetTouch:{position:'absolute',zIndex:2,width:34,height:34,marginLeft:-17,marginTop:-17,alignItems:'center',justifyContent:'center'},targetDot:{width:14,height:14,borderRadius:8,borderWidth:1.5,borderColor:'#dcffe0',backgroundColor:'rgba(8,45,24,0.7)'},fieldPlayer:{position:'absolute',width:58,height:61,marginLeft:-29,marginTop:-30,zIndex:4,alignItems:'center',justifyContent:'center'},badge:{alignItems:'center',justifyContent:'center',width:86,minHeight:89,gap:2},badgeCompact:{width:56,minHeight:52,gap:1},photo:{width:48,height:48,borderRadius:25,borderWidth:2,borderColor:'#f4f5dd',backgroundColor:'#e7eee8'},photoCompact:{width:29,height:29,borderWidth:1.5},photoFallback:{alignItems:'center',justifyContent:'center',backgroundColor:'#dce6d4'},initial:{fontSize:18,fontWeight:'900',color:'#173a25'},numberBadge:{position:'absolute',top:0,right:4,minWidth:19,height:19,borderRadius:10,paddingHorizontal:4,alignItems:'center',justifyContent:'center',backgroundColor:'#c52321',borderWidth:1,borderColor:'#fff'},numberText:{fontSize:9,fontWeight:'900',color:'#fff'},playerName:{maxWidth:80,color:'#fff',fontSize:10,fontWeight:'900',textAlign:'center',textShadowColor:'#092417',textShadowOffset:{width:1,height:1},textShadowRadius:3},playerNameCompact:{maxWidth:56,fontSize:7,lineHeight:9},fieldHint:{position:'absolute',alignSelf:'center',top:'46%',alignItems:'center',gap:4,padding:10,borderRadius:10,backgroundColor:'rgba(8,45,24,0.68)'},hintTitle:{fontSize:14,fontWeight:'800',color:'#fff'},hintText:{fontSize:11,color:'#e5f3e7'},toolbar:{flexDirection:'row',flexWrap:'wrap',gap:7},secondary:{paddingHorizontal:11,paddingVertical:10,borderRadius:10,backgroundColor:'#25364c',alignItems:'center',justifyContent:'center'},secondaryText:{fontSize:12,fontWeight:'700',color:colors.text},error:{color:'#ffc1c9',backgroundColor:'#40202b',borderRadius:9,padding:10},rosterList:{maxHeight:350,flexGrow:0},rosterRow:{minHeight:56,paddingVertical:5,borderBottomWidth:1,borderColor:'#2d3e52'},rosterChosen:{opacity:0.85},rosterContent:{flexDirection:'row',alignItems:'center',gap:8},playerMeta:{flex:1},metaText:{color:colors.muted,fontSize:11},groupTitle:{paddingTop:12,paddingBottom:5,color:colors.blue,fontSize:11,fontWeight:'900',letterSpacing:1},addButton:{marginLeft:'auto',paddingHorizontal:12,paddingVertical:8,borderRadius:9,backgroundColor:'#25364c'},addButtonText:{fontSize:11,fontWeight:'800',color:'#fff'},removeButton:{marginLeft:'auto',paddingHorizontal:11,paddingVertical:8,borderRadius:10,backgroundColor:'#40202b'},removeText:{fontSize:11,fontWeight:'800',color:'#ffc1c9'},footnote:{fontSize:11,lineHeight:17,color:colors.muted},modalBackdrop:{flex:1,justifyContent:'center',padding:20,backgroundColor:'rgba(0,0,0,0.68)'},pickerCard:{maxHeight:'82%',padding:18,gap:12,borderRadius:18,borderWidth:1,borderColor:colors.border,backgroundColor:colors.panel},pickerTitle:{fontSize:20,fontWeight:'900',color:colors.text},pickerList:{flexGrow:0},pickerPlayer:{minHeight:62,flexDirection:'row',alignItems:'center',gap:12,paddingVertical:7,borderBottomWidth:1,borderColor:colors.border},pickerName:{color:colors.text,fontWeight:'800',flexShrink:1},fullScreen:{flex:1,paddingTop:Platform.OS==='web'?14:42,paddingBottom:Platform.OS==='web'?14:24,paddingHorizontal:14,gap:8,backgroundColor:colors.dark},fullHeader:{flexDirection:'row',alignItems:'center',gap:12},closeButton:{width:42,height:42,borderRadius:21,alignItems:'center',justifyContent:'center',backgroundColor:'#25364c'},closeText:{color:'#fff',fontSize:19,fontWeight:'800'},cameraControls:{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',gap:6},cameraButton:{paddingHorizontal:10,paddingVertical:8,borderRadius:9,backgroundColor:'#25364c',alignItems:'center',justifyContent:'center',minWidth:44},fullFieldStage:{flex:1,minHeight:220,alignItems:'center',justifyContent:'center',overflow:'hidden'},transformedField:{width:'85%',maxWidth:420,alignItems:'center',justifyContent:'center'},panControls:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:9},fullBottom:{flexDirection:'row',justifyContent:'center',gap:8},
+});

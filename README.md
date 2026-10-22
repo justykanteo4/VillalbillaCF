@@ -30,7 +30,7 @@ Para desarrollar el móvil: `npm start`. Definir EXPO_PUBLIC_API_URL con la dire
 
 ## Actualizaciones automáticas en móviles
 
-EAS Update está configurado en el canal `preview` para Android e iOS. Instala una vez la nueva compilación que incluye `expo-updates`; las compilaciones anteriores no pueden recibir estas actualizaciones. Después, los cambios de JavaScript, pantallas, textos y estilos se publican con `eas update --channel preview --platform all`. El móvil los comprueba al abrir la app, los descarga en segundo plano y los activa al volver a abrirla. Los cambios nativos (icono, permisos o dependencias nativas) requieren una compilación nueva. La versión de ejecución usa la huella nativa para no entregar código incompatible.
+EAS Update está configurado en el canal `preview` para Android e iOS. Instala una vez la nueva compilación que incluye `expo-updates`; las compilaciones anteriores no pueden recibir estas actualizaciones. Después, los cambios de JavaScript, pantallas, textos y estilos se publican con `eas update --channel preview --platform all`. El móvil los comprueba al abrir la app, los descarga en segundo plano y los activa al volver a abrirla. Los cambios nativos (icono, permisos o dependencias nativas) requieren una compilación nueva y un aumento de versión para separar su ejecución de las compilaciones anteriores.
 
 Antes de distribuir: alojar el servidor en HTTPS, gestionar cuentas individuales y datos compartidos del equipo, verificar Instagram con su administrador, probar Android/iOS en teléfonos y revisar dependencias. No hay instaladores ni publicación en tiendas.
 

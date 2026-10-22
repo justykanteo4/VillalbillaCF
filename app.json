@@ -38,7 +38,7 @@
     },
     "owner": "justykanteo4",
     "runtimeVersion": {
-      "policy": "fingerprint"
+      "policy": "appVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/8aa9b217-1386-4b74-9a15-9e93d127030b",

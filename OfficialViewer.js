@@ -1,0 +1,3 @@
+import React from 'react';
+import {View,Text,Pressable,Linking} from 'react-native';
+export default function OfficialViewer({url,onClose}){return <View style={{padding:24,gap:20}}><Pressable onPress={onClose}><Text style={{color:"#dce6f2"}}>← Volver al club</Text></Pressable><Text style={{color:"#dce6f2"}}>Primera Aficionado · Grupo 4 · 2026/27</Text><Text style={{color:"#dce6f2"}}>En la vista web, consulta la RFFM en una pestaña del navegador. La app móvil incluye un visor integrado.</Text><Pressable onPress={()=>Linking.openURL(url).catch(()=>{})}><Text style={{color:'#91adff'}}>Abrir la web oficial ↗</Text></Pressable></View>}

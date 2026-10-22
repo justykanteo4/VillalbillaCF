@@ -1,0 +1,4 @@
+function positionRank(value){const v=String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();if(/porter|guardameta/.test(v))return 0;if(/defens|central|lateral|carriler|libero/.test(v))return 1;if(/medio|medioc|centrocamp|mediapunta|pivote|interior|volante/.test(v))return 2;if(/delanter|extremo|punta|atacante/.test(v))return 3;return value?4:5}
+function shirt(value){if(value==null||!/^\d+$/.test(String(value).trim()))return Infinity;return Number(value)}
+function sortPlayers(rows,order){return rows.slice().sort((a,b)=>{if(order==='Dorsal'){const diff=shirt(a.number)-shirt(b.number);if(!Number.isNaN(diff)&&diff)return diff}if(order==='Posición'){const diff=positionRank(a.position)-positionRank(b.position);if(diff)return diff;if(a.position&&b.position){const name=a.position.localeCompare(b.position,'es');if(name)return name}}return a.name.localeCompare(b.name,'es')||a.teamId.localeCompare(b.teamId)})}
+module.exports={sortPlayers,positionRank};

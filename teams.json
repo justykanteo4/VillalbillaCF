@@ -1,0 +1,138 @@
+[
+  {
+    "id": "846518",
+    "name": "VILLALBILLA C.F.",
+    "category": "PREFERENTE JUVENIL",
+    "competition": "26737718",
+    "group": "26737722",
+    "gameType": "1"
+  },
+  {
+    "id": "300204",
+    "name": "VILLALBILLA C.F. 'A'",
+    "category": "PRIMERA CADETE",
+    "competition": "26737751",
+    "group": "26737758",
+    "gameType": "1"
+  },
+  {
+    "id": "680163",
+    "name": "VILLALBILLA C.F.",
+    "category": "PRIMERA AFICIONADO",
+    "competition": "26737706",
+    "group": "26737710",
+    "gameType": "1"
+  },
+  {
+    "id": "26724950",
+    "name": "VILLALBILLA C.F. 'C'",
+    "category": "SEGUNDA CADETE",
+    "competition": "26737768",
+    "group": "26737785",
+    "gameType": "1"
+  },
+  {
+    "id": "8941348",
+    "name": "VILLALBILLA C.F. 'B'",
+    "category": "SEGUNDA CADETE",
+    "competition": "26737768",
+    "group": "26737784",
+    "gameType": "1"
+  },
+  {
+    "id": "524730",
+    "name": "VILLALBILLA C.F. 'A'",
+    "category": "PREFERENTE INFANTIL",
+    "competition": "26737819",
+    "group": "26737822",
+    "gameType": "1"
+  },
+  {
+    "id": "10659267",
+    "name": "VILLALBILLA C.F. 'C'",
+    "category": "SEGUNDA INFANTIL",
+    "competition": "26738324",
+    "group": "26738336",
+    "gameType": "1"
+  },
+  {
+    "id": "300313",
+    "name": "VILLALBILLA C.F. 'B'",
+    "category": "SEGUNDA INFANTIL",
+    "competition": "26738324",
+    "group": "26738332",
+    "gameType": "1"
+  },
+  {
+    "id": "3357335",
+    "name": "VILLALBILLA C.F. 'A'",
+    "category": "DIVISION DE HONOR ALEV-F7",
+    "competition": "26737923",
+    "group": "26737924",
+    "gameType": "2"
+  },
+  {
+    "id": "846788",
+    "name": "VILLALBILLA C.F. 'A'",
+    "category": "PREFERENTE BENJAMIN F7",
+    "competition": "26737926",
+    "group": "26737941",
+    "gameType": "2"
+  },
+  {
+    "id": "13554687",
+    "name": "VILLALBILLA C.F. 'C'",
+    "category": "SEGUNDA ALEVIN F-7",
+    "competition": "26738071",
+    "group": "26738106",
+    "gameType": "2"
+  },
+  {
+    "id": "15284926",
+    "name": "VILLALBILLA C.F. 'B'",
+    "category": "PREFERENTE ALEVIN F-7",
+    "competition": "26738132",
+    "group": "26738135",
+    "gameType": "2"
+  },
+  {
+    "id": "1031230",
+    "name": "VILLALBILLA C.F. 'B'",
+    "category": "PREFERENTE BENJAMIN F7",
+    "competition": "26737926",
+    "group": "26737941",
+    "gameType": "2"
+  },
+  {
+    "id": "2273310",
+    "name": "VILLALBILLA C.F. 'A'",
+    "category": "PREBENJAMIN",
+    "competition": "26797573",
+    "group": "28127288",
+    "gameType": "2"
+  },
+  {
+    "id": "26724948",
+    "name": "VILLALBILLA C.F. 'C'",
+    "category": "PRIMERA BENJAMIN F7",
+    "competition": "26737943",
+    "group": "27597061",
+    "gameType": "2"
+  },
+  {
+    "id": "26724944",
+    "name": "VILLALBILLA C.F. 'B'",
+    "category": "PREFERENTE FEMENINO INFANTIL F-7",
+    "competition": "26737899",
+    "group": "26750871",
+    "gameType": "2"
+  },
+  {
+    "id": "17133548",
+    "name": "VILLALBILLA C.F. 'A'",
+    "category": "PRIMERA DIVISION AUTONOMICA FEMENINO INFANTIL F-7",
+    "competition": "26738258",
+    "group": "26748686",
+    "gameType": "2"
+  }
+]

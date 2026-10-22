@@ -1,0 +1,3 @@
+function rank(rows,key){const value=p=>typeof p[key]==='number'&&Number.isFinite(p[key])?p[key]:null;const sorted=rows.slice().sort((a,b)=>{const x=value(a),y=value(b);if(x===null&&y!==null)return 1;if(y===null&&x!==null)return -1;return (y??0)-(x??0)||a.name.localeCompare(b.name,'es')});let position=0;return sorted.map((p,i)=>{const score=value(p);if(score!==null&&(i===0||score!==value(sorted[i-1])))position=i+1;return {...p,rank:score===null?null:position}})}
+function uncalled(calledUp,teamPlayed,scope){if(scope==='season'||!Number.isInteger(calledUp)||!Number.isInteger(teamPlayed)||calledUp<0||calledUp>teamPlayed)return null;return teamPlayed-calledUp}
+module.exports={rank,uncalled};

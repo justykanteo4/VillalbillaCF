@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Villalbilla C.F.",
+    "slug": "villalbilla-cf",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.villalbilla.cf",
+      "versionCode": 1
+    },
+    "web": {
+      "name": "Villalbilla C.F.",
+      "favicon": "./assets/escudo-transparente.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permite elegir una foto para la plantilla de Villalbilla C.F.",
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8aa9b217-1386-4b74-9a15-9e93d127030b"
+      }
+    },
+    "owner": "justykanteo4"
+  }
+}

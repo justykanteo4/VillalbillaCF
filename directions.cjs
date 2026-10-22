@@ -1,0 +1,2 @@
+function links(field,venue){const coordinates=field?.coordinates;const query=field?.address||venue;if(!query&&!coordinates)return null;const destination=coordinates?`${coordinates.lat},${coordinates.lng}`:query;return {maps:'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destination)+'&travelmode=driving',waze:coordinates?'https://www.waze.com/ul?ll='+encodeURIComponent(destination)+'&navigate=yes':'https://www.waze.com/ul?q='+encodeURIComponent(query)+'&navigate=yes'}}
+module.exports={links};

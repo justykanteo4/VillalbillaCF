@@ -1,0 +1,170 @@
+{
+  "708": {
+    "id": "708",
+    "name": "NTRA. SRA. DE LA SOLEDAD (H.A.)",
+    "address": "CALLE DE AYERBE S/N, 28042 Madrid, Madrid",
+    "coordinates": {
+      "lat": 40.46981419999999,
+      "lng": -3.5793201
+    },
+    "updatedAt": "2026-10-21T10:17:37.384Z"
+  },
+  "715": {
+    "id": "715",
+    "name": "SAN ROQUE (HA)",
+    "address": "CALLE DE LA BAHIA DE MALAGA 5, 28042 Madrid, Madrid",
+    "coordinates": {
+      "lat": 40.4671887,
+      "lng": -3.5955373
+    },
+    "updatedAt": "2026-10-21T10:17:36.506Z"
+  },
+  "801": {
+    "id": "801",
+    "name": "MUNICIPAL ALAMEDA DE OSUNA (HA)",
+    "address": "PASEO DE LA ALAMEDA DE OSUNA 46, 28042 Madrid, Madrid",
+    "coordinates": {
+      "lat": 40.454366,
+      "lng": -3.5996313
+    },
+    "updatedAt": "2026-10-21T10:17:37.377Z"
+  },
+  "1606": {
+    "id": "1606",
+    "name": "TORRES DE LA ALAMEDA (HA)",
+    "address": "CALLE DE LAS PALMERAS S/N, 28813 Torres De La Alameda, Madrid",
+    "coordinates": {
+      "lat": 40.397406,
+      "lng": -3.359422
+    },
+    "updatedAt": "2026-10-21T10:17:35.812Z"
+  },
+  "1702": {
+    "id": "1702",
+    "name": "ALCALA - J.A. GLEZ. VIVAS (HA)",
+    "address": "CALLE RONDA FISCAL 2, 28803 Alcalá De Henares, Madrid",
+    "coordinates": {
+      "lat": 40.47498,
+      "lng": -3.36462
+    },
+    "updatedAt": "2026-10-21T10:17:36.474Z"
+  },
+  "1705": {
+    "id": "1705",
+    "name": "COSLADA - ESTADIO EL OLIVO (HA)",
+    "address": "CALLE DEL MAR CANTÁBRICO S/N, 28821 Coslada, Madrid",
+    "coordinates": {
+      "lat": 40.41870189999999,
+      "lng": -3.5720452
+    },
+    "updatedAt": "2026-10-21T10:17:36.907Z"
+  },
+  "1711": {
+    "id": "1711",
+    "name": "SAN FERNANDO - SANTIAGO DEL PINO (HA)",
+    "address": "PASEO DE LOS PINOS S/N, 28830 San Fernando De Henares, Madrid",
+    "coordinates": {
+      "lat": 40.4334703,
+      "lng": -3.5260942
+    },
+    "updatedAt": "2026-10-21T10:17:37.763Z"
+  },
+  "1712": {
+    "id": "1712",
+    "name": "TORREJÓN DE ARDOZ - ESTADIO J.A. SAMARANCH (HA)",
+    "address": "CALLE DE SAN FERNANDO S/N, 28850 Torrejón De Ardoz, Madrid",
+    "coordinates": {
+      "lat": 40.4614336,
+      "lng": -3.4887685
+    },
+    "updatedAt": "2026-10-21T10:17:36.509Z"
+  },
+  "1713": {
+    "id": "1713",
+    "name": "TORREJÓN DE ARDOZ - EST. MPAL. LAS VEREDILLAS (HA)",
+    "address": "CALLE TURÍN 12, 28850 Torrejón De Ardoz, Madrid",
+    "coordinates": {
+      "lat": 40.4657063,
+      "lng": -3.4724989
+    },
+    "updatedAt": "2026-10-21T10:17:38.297Z"
+  },
+  "1718": {
+    "id": "1718",
+    "name": "DAGANZO - FRANCISCO JAVIER LOPEZ (HA)",
+    "address": "CALLE FRESNO DE TOROTE S/N, 28814 Daganzo De Arriba, Madrid",
+    "coordinates": {
+      "lat": 40.5502376,
+      "lng": -3.4531515
+    },
+    "updatedAt": "2026-10-21T10:17:37.765Z"
+  },
+  "1732": {
+    "id": "1732",
+    "name": "ALCALA - CIUDAD DPTVA. EL JUNCAL (HA)",
+    "address": "AVDA. DE MADRID 9, 28802 Alcalá De Henares, Madrid",
+    "coordinates": {
+      "lat": 40.4783404,
+      "lng": -3.387384
+    },
+    "updatedAt": "2026-10-21T10:17:37.393Z"
+  },
+  "1739": {
+    "id": "1739",
+    "name": "ALCALA - ISIDRO CEDIEL (HA)",
+    "address": "CALLE CUESTA DE TEATINOS S/N, 28806 Alcalá De Henares, Madrid",
+    "coordinates": {
+      "lat": 40.4945269,
+      "lng": -3.3602959
+    },
+    "updatedAt": "2026-10-21T10:17:38.387Z"
+  },
+  "1740": {
+    "id": "1740",
+    "name": "VILLALBILLA - PVO. MUNICIPAL (HA)",
+    "address": "CTRA. VALDEÁGUILA S/N, 28810 Villalbilla, Madrid",
+    "coordinates": {
+      "lat": 40.4376837,
+      "lng": -3.2971021
+    },
+    "updatedAt": "2026-10-21T10:17:35.741Z"
+  },
+  "1741": {
+    "id": "1741",
+    "name": "TORREJÓN DE ARDOZ - 'GUTI' (HA)",
+    "address": "AVDA. DE LA CONSTITUCIÓN 193, 28850 Torrejón De Ardoz, Madrid",
+    "coordinates": {
+      "lat": 40.463410229165454,
+      "lng": -3.4479211946558306
+    },
+    "updatedAt": "2026-10-21T10:17:36.934Z"
+  },
+  "2607": {
+    "id": "2607",
+    "name": "RIVAS - EL VIVERO (HA)",
+    "address": "CALLE PABLO LIMA PRO S/N, 28523 Rivas-Vaciamadrid, Madrid",
+    "coordinates": {
+      "lat": 40.3600934,
+      "lng": -3.5492531
+    },
+    "updatedAt": "2026-10-21T10:17:38.090Z"
+  },
+  "300178": {
+    "id": "300178",
+    "error": true,
+    "address": null,
+    "coordinates": null
+  },
+  "11043104": {
+    "id": "11043104",
+    "error": true,
+    "address": null,
+    "coordinates": null
+  },
+  "13187593": {
+    "id": "13187593",
+    "error": true,
+    "address": null,
+    "coordinates": null
+  }
+}

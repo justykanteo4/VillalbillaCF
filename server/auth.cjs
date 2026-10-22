@@ -1,0 +1,6 @@
+const crypto=require('crypto');
+const sessions=new Map(),attempts=new Map();
+function login(password,ip){const now=Date.now(),window=attempts.get(ip);if(window&&window.until>now&&window.count>=5)return {status:429,error:'Demasiados intentos. Espera 15 minutos.'};const secret=process.env.TRAINER_PASSWORD;if(!secret)return {status:503,error:'El acceso de entrenadores está pendiente de configurar por el club.'};if(typeof password!=='string'||password.length>256)return {status:401,error:'Clave incorrecta.'};const a=crypto.createHash('sha256').update(password).digest(),b=crypto.createHash('sha256').update(secret).digest();if(!crypto.timingSafeEqual(a,b)){attempts.set(ip,{count:window&&window.until>now?window.count+1:1,until:window&&window.until>now?window.until:now+900000});return {status:401,error:'Clave incorrecta.'}}attempts.delete(ip);for(const [key,expiry]of sessions)if(expiry<now)sessions.delete(key);const token=crypto.randomBytes(32).toString('hex');sessions.set(token,now+8*60*60*1000);return {status:200,token}}
+function allowed(token){return typeof token==='string'&&(sessions.get(token)||0)>Date.now()}
+function logout(token){sessions.delete(token)}
+module.exports={login,allowed,logout};

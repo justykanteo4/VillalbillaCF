@@ -1,0 +1,31 @@
+{
+  "name": "villalbilla-cf",
+  "description": "App de entrenadores de Villalbilla C.F.",
+  "license": "0BSD",
+  "version": "55.1.38",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "serve": "node --env-file-if-exists=.env server/index.cjs"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "expo": "~55.0.31",
+    "expo-image-manipulator": "~55.0.21",
+    "expo-image-picker": "~55.0.24",
+    "expo-secure-store": "~55.0.18",
+    "expo-status-bar": "~55.0.6",
+    "google-auth-library": "^11.3.1",
+    "jose": "^6.2.13",
+    "nodemailer": "^10.1.7",
+    "react": "19.2.0",
+    "react-dom": "^19.2.0",
+    "react-native": "0.83.10",
+    "react-native-safe-area-context": "~5.6.2",
+    "react-native-web": "^0.21.4",
+    "react-native-webview": "^13.16.0"
+  }
+}

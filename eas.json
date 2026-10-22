@@ -9,6 +9,13 @@
         "buildType": "apk"
       },
       "channel": "preview"
+    },
+    "preview-ios-simulator": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "channel": "preview"
     }
   }
 }

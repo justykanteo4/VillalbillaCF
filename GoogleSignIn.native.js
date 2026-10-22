@@ -1,22 +1,23 @@
 import React,{useState} from 'react';
-import {Pressable,Text,View} from 'react-native';
+import {Platform,Pressable,Text,View} from 'react-native';
 import {GoogleSignin,isSuccessResponse} from '@react-native-google-signin/google-signin';
 import {GoogleAuthProvider,signInWithCredential} from 'firebase/auth';
 import {auth} from './firebase';
+import {nativeGoogleOptions} from './native-google-config.cjs';
 
 const webClientId=process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const iosClientId=process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-if(webClientId)GoogleSignin.configure({webClientId,iosClientId,scopes:['openid','profile','email']});
 
 export default function GoogleSignIn({onSuccess}){
   const [error,setError]=useState(''),[busy,setBusy]=useState(false);
 
   async function login(){
-    if(!webClientId){setError('Falta el cliente web de Google en la configuración del club.');return;}
     if(!auth){setError('Firebase todavía no está conectado.');return;}
     setBusy(true);setError('');
     try{
-      await GoogleSignin.hasPlayServices({showPlayServicesUpdateDialog:true});
+      const options=nativeGoogleOptions(Platform.OS,webClientId,iosClientId);
+      if(Platform.OS==='android')await GoogleSignin.hasPlayServices({showPlayServicesUpdateDialog:true});
+      GoogleSignin.configure(options);
       const response=await GoogleSignin.signIn();
       if(!isSuccessResponse(response))return;
       const idToken=response.data.idToken;

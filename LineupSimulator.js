@@ -3,6 +3,7 @@ import {Animated,Easing,Image,ImageBackground,Modal,PanResponder,Platform,Pressa
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {WebView} from 'react-native-webview';
 import {makeLineupVideoHtml,recordLineupVideoInBrowser} from './LineupVideo';
+import {pitchBase64ForWeb} from './video-pitch';
 import seed from './players-seed.json';
 import teams from './teams.json';
 
@@ -144,7 +145,7 @@ export default function LineupSimulator({teamId,players=[],lineups=[],onChange})
     try{
       let pitchBase64='';
       if(Platform.OS==='web'){
-        const uri=Image.resolveAssetSource(PITCH_IMAGE)?.uri;if(!uri)throw Error('No se pudo cargar el campo.');const image=new window.Image();image.src=uri;await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(Error('No se pudo leer el césped.'))});const canvas=document.createElement('canvas');canvas.width=720;canvas.height=1080;canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);pitchBase64=canvas.toDataURL('image/jpeg',0.78).split(',')[1];
+        pitchBase64=await pitchBase64ForWeb(PITCH_IMAGE);
       }else{
         if(Platform.OS!=='android')throw Error('La exportación de vídeo está disponible en Android y en la versión web.');
         const {Asset}=require('expo-asset'),Manipulator=require('expo-image-manipulator'),asset=Asset.fromModule(PITCH_IMAGE);await asset.downloadAsync();const optimized=await Manipulator.manipulateAsync(asset.localUri||asset.uri,[{resize:{width:720}}],{compress:0.78,format:Manipulator.SaveFormat.JPEG,base64:true});if(!optimized.base64)throw Error('No se pudo preparar el campo para el vídeo.');pitchBase64=optimized.base64;

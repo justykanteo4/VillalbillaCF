@@ -18,34 +18,33 @@ import rosterSeed from './players-seed.json';
 import {mergeRoster} from './attendance-roster.cjs';
 import TrainerAccess from './TrainerAccess';
 import {api} from './api';
-import {getTeamWorkspace,saveTeamWorkspace,auth,onAuthStateChanged,getProfile,signOut} from './firebase';
+import {getTeamWorkspace,saveTeamWorkspace,auth,onAuthStateChanged,watchProfile,signOut} from './firebase';
+import {createSaveQueue} from './workspace-save.cjs';
+import {loadWorkspace,workspaceLoadMessage} from './workspace-load.cjs';
 const KEY='villalbilla.v1', today=()=>new Date().toLocaleDateString('sv-SE');
 const initial={team:'Primera Aficionado · Grupo 4',players:[],lineups:[],attendance:{},materials:[],events:[],stats:{},results:'https://www.rffm.es/competicion/resultados-y-jornadas?competicion=26737706&grupo=26737710&temporada=22&tipojuego=1',table:'https://www.rffm.es/competicion/clasificaciones?competicion=26737706&grupo=26737710&temporada=22&tipojuego=1'};
 const tabs=['Plantilla','Alineación','Asistencia','Material','Temporada','Competición'];
 function Button({children,onPress}){return <Pressable accessibilityRole="button" onPress={onPress} style={s.button}><Text style={s.buttonText}>{children}</Text></Pressable>}
 function Field({inputRef,...props}){return <TextInput ref={inputRef} placeholderTextColor="#91a5be" style={s.input} {...props}/>}
 function Card({children}){return <View style={s.card}>{children}</View>}
-function mergeWorkspaces(local,cloud){
- const mergeList=(a=[],b=[])=>[...new Map([...a,...b].map(item=>[item.id,item])).values()];
- const attendance={...local.attendance};for(const [day,entries] of Object.entries(cloud.attendance||{}))attendance[day]={...(attendance[day]||{}),...entries};
- const stats={...local.stats};for(const [pid,values] of Object.entries(cloud.stats||{}))stats[pid]={...(stats[pid]||{}),...values};
- return {...local,...cloud,players:mergeList(local.players,cloud.players),lineups:mergeList(local.lineups,cloud.lineups),materials:mergeList(local.materials,cloud.materials),events:mergeList(local.events,cloud.events),attendance,stats};
-}
 function Club({onPublic,onLogout,account}){
  const attendanceRef=useRef(null);
+ const saveQueue=useRef(null);
+ if(!saveQueue.current)saveQueue.current=createSaveQueue();
+ const [retry,retryLoad]=useState(0);
  const storageKey=account?.status==='admin'?KEY:KEY+'.'+account.id+'.'+account.claim.teamId;
  const [d,set]=useState(initial),[ready,load]=useState(false),[error,err]=useState(''),[saved,save]=useState(false),[tab,go]=useState('Plantilla');
  const [viewer,setViewer]=useState(null);
  const [date,sd]=useState(today()),[name,sn]=useState(''),[item,si]=useState(''),[holder,sh]=useState(''),[pickupDate,setPickupDate]=useState(today()),[qty,sq]=useState('1'),[event,se]=useState(''),[ed,sed]=useState(''),[kind,sk]=useState('Entrenamiento'),[url,su]=useState('');
  const attendanceTeamId=account?.claim?.teamId||'680163';
- useEffect(()=>{let active=true;(async()=>{try{const raw=await AsyncStorage.getItem(storageKey);let local=initial;if(raw){const v=JSON.parse(raw);if(!Array.isArray(v.players)||!Array.isArray(v.materials)||!Array.isArray(v.events)||!v.attendance||!v.stats)throw Error();local={...initial,...v}}const cloud=account?.status==='admin'||account?.status==='approved'?await getTeamWorkspace(attendanceTeamId):null;let value=cloud?mergeWorkspaces(local,cloud):local;if(account?.status==='approved')value={...value,team:account.claim.category+' · '+account.claim.teamName};if(active){set(value);load(true)}}catch{if(active)err('No se pudieron cargar los datos. Comprueba la conexión. No se sobrescribirán los registros.')}})();return()=>{active=false}},[storageKey,attendanceTeamId]);
- useEffect(()=>{if(!ready)return;save(false);let active=true;AsyncStorage.setItem(storageKey,JSON.stringify(d)).then(async()=>{if(account?.status==='admin'||account?.status==='approved')await saveTeamWorkspace(attendanceTeamId,d);if(active)save(true)}).catch(()=>{if(active)err('No se han guardado los cambios en la nube. Comprueba la conexión y vuelve a intentarlo.');});return()=>{active=false}},[d,ready,storageKey,attendanceTeamId,account?.status]);
+ useEffect(()=>{let active=true;err('');(async()=>{try{let value=await loadWorkspace({storage:AsyncStorage,key:storageKey,initial,readCloud:()=>getTeamWorkspace(attendanceTeamId)});if(account?.status==='approved')value={...value,team:account.claim.category+' · '+account.claim.teamName};if(active){set(value);load(true)}}catch(error){if(active)err(workspaceLoadMessage(error)+'\nReferencia: '+(error.workspaceStage||'load')+' / '+(error.code||'unknown'))}})();return()=>{active=false}},[storageKey,attendanceTeamId,retry]);
+ useEffect(()=>{if(!ready)return;save(false);let active=true;saveQueue.current(async()=>{await AsyncStorage.setItem(storageKey,JSON.stringify(d));if(account?.status==='admin'||account?.status==='approved')await saveTeamWorkspace(attendanceTeamId,d)}).then(()=>{if(active)save(true)}).catch(()=>{if(active)err('No se han guardado los cambios en la nube. Comprueba la conexión y vuelve a intentarlo.');});return()=>{active=false}},[d,ready,storageKey,attendanceTeamId,account?.status]);
  useEffect(()=>{if(!ready)return;let active=true;const apply=players=>set(old=>{const merged=mergeRoster(old.players,players);return merged===old.players?old:{...old,players:merged}});apply(rosterSeed.teams.find(t=>t.id===attendanceTeamId)?.players||[]);api('/api/team-roster?team='+attendanceTeamId).then(data=>{if(active&&Array.isArray(data.players))apply(data.players)}).catch(()=>{});return()=>{active=false}},[ready,attendanceTeamId]);
  const change=(key,value)=>{err('');set(x=>({...x,[key]:value}))};
  const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
  const open=async target=>{try{setViewer(target)}catch{err('No se pudo abrir la web. Comprueba la conexión.')}};
  const stat=(pid,key,delta)=>set(x=>({...x,stats:{...x.stats,[pid]:{...x.stats[pid],[key]:Math.max(0,(x.stats[pid]?.[key]||0)+delta)}}}));
- if(!ready)return <SafeAreaView style={s.loading}><Text>{error||'Preparando el vestuario…'}</Text></SafeAreaView>;
+ if(!ready)return <SafeAreaView style={[s.loading,s.safe,{padding:24,gap:16}]}><StatusBar style="light"/><Text style={s.heading}>{error||'Preparando el vestuario…'}</Text>{!!error&&<><Button onPress={()=>retryLoad(value=>value+1)}>Reintentar</Button><Button onPress={onLogout}>Cerrar sesión</Button></>}<Button onPress={onPublic}>Volver a Noticias</Button></SafeAreaView>;
  if(viewer)return <SafeAreaView style={s.safe}><OfficialViewer url={viewer} onClose={()=>setViewer(null)}/></SafeAreaView>;
  return <SafeAreaView style={s.safe}><StatusBar style="light"/><View style={s.header}><Image source={require("./assets/escudo-transparente.png")} accessibilityLabel="Escudo de Villalbilla C.F." style={{width:42,height:76}} resizeMode="contain"/><View style={{flex:1}}><Text style={s.brand}>VILLALBILLA C.F.</Text><Text style={s.muted}>Área de entrenadores · {d.team}</Text></View><Pressable onPress={onPublic}><Text style={{color:"#91adff"}}>Noticias</Text></Pressable><Pressable onPress={onLogout}><Text style={{color:"#ffc1c9"}}>Salir</Text></Pressable></View><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>{!!error&&<Text style={s.error}>{error}</Text>}
  {tab==='Plantilla'?<><Text style={s.title}>Tu vestuario</Text><Players teamId={account?.claim?.teamId||'680163'}/><View style={s.row}><View style={s.metric}><Text style={s.big}>{d.players.length}</Text><Text style={s.muted}>Jugadores</Text></View><View style={s.metric}><Text style={s.big}>{d.materials.filter(m=>!m.returned).length}</Text><Text style={s.muted}>Entregas pendientes</Text></View></View><Card><Text style={s.heading}>Tu equipo</Text><Field value={d.team} onChangeText={v=>change('team',v)} placeholder="Ej. Infantil A"/><Text style={s.muted}>Los datos del equipo se guardan en este dispositivo y en la nube para compartirlos entre sus entrenadores.</Text></Card></>:null}
@@ -58,10 +57,24 @@ function Club({onPublic,onLogout,account}){
 }
 function PublicApp(){
 const [area,setArea]=useState('Noticias'),[account,setAccount]=useState(null),[authReady,setAuthReady]=useState(false);
-useEffect(()=>{if(!auth){setAuthReady(true);return}let active=true;return onAuthStateChanged(auth,async user=>{if(!user){if(active){setAccount(null);setAuthReady(true);setArea(current=>current==='privado'?'Entrenadores':current)}return}try{const profile=await getProfile(user);if(active){setAccount(profile);setAuthReady(true);if(['admin','approved'].includes(profile.status))setArea(current=>current==='Entrenadores'?'privado':current)}}catch{if(active){setAccount(null);setAuthReady(true)}}})},[]);
+useEffect(()=>{
+ if(!auth){setAuthReady(true);return}
+ let active=true,stopProfile=()=>{};
+ const stopAuth=onAuthStateChanged(auth,user=>{
+  stopProfile();stopProfile=()=>{};setAccount(null);
+  if(!user?.emailVerified){setAuthReady(true);setArea(current=>current==='privado'?'Entrenadores':current);return}
+  setAuthReady(false);
+  stopProfile=watchProfile(user,profile=>{
+   if(!active)return;
+   setAccount(profile);setAuthReady(true);
+   if(!['admin','approved'].includes(profile.status))setArea(current=>current==='privado'?'Entrenadores':current);
+  },()=>{if(active){setAccount(null);setAuthReady(true);setArea(current=>current==='privado'?'Entrenadores':current)}});
+ });
+ return()=>{active=false;stopAuth();stopProfile()};
+},[]);
 const logout=async()=>{try{await signOut(auth)}catch{}setAccount(null);setArea('Entrenadores')};
 if(!authReady&&area==='Entrenadores')return <SafeAreaView style={s.loading}><Text style={s.muted}>Comprobando la sesión…</Text></SafeAreaView>;
-if(area==='privado'&&account&&['admin','approved'].includes(account.status))return <Club account={account} onPublic={()=>setArea('Noticias')} onLogout={logout}/>;
+if(area==='privado'&&account&&['admin','approved'].includes(account.status))return <Club key={account.id+':'+(account.claim?.teamId||'680163')} account={account} onPublic={()=>setArea('Noticias')} onLogout={logout}/>;
  return <SafeAreaView style={s.safe}><StatusBar style="light"/><View style={s.header}><Image source={require('./assets/escudo-transparente.png')} accessibilityLabel="Escudo de Villalbilla C.F." style={{width:36,height:68}} resizeMode="contain"/><View style={{flex:1}}><Text style={s.brand}>VILLALBILLA C.F.</Text><Text style={s.muted}>La casa de toda la afición</Text></View></View><ScrollView contentContainerStyle={s.content}>{area==='Noticias'?<News key="news"/>:area==='Resultados'?<News key="results" mode="results"/>:area==='Clasificaciones'?<Standings/>:area==='Goleadores'?<ClubScorers/>:area==='Calendario'?<><Text style={s.title}>Calendario</Text><Calendar/></>: <TrainerAccess key="trainers" onSuccess={profile=>{setAccount(profile);setArea('privado')}}/>}</ScrollView><View style={s.nav}>{['Noticias','Resultados','Clasificaciones','Goleadores','Calendario','Entrenadores'].map((t,i)=><Pressable accessibilityRole="tab" accessibilityState={{selected:area===t}} key={t} onPress={()=>setArea(t)} style={[s.navItem,area===t&&{backgroundColor:'#1b2e69'}]}><Text style={{fontSize:22,color:'#91adff'}}>{['▤','⚽','≡','★','▦','♙'][i]}</Text><Text style={{color:'#dce6f2',fontSize:9}}>{t}</Text></Pressable>)}</View></SafeAreaView>
 }
 export default function App(){return <SafeAreaProvider><PublicApp/></SafeAreaProvider>}

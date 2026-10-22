@@ -1,4 +1,4 @@
-const safeJson=value=>encodeURIComponent(JSON.stringify(value));
+const safeJson=value=>encodeURIComponent(JSON.stringify(value)).replace(/'/g,'%27');
 
 export function makeLineupVideoHtml({players,pitchBase64,title,formation}){
   const data=safeJson({players,pitchBase64,title,formation});

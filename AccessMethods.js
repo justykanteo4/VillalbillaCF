@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useState,useRef} from 'react';
 import {Linking,Platform,Pressable,Text,TextInput,View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -16,25 +16,35 @@ const EMAIL_KEY='villalbilla.email.link';
 
 export default function AccessMethods({onSuccess}){
   const [method,sm]=useState('Google'),[email,se]=useState(''),[password,sp]=useState(''),[register,sr]=useState(false),[busy,sb]=useState(false),[message,smsg]=useState('');
+  const handledLinks=useRef(new Set());
 
   async function completeEmailLink(url){
     if(!auth||!isSignInWithEmailLink(auth,url))return false;
+    if(handledLinks.current.has(url))return true;
+    handledLinks.current.add(url);
+    try{
     let saved=await AsyncStorage.getItem(EMAIL_KEY);
     if(Platform.OS==='web'&&!saved)saved=window.prompt('Confirma el correo al que enviamos el enlace');
-    if(!saved){smsg('Vuelve a abrir el enlace en el mismo dispositivo donde lo solicitaste.');return true;}
+    if(!saved){handledLinks.current.delete(url);smsg('Vuelve a abrir el enlace en el mismo dispositivo donde lo solicitaste.');return true;}
     const result=await signInWithEmailLink(auth,saved,url);
     await AsyncStorage.removeItem(EMAIL_KEY);
+    if(Platform.OS==='web'){
+      const clean=new URL(window.location.href);
+      for(const key of ['apiKey','oobCode','mode','lang','continueUrl'])clean.searchParams.delete(key);
+      window.history.replaceState(null,'',clean.href);
+    }
     onSuccess(result.user);
     return true;
+    }catch(error){handledLinks.current.delete(url);throw error;}
   }
 
   useEffect(()=>{
     if(!firebaseConfigured)return;
     let active=true;
     const tryLink=url=>completeEmailLink(url).catch(e=>{if(active)smsg('No se pudo validar el enlace. Solicita uno nuevo.');});
-    Linking.getInitialURL().then(url=>{if(url)tryLink(url)});
+    if(Platform.OS==='web')tryLink(window.location.href);
+    else Linking.getInitialURL().then(url=>{if(url)tryLink(url)}).catch(()=>{});
     const subscription=Linking.addEventListener('url',event=>tryLink(event.url));
-    if(Platform.OS==='web'&&window.location.href.includes('oobCode='))tryLink(window.location.href);
     return()=>{active=false;subscription.remove()};
   },[firebaseConfigured]);
 
@@ -65,6 +75,7 @@ export default function AccessMethods({onSuccess}){
         smsg('Antes de entrar, verifica el correo. Te hemos enviado otro enlace.');
       }else onSuccess(result.user);
     }catch(e){
+      if(auth?.currentUser&&!auth.currentUser.emailVerified)await signOut(auth).catch(()=>{});
       const messages={
         'auth/invalid-credential':'Correo o contraseña incorrectos.',
         'auth/email-already-in-use':'Ya existe una cuenta con ese correo. Inicia sesión.',

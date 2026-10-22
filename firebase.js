@@ -49,6 +49,7 @@ export async function requestEmailLink(email) {
 
 export async function getProfile(user) {
   if (!db || !user) throw Error('Firebase todavía no está conectado.');
+  if (!user.emailVerified) throw Error('Verifica tu correo antes de entrar.');
   const ref = doc(db, 'trainerProfiles', user.uid), snap = await getDoc(ref);
   if (!snap.exists()) {
     const profile = {
@@ -69,15 +70,19 @@ export async function getProfile(user) {
 
 export function watchProfile(user, callback, onError) {
   if (!db || !user) return () => {};
-  return onSnapshot(doc(db, 'trainerProfiles', user.uid), async snapshot => {
+  let active = true;
+  const unsubscribe = onSnapshot(doc(db, 'trainerProfiles', user.uid), async snapshot => {
+    if (!active) return;
     if (!snapshot.exists()) {
-      try { callback(await getProfile(user)); } catch (error) { onError?.(error); }
+      try { const profile = await getProfile(user); if (active) callback(profile); }
+      catch (error) { if (active) onError?.(error); }
       return;
     }
     const profile = { id: snapshot.id, ...snapshot.data() };
     if ((user.email || '').toLowerCase() === ADMIN_EMAIL) profile.status = 'admin';
     callback(profile);
-  }, onError);
+  }, error => { if (active) onError?.(error); });
+  return () => { active = false; unsubscribe(); };
 }
 
 export function watchProfiles(callback, onError) {
@@ -90,9 +95,9 @@ export async function claimTeam(user, team, name) {
   if (!db || !user || !team || !name.trim()) throw Error('Indica tu equipo y tu nombre.');
   const ref = doc(db, 'trainerProfiles', user.uid), current = await getProfile(user);
   const claim = { teamId: team.id, name: name.trim(), category: team.category, teamName: team.name };
-  const next = { ...current, claim, status: 'pending', updatedAt: Date.now() };
-  await setDoc(ref, next, { merge: true });
-  return next;
+  const changes = { claim, status: 'pending', updatedAt: Date.now() };
+  await updateDoc(ref, changes);
+  return { ...current, ...changes };
 }
 
 export async function decideRequest(id, action) {
@@ -102,12 +107,12 @@ export async function decideRequest(id, action) {
 }
 
 export async function getTeamWorkspace(teamId) {
-  if (!db || !teamId) return null;
+  if (!db || !teamId) throw Object.assign(Error('Firebase todavía no está conectado.'), { code: 'not-configured' });
   const snap = await getDoc(doc(db, 'teamWorkspaces', teamId));
   return snap.exists() ? snap.data().data : null;
 }
 
 export function saveTeamWorkspace(teamId, data) {
-  if (!db || !teamId) return Promise.resolve();
+  if (!db || !teamId) return Promise.reject(Object.assign(Error('Firebase todavía no está conectado.'), { code: 'not-configured' }));
   return setDoc(doc(db, 'teamWorkspaces', teamId), { data, updatedAt: serverTimestamp() });
 }

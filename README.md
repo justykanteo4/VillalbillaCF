@@ -1,5 +1,7 @@
 # Villalbilla C.F.
 
+Revisión de esta copia: ver [REVISION-2026-10-22.md](REVISION-2026-10-22.md) para las correcciones, pruebas realizadas y limitaciones actuales.
+
 App Expo para Android, iOS y web. Tema oscuro con rojo y azul y escudo transparente.
 
 ## Acceso público

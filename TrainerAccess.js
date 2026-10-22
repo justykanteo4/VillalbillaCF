@@ -16,10 +16,13 @@ export default function TrainerAccess({onSuccess}){
 
   useEffect(()=>{
     if(!firebaseConfigured||!auth)return;
-    return onAuthStateChanged(auth,async next=>{
-      su(next);sprofile(null);sq([]);se('');
-      if(next)try{sprofile(await getProfile(next))}catch(e){se(e.message||'No se pudo cargar tu perfil.');}
+    let active=true,revision=0;
+    const unsubscribe=onAuthStateChanged(auth,async next=>{
+      const current=++revision;
+      su(next?.emailVerified?next:null);sprofile(null);sq([]);se('');
+      if(next?.emailVerified)try{const profile=await getProfile(next);if(active&&current===revision)sprofile(profile)}catch(e){if(active&&current===revision)se(e.message||'No se pudo cargar tu perfil.');}
     });
+    return()=>{active=false;revision++;unsubscribe()};
   },[]);
 
   useEffect(()=>{

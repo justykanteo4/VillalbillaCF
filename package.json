@@ -11,12 +11,13 @@
     "web": "expo start --web",
     "serve": "node --env-file-if-exists=.env server/index.cjs",
     "deploy:cloudflare": "pnpm exec expo export --platform web && pnpm exec wrangler deploy",
-    "dev:cloudflare": "pnpm exec expo export --platform web && pnpm exec wrangler dev"
+    "dev:cloudflare": "pnpm exec expo export --platform web && pnpm exec wrangler dev",
+    "test": "node logic.test.mjs && node --experimental-vm-modules --test tests/*.test.cjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-google-signin/google-signin": "^16.1.5",
-    "expo": "~55.0.31",
+    "expo": "~55.0.32",
     "expo-asset": "~55.0.20",
     "expo-auth-session": "~55.0.19",
     "expo-file-system": "~55.0.26",

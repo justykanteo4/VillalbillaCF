@@ -43,6 +43,11 @@ export const adminEmails = ADMIN_EMAILS;
 
 export async function getProfile(user) {
   if (!db || !user) throw Error('Firebase todavía no está conectado.');
+  const email = (user.email || '').trim().toLowerCase();
+  const verifiedIdentity = user.emailVerified || user.providerData?.some(provider => provider.providerId === 'google.com');
+  const dynamicAdmin = email && verifiedIdentity
+    ? (await getDoc(doc(db, 'clubAdmins', email))).exists()
+    : false;
   const ref = doc(db, 'trainerProfiles', user.uid), snap = await getDoc(ref);
   if (!snap.exists()) {
     const profile = {
@@ -54,10 +59,10 @@ export async function getProfile(user) {
       updatedAt: Date.now(),
     };
     await setDoc(ref, profile);
-    return { ...profile, id: user.uid, status: isAdminEmail(profile.email) ? 'admin' : profile.status };
+    return { ...profile, id: user.uid, status: isAdminEmail(profile.email) || dynamicAdmin ? 'admin' : profile.status };
   }
   const profile = { id: snap.id, ...snap.data() };
-  if (isAdminEmail(user.email)) profile.status = 'admin';
+  if (isAdminEmail(user.email) || dynamicAdmin) profile.status = 'admin';
   return profile;
 }
 
@@ -76,8 +81,11 @@ export function watchProfile(user, callback, onError) {
 
 export function watchProfiles(callback, onError) {
   if (!db) return () => {};
-  return onSnapshot(collection(db, 'trainerProfiles'), snapshot => {
-    const profiles = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+  return onSnapshot(collection(db, 'trainerProfiles'), async snapshot => {
+    let currentAdmins = ADMIN_EMAILS;
+    try { currentAdmins = [...new Set([...ADMIN_EMAILS, ...(await listClubAdmins()).map(admin => admin.email)])]; } catch {}
+    const profiles = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+      .filter(profile => !currentAdmins.includes((profile.email || '').trim().toLowerCase()));
     profiles.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
     callback(profiles);
   }, onError);
@@ -85,10 +93,42 @@ export function watchProfiles(callback, onError) {
 
 export async function getProfiles() {
   if (!db) throw Error('Firebase todavía no está conectado.');
-  const snapshot = await getDocs(collection(db, 'trainerProfiles'));
+  const [snapshot, admins] = await Promise.all([
+    getDocs(collection(db, 'trainerProfiles')),
+    listClubAdmins(),
+  ]);
+  const adminEmailsSet = new Set(admins.map(admin => admin.email));
   return snapshot.docs
     .map(item => ({ id: item.id, ...item.data() }))
+    .filter(profile => !adminEmailsSet.has((profile.email || '').trim().toLowerCase()))
     .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+}
+
+export async function listClubAdmins() {
+  if (!db) throw Error('Firebase todavía no está conectado.');
+  const snapshot = await getDocs(collection(db, 'clubAdmins'));
+  const admins = new Map(ADMIN_EMAILS.map(email => [email, { email, primary: true }]));
+  snapshot.docs.forEach(item => {
+    const email = (item.data().email || item.id).trim().toLowerCase();
+    if (email) admins.set(email, { email, primary: false });
+  });
+  return [...admins.values()].sort((a, b) => a.email.localeCompare(b.email));
+}
+
+export async function addClubAdmin(value) {
+  if (!db || !auth?.currentUser) throw Error('Inicia sesión como administrador para continuar.');
+  const email = (value || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw Error('Escribe un correo electrónico válido.');
+  if (isAdminEmail(email)) throw Error('Ese correo ya es administrador.');
+  const ref = doc(db, 'clubAdmins', email);
+  const current = await getDoc(ref);
+  if (current.exists()) throw Error('Ese correo ya es administrador.');
+  await setDoc(ref, {
+    email,
+    createdBy: auth.currentUser.uid,
+    createdAt: serverTimestamp(),
+  });
+  return email;
 }
 
 export async function claimTeam(user, team, name) {

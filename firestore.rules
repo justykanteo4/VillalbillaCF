@@ -13,10 +13,13 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return verifiedAccount() && request.auth.token.email in [
-        'albaresfernandez@gmail.com',
-        'appvillalbilla@gmail.com'
-      ];
+      return verifiedAccount() && (
+        request.auth.token.email in [
+          'albaresfernandez@gmail.com',
+          'appvillalbilla@gmail.com'
+        ]
+        || exists(/databases/$(database)/documents/clubAdmins/$(request.auth.token.email))
+      );
     }
 
     function validClaim(claim) {
@@ -55,6 +58,17 @@ service cloud.firestore {
 
     match /teamWorkspaces/{teamId} {
       allow read, write: if isAdmin() || approvedFor(teamId);
+    }
+
+    match /clubAdmins/{email} {
+      allow get: if verifiedAccount() && request.auth.token.email == email || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['email', 'createdBy', 'createdAt'])
+        && request.resource.data.email == email
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt is timestamp;
+      allow update, delete: if false;
     }
   }
 }

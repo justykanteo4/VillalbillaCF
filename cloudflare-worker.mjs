@@ -2,6 +2,7 @@ import news from './server/news.cjs';
 import calendar from './calendar-source.cjs';
 import standings from './server/standings.cjs';
 import matches from './server/match.cjs';
+import sanctions from './server/sanctions.cjs';
 import scorers from './server/scorers.cjs';
 import fields from './server/fields.cjs';
 import weather from './server/weather.cjs';
@@ -24,7 +25,7 @@ const json = (value, status = 200, origin = '*', maxAge = 0) => new Response(JSO
 async function data(request, env) {
   const url = new URL(request.url), p = url.searchParams;
   if (url.pathname === '/api/news') return [await news.refreshNews({ persistComments: false }), 200, 60];
-  if (url.pathname === '/api/instagram') return [await news.instagram(env.INSTAGRAM_ACCESS_TOKEN), 200, 60];
+  if (url.pathname === '/api/instagram') return [await news.instagram(env.INSTAGRAM_ACCESS_TOKEN, env.INSTAGRAM_FACEBOOK_ACCESS_TOKEN), 200, 60];
   if (url.pathname === '/api/calendar') {
     const response = await fetch(calendar.SOURCE, { signal: AbortSignal.timeout(20000) });
     if (!response.ok) throw Error('calendar');
@@ -38,7 +39,15 @@ async function data(request, env) {
     const result = await matches.matchDetails(p.get('team'), p.get('match'));
     return result ? [result, 200, 300] : [{ error: 'Partido no encontrado.' }, 404, 0];
   }
+  if (url.pathname === '/api/sanctions') {
+    const result = await sanctions.sanctions(p.get('team'));
+    return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
+  }
   if (url.pathname === '/api/scorers') return [await scorers.scorers(), 200, 300];
+  if (url.pathname === '/api/league-scorers') {
+    const result = await scorers.leagueScorers(p.get('team'));
+    return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
+  }
   if (url.pathname === '/api/field') {
     const result = await fields.field(p.get('id'));
     return result ? [result, 200, 86400] : [{ error: 'Campo no encontrado.' }, 404, 0];

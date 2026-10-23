@@ -4,16 +4,37 @@
     "slug": "villalbilla-cf",
     "scheme": "villalbilla-cf",
     "icon": "./assets/app-icon-crest.png",
-    "version": "0.1.6",
+    "version": "0.1.8",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.villalbilla.cf"
+      "bundleIdentifier": "com.villalbilla.cf",
+      "buildNumber": "2",
+      "associatedDomains": [
+        "applinks:villalbillacf.firebaseapp.com"
+      ]
     },
     "android": {
       "package": "com.villalbilla.cf",
-      "versionCode": 8,
+      "versionCode": 11,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "villalbillacf.firebaseapp.com",
+              "pathPrefix": "/__/auth/links"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon-crest.png",
         "monochromeImage": "./assets/app-icon-crest.png",

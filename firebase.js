@@ -7,7 +7,7 @@ import {
 } from 'firebase/auth';
 import {
   getFirestore, collection, doc, getDoc, getDocs, onSnapshot,
-  orderBy, query, serverTimestamp, setDoc, updateDoc,
+  serverTimestamp, setDoc, updateDoc,
 } from 'firebase/firestore';
 
 const config = {
@@ -38,7 +38,11 @@ export const adminEmail = ADMIN_EMAIL;
 export async function requestEmailLink(email) {
   if (!auth || !email) throw Error('Escribe tu correo electrónico.');
   const { sendSignInLinkToEmail } = await import('firebase/auth');
-  const url = process.env.EXPO_PUBLIC_FIREBASE_CONTINUE_URL || 'https://villalbilla-cf.albaresfernandez.workers.dev/';
+  // Firebase Hosting's project domain is already authorized and is also the
+  // domain handled by the Android App Link and iOS Universal Link config.
+  // A separate Workers URL must first be added to Firebase's authorized
+  // domains; using it by default caused auth/unauthorized-continue-uri.
+  const url = `https://${config.authDomain || `${config.projectId}.firebaseapp.com`}/`;
   await sendSignInLinkToEmail(auth, email.trim().toLowerCase(), {
     url,
     handleCodeInApp: true,
@@ -82,17 +86,87 @@ export function watchProfile(user, callback, onError) {
 
 export function watchProfiles(callback, onError) {
   if (!db) return () => {};
-  const q = query(collection(db, 'trainerProfiles'), orderBy('updatedAt', 'desc'));
-  return onSnapshot(q, snapshot => callback(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError);
+  return onSnapshot(collection(db, 'trainerProfiles'), snapshot => {
+    const profiles = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+    profiles.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+    callback(profiles);
+  }, onError);
+}
+
+export async function getProfiles() {
+  if (!db) throw Error('Firebase todavía no está conectado.');
+  const snapshot = await getDocs(collection(db, 'trainerProfiles'));
+  return snapshot.docs
+    .map(item => ({ id: item.id, ...item.data() }))
+    .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
 }
 
 export async function claimTeam(user, team, name) {
-  if (!db || !user || !team || !name.trim()) throw Error('Indica tu equipo y tu nombre.');
-  const ref = doc(db, 'trainerProfiles', user.uid), current = await getProfile(user);
+  if (!db || !user || !team || !name?.trim()) throw Error('Indica tu equipo y tu nombre.');
+  const ref = doc(db, 'trainerProfiles', user.uid), current = await getDoc(ref);
   const claim = { teamId: team.id, name: name.trim(), category: team.category, teamName: team.name };
-  const next = { ...current, claim, status: 'pending', updatedAt: Date.now() };
-  await setDoc(ref, next, { merge: true });
-  return next;
+  const status = 'pending', updatedAt = Date.now();
+  try {
+    if (current.exists()) {
+      await updateDoc(ref, { claim, status, updatedAt });
+    } else {
+      await setDoc(ref, {
+        uid: user.uid,
+        email: (user.email || '').toLowerCase(),
+        name: user.displayName || user.email || 'Entrenador',
+        claim,
+        status,
+        updatedAt,
+      });
+    }
+    const saved = await getDoc(ref);
+    if (!saved.exists() || saved.data().status !== 'pending' || saved.data().claim?.teamId !== team.id) {
+      throw Error('Firebase no confirmó la solicitud. Comprueba la conexión y vuelve a enviarla.');
+    }
+    return { id: user.uid, ...saved.data() };
+  } catch (error) {
+    if (error.code === 'permission-denied') {
+      throw Error('Firebase ha rechazado la solicitud. Comprueba que has iniciado sesión con una cuenta verificada y vuelve a intentarlo.');
+    }
+    if (error.code === 'not-found') {
+      throw Error('No se encontró tu perfil de entrenador. Cierra sesión, vuelve a entrar y solicita acceso de nuevo.');
+    }
+    throw error;
+  }
+}
+
+export async function claimPlayer(user, team, player) {
+  if (!db || !user || !team || !player?.id || !player?.name) throw Error('Selecciona tu equipo y tu ficha de jugador.');
+  const ref = doc(db, 'trainerProfiles', user.uid), current = await getDoc(ref);
+  const claim = {
+    teamId: team.id,
+    playerId: String(player.id),
+    name: player.name,
+    category: team.category,
+    teamName: team.name,
+    role: 'player',
+  };
+  const status = 'pending', updatedAt = Date.now();
+  try {
+    if (current.exists()) await updateDoc(ref, { claim, status, updatedAt });
+    else await setDoc(ref, {
+      uid: user.uid,
+      email: (user.email || '').toLowerCase(),
+      name: user.displayName || user.email || 'Jugador',
+      claim,
+      status,
+      updatedAt,
+    });
+    const saved = await getDoc(ref);
+    if (!saved.exists() || saved.data().status !== 'pending' || saved.data().claim?.playerId !== String(player.id)) {
+      throw Error('Firebase no confirmó la solicitud. Comprueba la conexión y vuelve a intentarlo.');
+    }
+    return { id: user.uid, ...saved.data() };
+  } catch (error) {
+    if (error.code === 'permission-denied') throw Error('Firebase ha rechazado la solicitud. Comprueba que has iniciado sesión con una cuenta verificada y vuelve a intentarlo.');
+    if (error.code === 'not-found') throw Error('No se encontró tu perfil. Cierra sesión, vuelve a entrar y solicita acceso de nuevo.');
+    throw error;
+  }
 }
 
 export async function decideRequest(id, action) {

@@ -3,4 +3,25 @@ let snapshot=require('../scorers-seed.json'),checked=0,pending=null;
 function parseScorers(html,team){const p=pageData(html);if(String(p.season?.cod_temporada)!=='22'||String(p.group?.codigo)!==team.group||String(p.competition?.codigo)!==team.competition)throw Error('Grupo incorrecto');if(p.group.clasificacion_goleadores==='0'||p.competition.goleadores==='0')return {...team,available:false,players:[],error:false};if(!Array.isArray(p.scorers?.goles))throw Error('Goleadores no disponibles');const players=p.scorers.goles.filter(r=>String(r.codigo_equipo)===team.id).map(r=>({id:String(r.codigo_jugador),name:r.jugador,goals:Number(r.goles),teamId:team.id,teamName:team.name,category:team.category}));if(players.some(r=>!r.id||r.id==='undefined'||!r.name||!Number.isInteger(r.goals)||r.goals<0))throw Error('Datos de goleadores inválidos');return {...team,players,available:true,error:false,updatedAt:new Date().toISOString()}}
 function rankTeams(sources){const players=new Map();for(const team of sources)for(const p of team.players||[]){if(p.goals<=0)continue;let row=players.get(p.id);if(!row){row={id:p.id,name:p.name,goals:0,teams:[]};players.set(p.id,row)}if(row.teams.some(t=>t.id===p.teamId))continue;row.goals+=p.goals;row.teams.push({id:p.teamId,name:p.teamName,category:p.category,goals:p.goals})}const rows=[...players.values()].sort((a,b)=>b.goals-a.goals||a.name.localeCompare(b.name,'es'));let rank=0;rows.forEach((r,i)=>{if(i===0||r.goals!==rows[i-1].goals)rank=i+1;r.position=rank});return rows}
 async function scorers(){if(pending)return pending;if(Date.now()-checked<300000)return snapshot;pending=(async()=>{const groups=[...new Set(teams.map(t=>t.competition+':'+t.group))],pages=new Map();for(let i=0;i<groups.length;i+=3)await Promise.all(groups.slice(i,i+3).map(async key=>{const t=teams.find(t=>t.competition+':'+t.group===key);try{const r=await fetch(`https://www.rffm.es/competicion/goleadores?competicion=${t.competition}&grupo=${t.group}&temporada=22&tipojuego=${t.gameType}`,{signal:AbortSignal.timeout(20000)});if(!r.ok)throw Error();pages.set(key,await r.text())}catch{pages.set(key,null)}}));const sources=teams.map(t=>{try{return parseScorers(pages.get(t.competition+':'+t.group)||'',t)}catch{return {...(snapshot.sources.find(s=>s.id===t.id)||{...t,players:[],available:null}),error:true}}});snapshot={sources,rows:rankTeams(sources),partial:sources.some(t=>t.error||!t.available),checkedAt:new Date().toISOString()};checked=Date.now();return snapshot})().finally(()=>pending=null);return pending}
-module.exports={parseScorers,rankTeams,scorers};
+const leagueCache=new Map(),leaguePending=new Map();
+async function leagueScorers(teamId){
+ const team=teams.find(t=>t.id===String(teamId));if(!team)return null;
+ const key=team.competition+':'+team.group,old=leagueCache.get(key);
+ if(old&&Date.now()-old.checked<300000)return old.data;
+ if(leaguePending.has(key))return leaguePending.get(key);
+ const request=(async()=>{
+  try{
+   const response=await fetch(`https://www.rffm.es/competicion/goleadores?competicion=${team.competition}&grupo=${team.group}&temporada=22&tipojuego=${team.gameType}`,{signal:AbortSignal.timeout(15000)});
+   if(!response.ok)throw Error('Fuente no disponible');
+   const p=pageData(await response.text());
+   if(String(p.season?.cod_temporada)!=='22'||String(p.group?.codigo)!==team.group||String(p.competition?.codigo)!==team.competition)throw Error('Competición incorrecta');
+   if(p.group.clasificacion_goleadores==='0'||p.competition.goleadores==='0')return {available:false,players:[],updatedAt:new Date().toISOString()};
+   if(!Array.isArray(p.scorers?.goles))throw Error('Goleadores no publicados');
+   const players=p.scorers.goles.map(row=>({id:String(row.codigo_jugador),name:String(row.jugador||'').trim(),teamId:String(row.codigo_equipo),teamName:String(row.equipo||row.nombre_equipo||''),goals:Number(row.goles)})).filter(row=>row.id&&row.id!=='undefined'&&row.name&&Number.isInteger(row.goals)&&row.goals>=0).sort((a,b)=>b.goals-a.goals||a.name.localeCompare(b.name,'es'));
+   let position=0;players.forEach((player,index)=>{if(index===0||player.goals!==players[index-1].goals)position=index+1;player.position=position});
+   const data={available:true,players,updatedAt:new Date().toISOString(),teamId:team.id,category:team.category,group:p.group.nombre||p.group.grupo||''};
+   leagueCache.set(key,{checked:Date.now(),data});return data;
+  }catch(error){if(old)return {...old.data,error:true};throw error}
+ })().finally(()=>leaguePending.delete(key));leaguePending.set(key,request);return request;
+}
+module.exports={parseScorers,rankTeams,scorers,leagueScorers};

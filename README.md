@@ -1,12 +1,16 @@
 # Villalbilla C.F.
 
+## Trabajar desde otro ordenador
+
+Clona el repositorio de GitHub y ejecuta `npm install` en la carpeta del proyecto. Para usar las funciones que dependen del servidor, crea `.env` a partir de `.env.example` y configura allí las credenciales privadas; `.env` y `server/data/` no se suben a GitHub. Transfiere esos datos privados desde el ordenador original mediante un medio seguro si necesitas conservar las cuentas locales. Las fotos de jugadores y el código de la app sí están incluidos.
+
 App Expo para Android, iOS y web. Tema oscuro con rojo y azul y escudo transparente.
 
 ## Acceso público
 
 Noticias es la pantalla inicial: no requiere cuenta. Resultados por semana de los 17 equipos en competición identificados en la ficha oficial https://www.rffm.es/fichaclub/4144. Los marcadores se extraen de los calendarios de la RFFM, se comprueban por identificador de equipo y grupo y se actualizan cada cinco minutos en el servidor. La app consulta al abrir Noticias, al volver al primer plano y cada cinco minutos mientras está en esa sección. Ante errores conserva el último dato y señala el equipo afectado. La copia inicial incluida tiene fecha de consulta; no supone actualización si el servidor está apagado. Algunas categorías de fútbol 7 tienen calendarios por fases: revisar el registro teams.json al cambiar de fase o temporada.
 
-Noticias incluye Instagram de @villalbillacf. La integración requiere que su administrador autorice una cuenta profesional con instagram_business_basic. Aún no está autorizada y se muestra como pendiente, sin publicaciones inventadas. El servidor admite INSTAGRAM_ACCESS_TOKEN y comprueba que pertenezca a villalbillacf antes de entregar fotos, álbumes, miniaturas de vídeo y textos. No muestra historias privadas. Los tokens se guardan solo en el servidor, nunca en el paquete de la app. Renovar el token de acuerdo con su vigencia y volver a autorizar si se revoca. La conexión no está probada con una cuenta real.
+Noticias incluye Instagram de @villalbillacf. El servidor admite Instagram Login con instagram_business_basic o Facebook Login con pages_show_list, pages_read_engagement e instagram_basic. En ambos casos la cuenta debe ser profesional y el administrador debe autorizar el acceso; Facebook Login además requiere que Instagram esté enlazada a una página de Facebook que administre esa persona. La API comprueba el usuario villalbillacf antes de entregar fotos, álbumes, miniaturas de vídeo y textos. No muestra historias privadas. Los tokens se guardan solo en el servidor, nunca en el paquete de la app. Configurar INSTAGRAM_ACCESS_TOKEN o INSTAGRAM_FACEBOOK_ACCESS_TOKEN como secreto del servidor y renovarlo/reautorizarlo cuando caduque o se revoque. La conexión no está probada con una cuenta real.
 
 Calendario muestra las 34 jornadas del primer equipo dentro de la app y ofrece actualización manual, filtros y copia local.
 
@@ -36,7 +40,7 @@ Antes de distribuir: alojar el servidor en HTTPS, gestionar cuentas individuales
 
 ## Comprobaciones
 
-`node logic.test.mjs` valida fechas y enlaces. Desde APP VB: `node work/news-test.cjs` verifica los 17 equipos, parser y acceso de entrenadores. Las tres plataformas compilan; las pruebas de navegador verifican acceso público, resultados, estado pendiente de Instagram y bloqueo del área privada sin clave configurada.
+`node logic.test.mjs` valida fechas y enlaces. `npx expo export --platform all` comprueba la compilación de las plataformas de Expo.
 
 ## Acceso con Google (actualización)
 

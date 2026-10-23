@@ -3,6 +3,7 @@ const {refreshNews,instagram}=require('./news.cjs'),auth=require('./accounts.cjs
 const {SOURCE,parseCalendar}=require('../calendar-source.cjs');
 const {standings}=require('./standings.cjs');
 const {matchDetails}=require('./match.cjs');
+const {sanctions}=require('./sanctions.cjs');
 const {scorers}=require('./scorers.cjs');
 const {field}=require('./fields.cjs');
 const {weather}=require('./weather.cjs');
@@ -18,7 +19,9 @@ const server=http.createServer(async(req,res)=>{try{
  if(req.method==='POST'&&req.headers.origin){const expected=process.env.PUBLIC_APP_URL||((process.env.NODE_ENV==='production'||process.env.SESSION_COOKIE_SECURE==='true')?'https://':'http://')+req.headers.host;if(req.headers.origin!==expected)return json(res,403,{error:'Origen de solicitud no permitido.'})}
  if(u.pathname==='/api/standings'&&req.method==='GET'){const data=await standings(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/match'&&req.method==='GET'){const data=await matchDetails(u.searchParams.get('team'),u.searchParams.get('match'));return json(res,data?200:404,data||{error:'Partido no encontrado.'})}
+ if(u.pathname==='/api/sanctions'&&req.method==='GET'){const data=await sanctions(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/scorers'&&req.method==='GET')return json(res,200,await scorers());
+ if(u.pathname==='/api/league-scorers'&&req.method==='GET'){const data=await scorers.leagueScorers(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/field'&&req.method==='GET'){const data=await field(u.searchParams.get('id'));return json(res,data?200:404,data||{error:'Campo no encontrado.'})}
  if(u.pathname==='/api/weather'&&req.method==='GET')return json(res,200,await weather(u.searchParams.get('field'),u.searchParams.get('date'),u.searchParams.get('time')));
  if(u.pathname==='/api/players'&&req.method==='GET'){const data=await getPlayers(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}

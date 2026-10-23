@@ -19,7 +19,12 @@ const config = {
 };
 
 export const firebaseConfigured = Object.values(config).every(Boolean);
-const ADMIN_EMAIL = 'albaresfernandez@gmail.com';
+const ADMIN_EMAILS = Object.freeze([
+  'albaresfernandez@gmail.com',
+  'appvillalbilla@gmail.com',
+]);
+const ADMIN_EMAIL = ADMIN_EMAILS[0];
+const isAdminEmail = email => ADMIN_EMAILS.includes((email || '').trim().toLowerCase());
 let auth = null, db = null;
 
 if (firebaseConfigured) {
@@ -32,8 +37,9 @@ if (firebaseConfigured) {
   db = getFirestore(app);
 }
 
-export { auth, db, onAuthStateChanged, signOut };
+export { auth, db, onAuthStateChanged, signOut, isAdminEmail };
 export const adminEmail = ADMIN_EMAIL;
+export const adminEmails = ADMIN_EMAILS;
 
 export async function requestEmailLink(email) {
   if (!auth || !email) throw Error('Escribe tu correo electrónico.');
@@ -64,10 +70,10 @@ export async function getProfile(user) {
       updatedAt: Date.now(),
     };
     await setDoc(ref, profile);
-    return { ...profile, id: user.uid, status: profile.email === ADMIN_EMAIL ? 'admin' : profile.status };
+    return { ...profile, id: user.uid, status: isAdminEmail(profile.email) ? 'admin' : profile.status };
   }
   const profile = { id: snap.id, ...snap.data() };
-  if ((user.email || '').toLowerCase() === ADMIN_EMAIL) profile.status = 'admin';
+  if (isAdminEmail(user.email)) profile.status = 'admin';
   return profile;
 }
 
@@ -79,7 +85,7 @@ export function watchProfile(user, callback, onError) {
       return;
     }
     const profile = { id: snapshot.id, ...snapshot.data() };
-    if ((user.email || '').toLowerCase() === ADMIN_EMAIL) profile.status = 'admin';
+    if (isAdminEmail(user.email)) profile.status = 'admin';
     callback(profile);
   }, onError);
 }

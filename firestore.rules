@@ -13,7 +13,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return verifiedAccount() && request.auth.token.email == 'albaresfernandez@gmail.com';
+      return verifiedAccount() && request.auth.token.email in [
+        'albaresfernandez@gmail.com',
+        'appvillalbilla@gmail.com'
+      ];
     }
 
     function validClaim(claim) {

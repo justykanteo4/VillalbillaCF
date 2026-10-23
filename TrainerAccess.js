@@ -4,7 +4,7 @@ import {api} from './api';
 import AccessMethods from './AccessMethods';
 import teams from './teams.json';
 import {
-  adminEmail,auth,claimPlayer,claimTeam,decideRequest,firebaseConfigured,
+  adminEmails,auth,claimPlayer,claimTeam,decideRequest,firebaseConfigured,
   getProfile,getProfiles,onAuthStateChanged,signOut,watchProfile,watchProfiles,
 } from './firebase';
 import {EmailAuthProvider,linkWithCredential,updatePassword} from 'firebase/auth';
@@ -55,7 +55,7 @@ export default function TrainerAccess({onSuccess,role='trainer'}){
 
   useEffect(()=>{
     if(!authUser||!user||user.status!=='admin')return;
-    return watchProfiles(list=>sq(list.filter(item=>item.email?.toLowerCase()!==adminEmail)),e=>se(e.message||'No se pudieron cargar las solicitudes.'));
+    return watchProfiles(list=>sq(list.filter(item=>!adminEmails.includes(item.email?.toLowerCase()))),e=>se(e.message||'No se pudieron cargar las solicitudes.'));
   },[authUser,user?.status]);
 
   useEffect(()=>{
@@ -96,7 +96,7 @@ export default function TrainerAccess({onSuccess,role='trainer'}){
 
   async function refreshRequests(){
     sbusy(true);se('');
-    try{const list=await getProfiles();sq(list.filter(item=>item.email?.toLowerCase()!==adminEmail));}
+    try{const list=await getProfiles();sq(list.filter(item=>!adminEmails.includes(item.email?.toLowerCase())));}
     catch(e){se(e.message||'No se pudieron actualizar las solicitudes.');}
     finally{sbusy(false)}
   }

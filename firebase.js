@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initializeApp, getApps } from 'firebase/app';
 import {
-  getAuth, initializeAuth, getReactNativePersistence,
+  getAuth, getIdToken, initializeAuth, getReactNativePersistence,
   onAuthStateChanged, signOut,
 } from 'firebase/auth';
 import {
@@ -167,6 +167,7 @@ export async function decideRequest(id, action) {
 
 export async function getTeamWorkspace(teamId) {
   if (!db || !teamId) return null;
+  if (auth?.currentUser) await getIdToken(auth.currentUser, true);
   const snap = await getDoc(doc(db, 'teamWorkspaces', teamId));
   return snap.exists() ? snap.data().data : null;
 }

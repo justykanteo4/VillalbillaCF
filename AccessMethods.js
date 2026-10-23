@@ -6,7 +6,7 @@ import {
 } from './firebase';
 import {
   createUserWithEmailAndPassword, reload,
-  sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut,
+  getIdToken, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut,
 } from 'firebase/auth';
 import GoogleSignIn from './GoogleSignIn';
 
@@ -37,6 +37,7 @@ export default function AccessMethods({onSuccess}){
         ? await createUserWithEmailAndPassword(auth,email.trim().toLowerCase(),password)
         : await signInWithEmailAndPassword(auth,email.trim().toLowerCase(),password);
       await reload(result.user);
+      await getIdToken(result.user,true);
       if(register){
         await sendEmailVerification(result.user);
         await signOut(auth);

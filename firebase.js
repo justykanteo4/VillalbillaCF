@@ -41,22 +41,6 @@ export { auth, db, onAuthStateChanged, signOut, isAdminEmail };
 export const adminEmail = ADMIN_EMAIL;
 export const adminEmails = ADMIN_EMAILS;
 
-export async function requestEmailLink(email) {
-  if (!auth || !email) throw Error('Escribe tu correo electrónico.');
-  const { sendSignInLinkToEmail } = await import('firebase/auth');
-  // Firebase Hosting's project domain is already authorized and is also the
-  // domain handled by the Android App Link and iOS Universal Link config.
-  // A separate Workers URL must first be added to Firebase's authorized
-  // domains; using it by default caused auth/unauthorized-continue-uri.
-  const url = `https://${config.authDomain || `${config.projectId}.firebaseapp.com`}/`;
-  await sendSignInLinkToEmail(auth, email.trim().toLowerCase(), {
-    url,
-    handleCodeInApp: true,
-    iOS: { bundleId: 'com.villalbilla.cf' },
-    android: { packageName: 'com.villalbilla.cf', installApp: true, minimumVersion: '3' },
-  });
-}
-
 export async function getProfile(user) {
   if (!db || !user) throw Error('Firebase todavía no está conectado.');
   const ref = doc(db, 'trainerProfiles', user.uid), snap = await getDoc(ref);

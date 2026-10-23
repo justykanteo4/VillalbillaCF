@@ -46,5 +46,3 @@ async function sanctions(teamId){const team=teams.find(item=>item.id===String(te
 }
 
 module.exports={sanctions,cardsForTeam,currentSuspensions};
-
-\n

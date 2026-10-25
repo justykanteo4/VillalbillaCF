@@ -76,6 +76,13 @@ Usar Node 24 para node:sqlite de los tests, pnpm y pnpm install --frozen-lockfil
 - Cualquier APK futuro debe usar versionCode mayor que 14. La rama de código mantiene los cambios anteriores por petición de conservarlos; la app instalada restaurada corresponde al binario original 0.1.8, no al código pendiente 0.1.10.
 - No se ha cambiado la web, facturación, bases D1 o secretos ni se han enviado notificaciones. Restaurar 0.1.8 no significa haber corregido su configuración original de Firebase/Google.
 
+## Regreso a la 0.1.9 solicitado después de la restauración
+- El usuario pide «Volvemos a la otra», referido a las dos versiones ofrecidas: se recupera la 0.1.9 con el resumen compacto de Noticias.
+- Copia del APK 0.1.9 ya distribuido, conservando JavaScript, recursos, bibliotecas y configuración; se modifica únicamente versionCode de 12 a 15 y se vuelve a firmar con el mismo certificado para instalar sobre la restauración 0.1.8/código 14 sin desinstalar. Se verificó igualdad de todos los archivos salvo manifiesto y firmas, metadatos y certificado.
+- Descarga privada: https://github.com/justykanteo4/VillalbillaCF/raw/refs/heads/codex/apk-0.1.9-restaurada/VillalbillaCF-0.1.9-restaurada.apk. Rama codex/apk-0.1.9-restaurada.
+- Archivo de 54.137.997 bytes; SHA-256 1f10c882499ec509cfb5e3a88ef4dde745198e9af1f234f2e23c7588d58dbf6f. No se ha probado en un móvil físico. Cualquier APK posterior requiere versionCode mayor que 15.
+- No se ha modificado la web ni activado la configuración pendiente de OTA/Firebase/Google. No se han cambiado planes o enviado notificaciones. Los APK anteriores y todos los cambios de código se conservan.
+
 ## Próximos pasos
 1. Comprobar inicio de sesión de administrador en navegador y, con consentimiento, suscripción de un dispositivo voluntario. No enviar notificaciones reales sin autorización específica.
 2. Verificar recepción Web Push/Expo en dispositivo real cuando se autorice un envío. La exportación web no demuestra recepción en dispositivos físicos.

@@ -1,5 +1,14 @@
 # Villalbilla C.F. — continuar en Codex Cloud
 
+## Estado actual prioritario: 0.1.9 con Internet
+La cuenta Expo justykanteo4 ya está autorizada y se confirmó su plan Free. Se creó production y se publicó Android runtime 0.1.9: update 01a173a1-b222-739e-bd2b-9189019af54d, grupo 19272470-f305-4b5c-b43c-7cc64169f546. Se verificaron manifiesto, descarga autenticada de assets y hash del bundle; el runtime 0.1.8 no recibe la actualización.
+
+El usuario debe instalar una vez https://github.com/justykanteo4/VillalbillaCF/raw/refs/heads/codex/apk-0.1.9-internet/VillalbillaCF-0.1.9-internet.apk encima de su APK, sin desinstalar. Este APK reutiliza todos los archivos de la base 0.1.9; solo se cambió el manifiesto a código Android 16, cabecera production y espera de arranque 3 s. Firma y payload comprobados contra el original. No se ha probado en su teléfono. SHA-256 646b16597532e0e9f831dfe0d85733ae0449bafa1ad62c3e02271288ba4a6130.
+
+La rama de código queda alineada en versión 0.1.9/código 16 para publicar mejoras JavaScript compatibles. Cualquier APK posterior debe tener código mayor que 16; los cambios nativos necesitan runtime nuevo. El archivo google-services.json y las credenciales FCM siguen pendientes para corregir completamente notificaciones Android; no se ha fingido su configuración ni se ha distribuido el APK intermedio 0.1.10. Consultar ACTUALIZACIONES-ANDROID.md, actualizado con el procedimiento vigente. Las notas siguientes son el historial de esta conversación y pueden describir estados previos.
+
+No se cambiaron planes, facturación, web, D1 o secretos de Cloudflare ni se enviaron notificaciones. La sesión Expo está solo en work/expo-session. En este entorno publicar con work/eas.sh, no con una sesión HOME inexistente.
+
 ## Objetivo y restricciones del usuario
 Corregir los requisitos de la revisión y mantener la aplicación sin planes de pago. No activar Blaze, Workers Paid, servicios de pago ni publicaciones en tiendas. El usuario solicita continuar desde otro dispositivo usando Codex Cloud.
 

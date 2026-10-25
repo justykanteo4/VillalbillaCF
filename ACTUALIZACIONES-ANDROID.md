@@ -1,34 +1,55 @@
 # Actualizaciones Android por Internet
 
-Estado: preparado en código; pendiente de autorizar Firebase y Expo y de terminar la configuración nativa. No se ha distribuido el APK 0.1.10 ni publicado una actualización OTA.
+Configurado y publicado en Expo, cuenta justykanteo4 con plan confirmado **Free**. Canal y rama EAS: production; plataforma Android; runtime 0.1.9. No se activó facturación, EAS Build ni planes de pago.
 
-La versión 0.1.9 distribuida no incluye la cabecera del canal EAS. Será necesaria una instalación inicial del APK 0.1.10 (código Android 13), con la misma firma, para habilitar el canal production. Después, los cambios compatibles en JavaScript y recursos se descargarán por Internet. Añadir o cambiar módulos nativos, permisos o la configuración nativa requiere otro APK. No incrementar expo.version para una actualización JavaScript compatible: debe conservar el runtime de la base instalada.
+## Instalación inicial necesaria
 
-La app comprueba actualizaciones al arrancar mediante Expo Updates. Al volver a primer plano, también comprueba si han pasado 15 minutos. Descarga mejoras sin reiniciar ni interrumpir la edición. Se aplican al siguiente arranque; la versión instalada funciona sin conexión. Ajustes muestra el estado de la descarga.
+[APK 0.1.9 con Internet](https://github.com/justykanteo4/VillalbillaCF/raw/refs/heads/codex/apk-0.1.9-internet/VillalbillaCF-0.1.9-internet.apk)
 
-## Configuración que falta completar
+Instalar una vez encima de la copia actual, sin desinstalar. El APK conserva el contenido de la base 0.1.9 y el mismo certificado. Solo se modificó el manifiesto para código Android 16, canal production y espera de arranque de 3000 ms. Se verificaron todos los archivos contra la base original, metadatos y firma. La versión visible y el runtime siguen siendo 0.1.9. Cualquier APK siguiente requiere código Android mayor que 16.
 
-1. Autorizar Firebase con una cuenta administradora del proyecto existente villalbillacf.
-2. Recuperar google-services.json de la app Android com.villalbilla.cf; si no existe, registrar esa app dentro del mismo proyecto gratuito. Comprobar la huella SHA de la firma utilizada y el proveedor Google. El archivo se conserva localmente y está ignorado por Git.
-3. Guardar EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID con el cliente OAuth tipo 3 del archivo. Se ha recuperado un cliente público mediante Firebase Auth y guardado en .env.local, pero hay que contrastarlo con la configuración nativa. No generar claves ficticias ni usar el appId web como appId Android.
-4. Ejecutar pnpm run check:android-config antes de compilar o exportar actualizaciones. Se rechazan configuraciones de otro proyecto/paquete y clientes OAuth ausentes.
-5. Autorizar Expo con la cuenta del proyecto 8aa9b217-1386-4b74-9a15-9e93d127030b (justykanteo4). Revisar el plan y las cuotas gratuitas antes de publicar. No activar facturación o planes de pago; si la cuota no permite publicar, dejar la versión instalada operativa.
-6. Comprobar que Expo tenga las credenciales FCM v1 del proyecto correcto antes de afirmar que funciona la recepción push Android. Esas credenciales son privadas: permanecerán en el almacén de credenciales de Expo, nunca en Git ni en el chat. No enviar notificaciones reales sin autorización específica.
-7. Crear o reutilizar el canal production y verificar su asociación a la rama EAS prevista. Compilar el APK final y verificar firma, versión, recursos Firebase, clientes Google y cabecera expo-channel-name. Probar inicio de sesión y registro push en un dispositivo voluntario.
+La versión restaurada anterior, código 15, carece de este canal nuevo: no basta con publicar una web o una actualización para habilitarlo en esa copia. Esta instalación inicial es necesaria.
+
+## Funcionamiento
+
+Expo Updates busca y descarga al arrancar. Al volver al primer plano también comprueba novedades si han pasado 15 minutos. Las mejoras se aplican al siguiente arranque sin interrumpir una edición; la copia instalada sigue funcionando sin conexión. Ajustes muestra si hay una actualización descargándose o lista.
+
+JavaScript y recursos compatibles se publican por Internet. Añadir o cambiar módulos nativos, permisos o configuración nativa requiere un APK nuevo y un runtime nuevo. No cambiar expo.version para actualizaciones JavaScript compatibles del runtime 0.1.9.
+
+## Publicación verificada
+
+- Actualización: 01a173a1-b222-739e-bd2b-9189019af54d.
+- Grupo: 19272470-f305-4b5c-b43c-7cc64169f546.
+- Canal/ramificación: production. Runtime: 0.1.9. Android.
+- Se verificó el manifiesto del protocolo Expo y la descarga del bundle usando las cabeceras de assets proporcionadas en la parte extensions, igual que Expo Updates. SHA-256 del bundle correcto, 3.705.627 bytes.
+- El runtime 0.1.8 recibe 204 y no recibe esta actualización incompatible.
+- Pendiente de instalación y prueba en el teléfono del usuario; no afirmar que ya se ha actualizado su móvil.
+- SHA-256 APK: 646b16597532e0e9f831dfe0d85733ae0449bafa1ad62c3e02271288ba4a6130; tamaño 54.137.997 bytes.
 
 ## Publicar cambios compatibles
 
-Con Firebase Android configurado, .env.local con los valores públicos correctos, y sesión Expo autorizada:
+Con sesión Expo autorizada y .env.local con los valores públicos correctos:
 
 ```sh
 pnpm test
 pnpm run publish:android-update --message "Descripción del cambio"
 ```
 
-El script exporta Android con sus variables públicas locales y publica solamente esa exportación en el canal production. No compila en EAS Build, no publica en tiendas ni cambia la facturación. La publicación web de Cloudflare sigue siendo independiente.
+El script valida las variables públicas, exporta solamente Android y publica la exportación en production. La exportación OTA no exige google-services.json: reutiliza la base nativa instalada, que una actualización JavaScript no puede reconfigurar. El script usa --environment production para Expo SDK 55; el bundle se exporta previamente con sus variables públicas locales.
 
-## Particularidades de este entorno
+En este entorno concreto, HOME no está disponible y la sesión se guarda solo en work/expo-session. Usar el lanzador local:
 
-HOME no está disponible para guardar sesiones CLI. El lanzador local work/eas.sh redirige exclusivamente la ruta de sesión de EAS hacia work/expo-session y utiliza directorios XDG dentro de work. No modifica credenciales ni decisiones de autenticación. Firebase CLI usa XDG_CONFIG_HOME dentro de work/firebase-config. Estos directorios y las sesiones no están en Git.
+```sh
+EXPO_NO_TELEMETRY=1 pnpm run export:android-update
+bash work/eas.sh update --channel production --platform android --environment production --input-dir work/ota-export --skip-bundler --non-interactive --message "Descripción del cambio"
+```
 
-Se compiló un APK intermedio 0.1.10 para comprobar las cabeceras OTA antes de recibir las capturas de los errores. No distribuir ese archivo: aún no contiene google-services.json ni las últimas correcciones nativas. Recompilar tras completar la configuración.
+La publicación web de Cloudflare es independiente. Respetar las cuotas Free. Si se agotan, conservar la copia instalada; no activar facturación ni actualizar planes automáticamente.
+
+## Firebase/Google Android: pendiente independiente
+
+El APK conserva la configuración nativa original de la 0.1.9. El cliente público Google recuperado sí se incluye en el JavaScript publicado y los errores técnicos se presentan como mensajes comprensibles. Eso no demuestra que la recepción push Android esté reparada.
+
+Para una compilación nativa nueva, primero autorizar Firebase, recuperar google-services.json del proyecto existente, comprobar paquete com.villalbilla.cf y huellas SHA, y verificar que Expo tenga las credenciales FCM v1 correctas. Ejecutar pnpm run check:android-config y pnpm run prebuild:android. La comprobación nativa continúa bloqueando una compilación sin configuración válida. Credenciales privadas de FCM solo en Expo, nunca en Git ni en el chat. No enviar notificaciones reales sin autorización específica.
+
+Una vez se cambie esa configuración nativa, usar un runtime nuevo y código Android mayor que 16. No distribuir el APK intermedio 0.1.10 anterior: era una comprobación sin Firebase Android configurado.

@@ -41,8 +41,8 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
 
   useEffect(()=>{
     let active=true;setActa(null);if(!next)return;
-    async function fetchActa(){try{const data=await api('/api/match?team='+encodeURIComponent(teamId)+'&match='+encodeURIComponent(next.id));if(active)setActa(data)}catch{if(active)setActa({error:true})}}
-    fetchActa();const timer=setInterval(fetchActa,300000);
+    async function fetchActa(){try{const data=await api('/api/match?team='+encodeURIComponent(teamId)+'&match='+encodeURIComponent(next.id)+'&refresh=1');if(active)setActa(data)}catch{if(active)setActa({error:true})}}
+    fetchActa();const timer=setInterval(fetchActa,60000);
     return()=>{active=false;clearInterval(timer)};
   },[teamId,next?.id]);
 

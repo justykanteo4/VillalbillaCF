@@ -44,8 +44,8 @@ async function data(request, env) {
     return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/match') {
-    const result = await matches.matchDetails(p.get('team'), p.get('match'));
-    return result ? [result, 200, 300] : [{ error: 'Partido no encontrado.' }, 404, 0];
+    const result = await matches.matchDetails(p.get('team'), p.get('match'),{refresh:p.get('refresh')==='1'});
+    return result ? [result, 200, result.error||p.get('refresh')==='1'?0:60] : [{ error: 'Partido no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/sanctions') {
     const result = await sanctions.sanctions(p.get('team'));

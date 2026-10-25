@@ -29,6 +29,17 @@ Usar Node 24 para node:sqlite de los tests, pnpm y pnpm install --frozen-lockfil
 - Comprobaciones en producción: /, /firebase-messaging-sw.js, /manifest.webmanifest, /api/push/key y /api/notifications devuelven 200; /api/push/send y /api/push/dispatch sin sesión devuelven 401. La clave pública está disponible. La comprobación HTTP necesita User-Agent de navegador para evitar el bloqueo 1010 del cliente Python predeterminado.
 - No se activaron Blaze, Workers Paid, facturación ni recursos nuevos en producción. La API de suscripciones de facturación devolvió 403 con los permisos OAuth disponibles: no se ha podido auditar independientemente el plan completo de la cuenta. No se cambió su configuración de facturación.
 
+## Resumen global en Noticias — 25 de octubre de 2026
+- Se añadió al principio de Noticias «Resumen del club»: primero la jornada (semana de lunes a domingo en Europe/Madrid) y debajo el acumulado de la temporada 2026/27.
+- Incluye todos los equipos del club, independientemente de los favoritos: goles a favor, goles en contra, amarillas y rojas. Excluye resultados pendientes y las tarjetas de rivales. Un partido entre dos equipos del club se cuenta una vez como partido y cada equipo aporta sus propios goles/tarjetas.
+- Las tarjetas proceden de actas de la RFFM. Se muestra cobertura y aviso de recuento parcial; una ausencia de acta nunca se interpreta como cero tarjetas. Segunda amarilla cuenta como amarilla y expulsión.
+- Nuevo endpoint público /api/club-stats?team=ID&offset=0, con páginas de 12 actas, caché de 5 minutos y dos equipos consultados simultáneamente desde la interfaz. Sin nuevos servicios, dependencias, recursos ni cambios de plan.
+- pnpm test con Node 24.19.0: 23 pruebas aprobadas, más logic.test.mjs. Nuevas pruebas: acumulados local/visitante y periodo, ausencia de actas, partido entre equipos del club sin duplicados, paginación/caché y exclusión de tarjetas rivales.
+- Exportación Expo web y ensayo de despliegue correctos. Chromium con Playwright: comprobada presentación móvil de 390 px y escritorio de 1365 px usando respuestas controladas para favoritos activos y actas parciales; sin errores JavaScript ni desbordamiento horizontal en móvil.
+- Publicado mediante pnpm run deploy:cloudflare. Versión actual: 7c27290f-526b-406f-aca2-dd3f97004218, en https://villalbilla-cf.albaresfernandez.workers.dev.
+- Comprobación real en producción: /api/club-stats?team=680163&offset=0 devuelve seis actas disponibles, incluida 5587337 con una amarilla y una roja del club, contrastada con el acta RFFM. Rutas web y notificaciones anteriores siguen respondiendo como antes (200 públicas, 401 envío/procesamiento sin sesión).
+- No se enviaron avisos ni se modificaron las bases, secretos o facturación. Las cuotas gratuitas de los proveedores siguen aplicándose.
+
 ## Próximos pasos
 1. Comprobar inicio de sesión de administrador en navegador y, con consentimiento, suscripción de un dispositivo voluntario. No enviar notificaciones reales sin autorización específica.
 2. Verificar recepción Web Push/Expo en dispositivo real cuando se autorice un envío. La exportación web no demuestra recepción en dispositivos físicos.

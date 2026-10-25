@@ -1,7 +1,7 @@
 import {readCopy,saveCopy} from './offline';
 import {Platform} from 'react-native';
 export const apiBase=Platform.OS==='web'?'':(process.env.EXPO_PUBLIC_API_URL||'');
-const PUBLIC_DATA=/^\/api\/(?:news|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather)(?:\?|$)/;
+const PUBLIC_DATA=/^\/api\/(?:news|club-stats|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather)(?:\?|$)/;
 export async function api(path,options={}){
  if(Platform.OS!=='web'&&!apiBase)throw Error('Servicio pendiente de configurar para móvil');
  const cacheable=(options.method||'GET')==='GET'&&PUBLIC_DATA.test(path);

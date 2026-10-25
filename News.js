@@ -7,11 +7,13 @@ import MatchSummary,{buildSummary} from './MatchSummary';
 import VenueDirections from './VenueDirections';
 import MatchWeather from './MatchWeather';
 import FavoritePlayers from './FavoritePlayers';
+import ClubNewsSummary from './ClubNewsSummary';
 
 const dayKey=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 function week(offset){
-  const end=new Date();end.setHours(12,0,0,0);end.setDate(end.getDate()-end.getDay()+offset*7);
-  const start=new Date(end);start.setDate(start.getDate()-6);
+  const start=new Date(new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'})+'T12:00:00');
+  start.setDate(start.getDate()-(start.getDay()+6)%7+offset*7);
+  const end=new Date(start);end.setDate(start.getDate()+6);
   return {start:dayKey(start),end:dayKey(end),label:`${start.toLocaleDateString('es-ES',{day:'numeric',month:'short'})} — ${end.toLocaleDateString('es-ES',{day:'numeric',month:'short'})}`};
 }
 
@@ -133,6 +135,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
   return <View style={{gap:18}}>
     <MatchSummary entry={summary} onClose={()=>setSummary(null)}/>
     {mode==='results'?<><Text style={s.title}>Resultados</Text>{results}<FavoritePlayers favoritePlayerIds={favoritePlayerIds}/></>:<>
+      <ClubNewsSummary teams={news.teams} range={range}/>
       {instagram}<Text style={s.heading}>Los partidos de la jornada</Text><Text style={s.muted}>{range.label}</Text>
       {!!error&&<Text style={s.warning}>{error}</Text>}
       {!highlights.length&&<View style={s.card}><Text style={s.muted}>Todavía no hay resultados publicados para esta semana.</Text></View>}

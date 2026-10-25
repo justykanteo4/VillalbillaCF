@@ -1,5 +1,6 @@
 import {handleFreeNotifications,scheduledNotifications} from './free-notifications.mjs';
 import news from './server/news.cjs';
+import clubStats from './server/club-stats.cjs';
 import calendar from './calendar-source.cjs';
 import standings from './server/standings.cjs';
 import matches from './server/match.cjs';
@@ -25,6 +26,12 @@ const json = (value, status = 200, origin = '*', maxAge = 0) => new Response(JSO
 
 async function data(request, env) {
   const url = new URL(request.url), p = url.searchParams;
+  if (url.pathname === '/api/club-stats') {
+    const offset=Number(p.get('offset')||0);
+    if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida.'},400,0];
+    const result=await clubStats.clubStats(p.get('team'),offset);
+    return result?[result,200,result.error?0:300]:[{error:'Equipo no encontrado.'},404,0];
+  }
   if (url.pathname === '/api/news') return [await news.refreshNews({ persistComments: false }), 200, 60];
   if (url.pathname === '/api/instagram') return [await news.instagram(env.INSTAGRAM_ACCESS_TOKEN, env.INSTAGRAM_FACEBOOK_ACCESS_TOKEN), 200, 60];
   if (url.pathname === '/api/calendar') {

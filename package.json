@@ -12,7 +12,7 @@
     "serve": "node --env-file-if-exists=.env server/index.cjs",
     "deploy:cloudflare": "pnpm exec expo export --platform web && pnpm exec wrangler deploy",
     "dev:cloudflare": "pnpm exec expo export --platform web && pnpm exec wrangler dev",
-    "test": "node --test features.test.cjs free-notifications.test.mjs && node logic.test.mjs"
+    "test": "node --test features.test.cjs free-notifications.test.mjs club-summary.test.cjs && node logic.test.mjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

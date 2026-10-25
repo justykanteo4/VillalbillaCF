@@ -9,17 +9,37 @@ const teamName=(fixture,id)=>String(fixture.homeId)===String(id)?fixture.home:fi
 function cardsForTeam(act,fixture,id){if(!act||act.error||!act.cardsAvailable)return null;const label=teamName(fixture,id);return act.cards.filter(card=>same(card.team,label)).map(card=>({...card,number:card.number==null||card.number===''?null:String(card.number),playerId:card.playerId||null,minute:card.minute||null,matchId:fixture.id,round:fixture.round,match:fixture.home+' · '+fixture.away}))}
 async function addMissingNumbers(cards,teamId){if(!cards?.length)return cards;try{const response=await fetch('https://www.rffm.es/fichaequipo/'+teamId,{signal:AbortSignal.timeout(12000)});if(!response.ok)return cards;const html=await response.text(),m=html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);if(!m)return cards;const roster=JSON.parse(m[1]).props.pageProps.team?.jugadores_equipo;if(!Array.isArray(roster))return cards;return await Promise.all(cards.map(async card=>{if(card.number)return card;const row=roster.find(player=>String(player.cod_jugador)===String(card.playerId))||roster.find(player=>same(player.nombre,card.name));const number=row?.dorsal_jugador?.trim()||row?.dorsal?.trim()||null;return number?{...card,number}:card}))}catch{return cards}}
 async function mapLimit(items,limit,fn){const results=new Array(items.length);let cursor=0;await Promise.all(Array.from({length:Math.min(limit,items.length)},async()=>{while(cursor<items.length){const i=cursor++;results[i]=await fn(items[i],i)}}));return results}
-function currentSuspensions(fixtures,actByMatch,teamId){const players=new Map();let complete=true;for(const fixture of fixtures){if(!played(fixture))continue;
-  for(const state of players.values())if(state.suspensions.length)state.suspensions.shift();
-  const act=actByMatch.get(fixture.id);if(!act||act.error||!act.cardsAvailable){complete=false;continue}
-  const cards=cardsForTeam(act,fixture,teamId)||[];
-  for(const card of cards){const key=String(card.playerId||normalize(card.name))+'|'+normalize(card.name);if(!players.has(key))players.set(key,{name:card.name,number:card.number,playerId:card.playerId,yellowCards:0,suspensions:[],lastCard:card});const state=players.get(key);if(!state.number&&card.number)state.number=card.number;state.lastCard=card;
-   const yellow=card.color==='yellow'||card.type==='Amarilla'||card.type==='Segunda amarilla';
-   if(yellow){state.yellowCards++;if(state.yellowCards%5===0)state.suspensions.push({kind:'yellow',round:fixture.round,matchId:fixture.id,minute:card.minute})}
-   if(card.color==='red')state.suspensions.push({kind:'red',round:fixture.round,matchId:fixture.id,minute:card.minute});
+function currentSuspensions(fixtures,actByMatch,teamId){
+ const players=new Map();let complete=true;
+ for(const fixture of fixtures){
+  if(!played(fixture))continue;
+  for(const state of players.values()){
+   const first=state.suspensions.find(item=>item.unit==='matches'&&item.remaining>0);
+   if(first)first.remaining--;
+  }
+  const act=actByMatch.get(fixture.id);
+  if(!act||act.error||!act.cardsAvailable){complete=false;continue}
+  for(const card of cardsForTeam(act,fixture,teamId)||[]){
+   const key=String(card.playerId||normalize(card.name));
+   if(!players.has(key))players.set(key,{name:card.name,number:card.number,playerId:card.playerId,yellowCards:0,suspensions:[]});
+   const state=players.get(key);if(card.color==='yellow'||card.type==='Segunda amarilla')state.yellowCards++;
+   const duration=card.suspension;
+   if(!duration||!Number.isInteger(duration.count)||duration.count<1)continue;
+   if(duration.unit==='matches')state.suspensions.push({...duration,remaining:duration.count,round:fixture.round,matchId:fixture.id,minute:card.minute});
+   else if(fixture.date&&['days','weeks','months'].includes(duration.unit)){
+    const until=new Date(fixture.date+'T12:00:00Z');
+    if(duration.unit==='months')until.setUTCMonth(until.getUTCMonth()+duration.count);else until.setUTCDate(until.getUTCDate()+duration.count*(duration.unit==='weeks'?7:1));
+    state.suspensions.push({...duration,until:until.toISOString().slice(0,10),round:fixture.round,matchId:fixture.id,minute:card.minute});
+   }
   }
  }
- const sanctions=[];for(const state of players.values()){if(!state.suspensions.length)continue;const newest=state.suspensions[state.suspensions.length-1];const reasons=[...new Set(state.suspensions.map(item=>item.kind==='yellow'?'5 amarillas':'expulsión'))];sanctions.push({name:state.name,number:state.number,playerId:state.playerId,yellowCards:state.yellowCards,pendingMatches:state.suspensions.length,reason:`${reasons.join(' y ')} · ${state.suspensions.length} partido${state.suspensions.length===1?'':'s'} pendiente${state.suspensions.length===1?'':'s'}`,round:newest.round,matchId:newest.matchId,minute:newest.minute,complete})}const yellowWarnings=[...players.values()].filter(state=>state.yellowCards>0&&state.yellowCards%5===4&&!state.suspensions.length).map(state=>({name:state.name,number:state.number,playerId:state.playerId,yellowCards:state.yellowCards}));return {sanctions,yellowWarnings,complete}}
+ const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}),sanctions=[];
+ for(const state of players.values())for(const item of state.suspensions){
+  if(item.unit==='matches'?item.remaining<=0:item.until<today)continue;
+  sanctions.push({name:state.name,number:state.number,playerId:state.playerId,yellowCards:state.yellowCards,pendingMatches:item.unit==='matches'?item.remaining:null,duration:item.text,reason:item.text+(item.unit==='matches'?' · '+item.remaining+' partido(s) pendiente(s) estimado(s)':' · hasta '+item.until+' (estimado)'),round:item.round,matchId:item.matchId,minute:item.minute,complete});
+ }
+ return {sanctions,yellowWarnings:[],complete};
+}
 
 async function sanctions(teamId){const team=teams.find(item=>item.id===String(teamId));if(!team)return null;try{
  const fixtures=await groupFixtures(team.id);if(!fixtures)return null;

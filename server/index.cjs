@@ -4,7 +4,7 @@ const {SOURCE,parseCalendar}=require('../calendar-source.cjs');
 const {standings}=require('./standings.cjs');
 const {matchDetails}=require('./match.cjs');
 const {sanctions}=require('./sanctions.cjs');
-const {scorers}=require('./scorers.cjs');
+const {scorers,leagueScorers}=require('./scorers.cjs');
 const {field}=require('./fields.cjs');
 const {weather}=require('./weather.cjs');
 const {getPlayers,teamRoster}=require('./players.cjs');
@@ -21,7 +21,7 @@ const server=http.createServer(async(req,res)=>{try{
  if(u.pathname==='/api/match'&&req.method==='GET'){const data=await matchDetails(u.searchParams.get('team'),u.searchParams.get('match'));return json(res,data?200:404,data||{error:'Partido no encontrado.'})}
  if(u.pathname==='/api/sanctions'&&req.method==='GET'){const data=await sanctions(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/scorers'&&req.method==='GET')return json(res,200,await scorers());
- if(u.pathname==='/api/league-scorers'&&req.method==='GET'){const data=await scorers.leagueScorers(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
+ if(u.pathname==='/api/league-scorers'&&req.method==='GET'){const data=await leagueScorers(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/field'&&req.method==='GET'){const data=await field(u.searchParams.get('id'));return json(res,data?200:404,data||{error:'Campo no encontrado.'})}
  if(u.pathname==='/api/weather'&&req.method==='GET')return json(res,200,await weather(u.searchParams.get('field'),u.searchParams.get('date'),u.searchParams.get('time')));
  if(u.pathname==='/api/players'&&req.method==='GET'){const data=await getPlayers(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}

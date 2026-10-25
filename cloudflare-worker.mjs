@@ -1,3 +1,4 @@
+import {handleFreeNotifications,scheduledNotifications} from './free-notifications.mjs';
 import news from './server/news.cjs';
 import calendar from './calendar-source.cjs';
 import standings from './server/standings.cjs';
@@ -16,7 +17,7 @@ const json = (value, status = 200, origin = '*', maxAge = 0) => new Response(JSO
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': maxAge ? `public, max-age=0, s-maxage=${maxAge}` : 'no-store',
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     'X-Content-Type-Options': 'nosniff',
   },
@@ -95,6 +96,7 @@ async function data(request, env) {
 }
 
 export default {
+  async scheduled(event,env,ctx){ctx.waitUntil(scheduledNotifications(env))},
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '*';
@@ -103,6 +105,8 @@ export default {
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
+    const notificationResponse=await handleFreeNotifications(request,env,ctx);
+    if(notificationResponse)return notificationResponse;
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (request.method !== 'GET') return json({ error: 'Método no permitido.' }, 405, origin);
     const cacheKey = new Request(url.toString(), { method: 'GET' });

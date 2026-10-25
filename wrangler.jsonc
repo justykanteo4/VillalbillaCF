@@ -3,10 +3,29 @@
   "name": "villalbilla-cf",
   "main": "cloudflare-worker.mjs",
   "compatibility_date": "2026-10-22",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "VISITS_DB",
+      "database_name": "villalbilla-visits",
+      "database_id": "f71a6210-83f6-427c-8924-e9c0701fc3b6"
+    },
+    {
+      "binding": "NOTIFICATIONS_DB",
+      "database_name": "villalbilla-notifications",
+      "database_id": "b49de566-d15a-4c1d-b457-0080f305b1e7"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "* * * * *"
+    ]
   }
 }

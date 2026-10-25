@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "Villalbilla C.F.",
+  "short_name": "Villalbilla",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b121d",
+  "theme_color": "#0b121d",
+  "icons": [
+    {
+      "src": "/app-icon.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

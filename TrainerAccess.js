@@ -42,13 +42,13 @@ function AddPassword({user}){
   </View>;
 }
 
-export default function TrainerAccess({onSuccess,role='trainer'}){
-  const [authUser,su]=useState(auth?.currentUser||null),[user,sprofile]=useState(null),[team,sc]=useState('680163'),[teamPicker,stp]=useState(false),[name,sn]=useState(''),[roster,sr]=useState([]),[playerRoster,spr]=useState([]),[selectedPlayer,ssp]=useState(null),[requests,sq]=useState([]),[error,se]=useState(''),[notice,snotice]=useState(''),[busy,sbusy]=useState(false);
+export default function TrainerAccess({onSuccess,role='trainer',initialTeamId='680163'}){
+  const [authUser,su]=useState(auth?.currentUser?.isAnonymous?null:auth?.currentUser||null),[user,sprofile]=useState(null),[team,sc]=useState(initialTeamId),[teamPicker,stp]=useState(false),[name,sn]=useState(''),[roster,sr]=useState([]),[playerRoster,spr]=useState([]),[selectedPlayer,ssp]=useState(null),[requests,sq]=useState([]),[error,se]=useState(''),[notice,snotice]=useState(''),[busy,sbusy]=useState(false);
 
   useEffect(()=>{
     if(!firebaseConfigured||!auth)return;
     return onAuthStateChanged(auth,async next=>{
-      su(next);sprofile(null);sq([]);se('');
+      if(next?.isAnonymous)next=null;su(next);sprofile(null);sq([]);se('');
       if(next)try{sprofile(await getProfile(next))}catch(e){se(e.message||'No se pudo cargar tu perfil.');}
     });
   },[]);
@@ -59,7 +59,7 @@ export default function TrainerAccess({onSuccess,role='trainer'}){
   },[authUser,user?.status]);
 
   useEffect(()=>{
-    if(role!=='trainer'||!authUser||user?.status==='admin')return;
+    if(!authUser||user?.status==='admin')return;
     return watchProfile(authUser,profile=>sprofile(profile),e=>se(e.message||'No se pudo actualizar tu solicitud.'));
   },[authUser,user?.status]);
 
@@ -76,6 +76,8 @@ export default function TrainerAccess({onSuccess,role='trainer'}){
     api('/api/players?team='+encodeURIComponent(team)).then(d=>{if(active)spr(d.players||[])}).catch(e=>{if(active)se(e.message||'No se pudo consultar la plantilla oficial.')});
     return()=>{active=false};
   },[team,authUser,user?.status,role]);
+
+  useEffect(()=>{if(user?.status==='approved')onSuccess(user)},[user?.status,user?.claim?.role]);
 
   async function submitClaim(){
     sbusy(true);se('');snotice('');
@@ -114,7 +116,7 @@ export default function TrainerAccess({onSuccess,role='trainer'}){
 
   return <View style={{padding:22,gap:18,backgroundColor:'#151f2d',borderRadius:20}}>
     <Text style={{fontSize:25,fontWeight:'800',color:'#fff'}}>{!authUser?`Acceso de ${role==='player'?'jugador':'entrenador'}`:role==='player'?'Área de jugadores':'Área de entrenadores'}</Text>
-    {!authUser?<><Text style={text}>Inicia sesión con tu cuenta para continuar como {role==='player'?'jugador':'entrenador'}.</Text><AccessMethods onSuccess={async signedIn=>{su(signedIn);try{sprofile(await getProfile(signedIn))}catch(e){se(e.message||'No se pudo crear tu perfil.');}}}/></>:role==='player'?!user?<Text style={text}>Comprobando tu cuenta…</Text>:<><Text style={text}>{user.name||authUser.displayName||authUser.email} · {user.email||authUser.email}</Text><AddPassword user={authUser}/>{user.status==='approved'&&user.claim?.role==='player'?<><Text style={text}>Acceso aprobado: {user.claim.category} · {user.claim.name}</Text><Pressable style={button} onPress={()=>onSuccess(user)}><Text style={text}>Entrar a mi espacio de jugador</Text></Pressable></>:user.status==='pending'?<><Text style={text}>Tu solicitud para {user.claim?.category} está pendiente de aprobación por el administrador. Se actualizará automáticamente.</Text><Pressable style={button} disabled={busy} onPress={refreshMyRequest}><Text style={text}>{busy?'Comprobando…':'Comprobar estado de la solicitud'}</Text></Pressable></>:user.status==='admin'||user.status==='approved'?<Text style={text}>Esta cuenta ya está vinculada como administrador o entrenador. Cierra sesión y usa una cuenta de jugador para solicitar una ficha.</Text>:<>
+    {!authUser?<><Text style={text}>Inicia sesión con tu cuenta para continuar como {role==='player'?'jugador':'entrenador'}.</Text><AccessMethods onSuccess={async signedIn=>{su(signedIn);try{sprofile(await getProfile(signedIn))}catch(e){se(e.message||'No se pudo crear tu perfil.');}}}/></>:role==='player'?!user?<Text style={text}>Comprobando tu cuenta…</Text>:<><Text style={text}>{user.name||authUser.displayName||authUser.email} · {user.email||authUser.email}</Text><AddPassword user={authUser}/>{user.status==='approved'&&user.claim?.role==='player'?<><Text style={text}>Acceso aprobado: {user.claim.category} · {user.claim.name}</Text><Text style={text}>Abriendo tu espacio…</Text></>:user.status==='pending'?<><Text style={text}>Tu solicitud para {user.claim?.category} está pendiente de aprobación por el administrador. Se actualizará automáticamente.</Text><Pressable style={button} disabled={busy} onPress={refreshMyRequest}><Text style={text}>{busy?'Comprobando…':'Comprobar estado de la solicitud'}</Text></Pressable></>:user.status==='admin'||user.status==='approved'?<Text style={text}>Esta cuenta ya está vinculada como administrador o entrenador. Cierra sesión y usa una cuenta de jugador para solicitar una ficha.</Text>:<>
         <Text style={text}>{user.status==='revoked'?'Tu acceso ha sido retirado. Puedes solicitar una nueva revisión.':user.status==='rejected'?'La solicitud ha sido rechazada. Comprueba que has elegido tu ficha antes de volver a solicitarlo.':'Elige tu equipo y tu ficha oficial. El administrador confirmará que te corresponde.'}</Text>
         <Text style={{...text,fontWeight:'800'}}>Equipo</Text><Pressable accessibilityRole="button" accessibilityState={{expanded:teamPicker}} style={[button,{backgroundColor:'#0b121d'}]} onPress={()=>stp(value=>!value)}><Text style={text}>{teams.find(item=>item.id===team)?.category} · {teams.find(item=>item.id===team)?.name.match(/'([^']+)'/)?.[1]||teams.find(item=>item.id===team)?.name} {teamPicker?'⌃':'⌄'}</Text></Pressable>{teamPicker&&<ScrollView nestedScrollEnabled style={{maxHeight:260}} keyboardShouldPersistTaps="handled">{teams.map(t=><Pressable key={t.id} style={[button,team===t.id&&{backgroundColor:'#b42122'}]} onPress={()=>{sc(t.id);ssp(null);stp(false)}}><Text style={text}>{t.category} · {t.name}</Text></Pressable>)}</ScrollView>}
         <Text style={{...text,fontWeight:'800'}}>Tu ficha en la plantilla</Text>{!playerRoster.length?<Text style={text}>Consultando jugadores publicados para este equipo…</Text>:playerRoster.map(player=><Pressable key={player.id} accessibilityRole="radio" accessibilityState={{selected:String(selectedPlayer?.id)===String(player.id)}} style={[button,String(selectedPlayer?.id)===String(player.id)&&{backgroundColor:'#b42122'}]} onPress={()=>ssp(player)}><Text style={text}>{player.name} · Dorsal {player.number??'—'} · {player.position||'Posición no publicada'}</Text></Pressable>)}
@@ -133,7 +135,7 @@ export default function TrainerAccess({onSuccess,role='trainer'}){
           {r.status==='approved'&&<Pressable style={button} onPress={()=>action(r.id,'revoke')}><Text style={text}>Retirar acceso</Text></Pressable>}
         </View>)}
         <Pressable style={button} onPress={()=>onSuccess(user)}><Text style={text}>Entrar a la gestión del equipo</Text></Pressable>
-      </>:user.status==='approved'?<><Text style={text}>Acceso aprobado: {user.claim?.category} · {user.claim?.name}</Text><Pressable style={button} onPress={()=>onSuccess(user)}><Text style={text}>Entrar a mi equipo</Text></Pressable></>:user.status==='pending'?<><Text style={text}>Tu solicitud para {user.claim?.category} está pendiente de aprobación por el administrador. Se actualizará automáticamente.</Text><Pressable style={button} disabled={busy} onPress={refreshMyRequest}><Text style={text}>{busy?'Comprobando…':'Comprobar estado de la solicitud'}</Text></Pressable></>:<>
+      </>:user.status==='approved'?<><Text style={text}>Acceso aprobado: {user.claim?.category} · {user.claim?.name}</Text><Text style={text}>Abriendo tu equipo…</Text></>:user.status==='pending'?<><Text style={text}>Tu solicitud para {user.claim?.category} está pendiente de aprobación por el administrador. Se actualizará automáticamente.</Text><Pressable style={button} disabled={busy} onPress={refreshMyRequest}><Text style={text}>{busy?'Comprobando…':'Comprobar estado de la solicitud'}</Text></Pressable></>:<>
         <Text style={text}>{user.status==='revoked'?'Tu acceso ha sido retirado. Puedes solicitar una nueva revisión.':user.status==='rejected'?'La solicitud ha sido rechazada. Comprueba tu identidad y equipo antes de volver a solicitarlo.':'Selecciona tu equipo y tu identidad.'}</Text>
         {teams.map(t=><Pressable key={t.id} style={[button,team===t.id&&{backgroundColor:'#b42122'}]} onPress={()=>sc(t.id)}><Text style={text}>{t.category} {t.name.match(/'([^']+)'/)?.[1]||''}</Text></Pressable>)}
         <Text style={text}>¿Quién eres dentro del cuerpo técnico?</Text>{roster.map((r,i)=><Pressable key={i} style={[button,name===r.name&&{backgroundColor:'#b42122'}]} onPress={()=>sn(r.name)}><Text style={text}>{r.name} · {r.role||'Cuerpo técnico'}</Text></Pressable>)}

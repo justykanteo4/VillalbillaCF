@@ -57,6 +57,15 @@ Usar Node 24 para node:sqlite de los tests, pnpm y pnpm install --frozen-lockfil
 - Se usó esa vía porque /codex está en un sistema de archivos de solo lectura, y GitHub rechazó el adjunto de release mediante uploads.github.com con 401 pese al acceso correcto a Git/API. El borrador vacío se eliminó; no se anunció ninguna release ni se publicaron notificaciones.
 - La instalación es manual. No se ha publicado EAS Update, configurado una nueva canalización OTA ni activado planes de pago, recursos nuevos de Cloudflare o envíos de notificaciones. No afirmar que futuros cambios web se recibirán automáticamente en el APK.
 
+## OTA y errores nativos — trabajo pendiente de autorización
+- El usuario solicita actualizaciones por Internet y aporta capturas: Default FirebaseApp no inicializada al activar push y ausencia de cliente web OAuth al iniciar sesión con Google.
+- Se preparó 0.1.10/código Android 13 con canal production explícito, espera de arranque de 3 s, comprobaciones al volver al primer plano limitadas a 15 minutos y estado de actualización en Ajustes. No se reinicia automáticamente mientras se edita.
+- Se recuperó el cliente público Google mediante Firebase Auth createAuthUri y se guardó en .env.local; el valor no está en Git. Aún falta recuperar la configuración Android real y verificar SHA/OAuth y credenciales FCM de Expo.
+- Se añadió googleServicesFile en app.json, se ignoró el archivo local y se creó pnpm run check:android-config. Actualmente falla de forma intencionada porque no se ha autorizado Firebase ni recuperado google-services.json. No distribuir otro APK sin superar esa comprobación.
+- Google y push nativos transforman errores internos en mensajes comprensibles. 29 pruebas aprobadas y exportación web correcta. Se verificó una compilación intermedia con canal production, pero no se distribuyó; se debe recompilar tras completar las correcciones Firebase/Google.
+- Pendientes las autorizaciones solicitadas: Firebase requiere código temporal; Expo requiere el número mostrado en su página de comprobación. No se han recibido aún. No se ha publicado EAS Update, ni cambiado planes, facturación o recursos de Cloudflare, ni enviado notificaciones.
+- El procedimiento y límites están en ACTUALIZACIONES-ANDROID.md. La web desplegada y el APK 0.1.9 privado anterior permanecen como estaban.
+
 ## Próximos pasos
 1. Comprobar inicio de sesión de administrador en navegador y, con consentimiento, suscripción de un dispositivo voluntario. No enviar notificaciones reales sin autorización específica.
 2. Verificar recepción Web Push/Expo en dispositivo real cuando se autorice un envío. La exportación web no demuestra recepción en dispositivos físicos.

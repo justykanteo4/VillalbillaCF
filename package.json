@@ -12,7 +12,11 @@
     "serve": "node --env-file-if-exists=.env server/index.cjs",
     "deploy:cloudflare": "pnpm exec expo export --platform web && pnpm exec wrangler deploy",
     "dev:cloudflare": "pnpm exec expo export --platform web && pnpm exec wrangler dev",
-    "test": "node --test features.test.cjs free-notifications.test.mjs club-summary.test.cjs && node logic.test.mjs"
+    "test": "node --test features.test.cjs free-notifications.test.mjs club-summary.test.cjs internet-updates.test.cjs android-config.test.cjs && node logic.test.mjs",
+    "export:android-update": "pnpm run check:android-config && expo export --platform android --output-dir work/ota-export",
+    "publish:android-update": "pnpm run export:android-update && pnpm dlx eas-cli@25.3.0 update --channel production --platform android --environment production --input-dir work/ota-export --skip-bundler --non-interactive",
+    "check:android-config": "node --env-file-if-exists=.env.local scripts/check-android-config.cjs",
+    "prebuild:android": "pnpm run check:android-config && expo prebuild --platform android --no-install"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

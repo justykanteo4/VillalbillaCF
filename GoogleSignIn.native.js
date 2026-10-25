@@ -3,6 +3,7 @@ import {Pressable,Text,View} from 'react-native';
 import {GoogleSignin,isSuccessResponse} from '@react-native-google-signin/google-signin';
 import {GoogleAuthProvider,signInWithCredential} from 'firebase/auth';
 import {auth} from './firebase';
+import {googleLoginError} from './native-errors.cjs';
 
 const webClientId=process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const iosClientId=process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
@@ -12,7 +13,7 @@ export default function GoogleSignIn({onSuccess}){
   const [error,setError]=useState(''),[busy,setBusy]=useState(false);
 
   async function login(){
-    if(!webClientId){setError('Falta el cliente web de Google en la configuración del club.');return;}
+    if(!webClientId){setError('El acceso con Google no está disponible en esta versión. Actualiza la app o entra con correo y contraseña.');return;}
     if(!auth){setError('Firebase todavía no está conectado.');return;}
     setBusy(true);setError('');
     try{
@@ -25,7 +26,7 @@ export default function GoogleSignIn({onSuccess}){
       onSuccess(result.user);
     }catch(e){
       if(e?.code==='SIGN_IN_CANCELLED')return;
-      setError(e.message||'No se pudo iniciar sesión con Google.');
+      setError(googleLoginError(e));
     }finally{setBusy(false)}
   }
 

@@ -59,3 +59,7 @@ dist-audit-all/
 .wrangler/
 firebase-debug.log
 .push-runtime-check.mjs
+
+# Local Firebase native configuration
+/google-services.json
+/GoogleService-Info.plist

@@ -83,6 +83,11 @@ Usar Node 24 para node:sqlite de los tests, pnpm y pnpm install --frozen-lockfil
 - Archivo de 54.137.997 bytes; SHA-256 1f10c882499ec509cfb5e3a88ef4dde745198e9af1f234f2e23c7588d58dbf6f. No se ha probado en un móvil físico. Cualquier APK posterior requiere versionCode mayor que 15.
 - No se ha modificado la web ni activado la configuración pendiente de OTA/Firebase/Google. No se han cambiado planes o enviado notificaciones. Los APK anteriores y todos los cambios de código se conservan.
 
+## Solicitud posterior: recuperar también actualizaciones por Internet
+- Tras volver a la 0.1.9, el usuario vuelve a solicitar actualizaciones por Internet. Se retoma ese objetivo; el APK 0.1.9/código 15 entregado NO lleva el nuevo canal OTA ni se ha publicado una actualización EAS.
+- La autorización Expo anterior había caducado. Se inició otra mediante login de dispositivo y se solicitó el número de confirmación de la página. No dar las actualizaciones por activadas hasta completar acceso, canal, publicación y verificación.
+- Sigue siendo necesaria una instalación inicial con el canal configurado. Los cambios nativos seguirán necesitando APK; las mejoras JavaScript compatibles podrán descargarse por Internet. No activar planes de pago ni enviar notificaciones reales. Mantener los APK y cambios existentes.
+
 ## Próximos pasos
 1. Comprobar inicio de sesión de administrador en navegador y, con consentimiento, suscripción de un dispositivo voluntario. No enviar notificaciones reales sin autorización específica.
 2. Verificar recepción Web Push/Expo en dispositivo real cuando se autorice un envío. La exportación web no demuestra recepción en dispositivos físicos.

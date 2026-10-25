@@ -62,10 +62,14 @@ export async function handleFreeNotifications(request,env,ctx){
    const payload=JSON.stringify(value.provider==='web'?value.subscription:{token:value.token});
    const count=await db.prepare('SELECT count(*) AS n FROM push_subscriptions WHERE enabled=1 AND id<>? AND destination<>?').bind(id,destination).first();
    if(count.n>=FREE_LIMITS.subscriptions)throw error('Se ha alcanzado el límite gratuito de dispositivos. Puedes seguir leyendo los avisos dentro de la app.',429);
-   await db.batch([
+   const saved=await db.batch([
     db.prepare('UPDATE push_subscriptions SET enabled=0 WHERE destination=? AND id<>?').bind(destination,id),
-    db.prepare('INSERT INTO push_subscriptions(id,destination,provider,payload,team_ids,player_ids,enabled,updated_at) VALUES(?,?,?,?,?,?,1,?) ON CONFLICT(id) DO UPDATE SET destination=excluded.destination,provider=excluded.provider,payload=excluded.payload,team_ids=excluded.team_ids,player_ids=excluded.player_ids,enabled=1,updated_at=excluded.updated_at WHERE destination<>excluded.destination OR payload<>excluded.payload OR team_ids<>excluded.team_ids OR player_ids<>excluded.player_ids OR enabled<>1').bind(id,destination,value.provider,payload,JSON.stringify(value.teamIds),JSON.stringify(value.playerIds),Date.now())
+    db.prepare('INSERT INTO push_subscriptions(id,destination,provider,payload,team_ids,player_ids,enabled,updated_at) SELECT ?,?,?,?,?,?,1,? WHERE (SELECT count(*) FROM push_subscriptions WHERE enabled=1 AND id<>?)<? ON CONFLICT(id) DO UPDATE SET destination=excluded.destination,provider=excluded.provider,payload=excluded.payload,team_ids=excluded.team_ids,player_ids=excluded.player_ids,enabled=1,updated_at=excluded.updated_at WHERE destination<>excluded.destination OR payload<>excluded.payload OR team_ids<>excluded.team_ids OR player_ids<>excluded.player_ids OR enabled<>1').bind(id,destination,value.provider,payload,JSON.stringify(value.teamIds),JSON.stringify(value.playerIds),Date.now(),id,FREE_LIMITS.subscriptions)
    ]);
+   if(!saved[1].meta.changes){
+    const existing=await db.prepare('SELECT enabled FROM push_subscriptions WHERE id=?').bind(id).first();
+    if(!existing?.enabled)throw error('Se ha alcanzado el límite gratuito de dispositivos. Puedes seguir leyendo los avisos dentro de la app.',429);
+   }
    return reply({enabled:true});
   }
   const uid=await verifyAdmin(request,env);

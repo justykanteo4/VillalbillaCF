@@ -61,3 +61,22 @@ test('el límite de dispositivos no activa un servicio de pago',async()=>{
  const response=await handleFreeNotifications(request('/api/push/subscription',{installationKey:'d'.repeat(64),enabled:true,provider:'web',subscription:subscription(),teamIds:[],playerIds:[]}),env,ctx);
  assert.equal(response.status,429);assert.equal(db.prepare('SELECT count(*) n FROM push_subscriptions').get().n,FREE_LIMITS.subscriptions);
 });
+
+test('el límite se comprueba también al insertar aunque el recuento previo quede obsoleto',async()=>{
+ const env=makeEnv(),db=env.NOTIFICATIONS_DB.db,stmt=db.prepare('INSERT INTO push_subscriptions VALUES(?,?,?,?,?,?,?,?)');
+ for(let i=0;i<FREE_LIMITS.subscriptions;i++)stmt.run('id'+i,'dest'+i,'web','{}','[]','[]',1,Date.now());
+ const prepare=env.NOTIFICATIONS_DB.prepare.bind(env.NOTIFICATIONS_DB);
+ env.NOTIFICATIONS_DB.prepare=sql=>sql.startsWith('SELECT count(*) AS n')?{bind:()=>({first:async()=>({n:FREE_LIMITS.subscriptions-1})})}:prepare(sql);
+ const response=await handleFreeNotifications(request('/api/push/subscription',{installationKey:'e'.repeat(64),enabled:true,provider:'web',subscription:subscription(),teamIds:[],playerIds:[]}),env,ctx);
+ assert.equal(response.status,429);
+ assert.equal(db.prepare('SELECT count(*) n FROM push_subscriptions WHERE enabled=1').get().n,FREE_LIMITS.subscriptions);
+});
+
+test('una sesión manipulada no puede enviar avisos ni procesar la cola',async()=>{
+ const env=makeEnv();
+ for(const path of ['/api/push/send','/api/push/dispatch']){
+  const response=await handleFreeNotifications(request(path,{title:'Aviso',body:'Texto',all:true,teamIds:[],playerIds:[]},'invalid.jwt.signature'),env,ctx);
+  assert.equal(response.status,401);
+ }
+ assert.equal(env.NOTIFICATIONS_DB.db.prepare('SELECT count(*) n FROM club_notices').get().n,0);
+});

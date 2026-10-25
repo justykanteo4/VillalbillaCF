@@ -1,3 +1,4 @@
+import {mergeChanges} from './workspace-sync.cjs';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initializeApp, getApps } from 'firebase/app';
@@ -7,7 +8,7 @@ import {
 } from 'firebase/auth';
 import {
   getFirestore, collection, doc, getDoc, getDocs, onSnapshot,
-  serverTimestamp, setDoc, updateDoc,
+  serverTimestamp, setDoc, updateDoc, runTransaction,
 } from 'firebase/firestore';
 
 const config = {
@@ -42,6 +43,10 @@ export const adminEmail = ADMIN_EMAIL;
 export const adminEmails = ADMIN_EMAILS;
 
 export async function getProfile(user) {
+ try{const profile=await getProfileOnline(user);await AsyncStorage.setItem('villalbilla.profile.'+user.uid,JSON.stringify(profile)).catch(()=>{});return profile}
+ catch(error){if(user&&['unavailable','deadline-exceeded','network-request-failed'].includes(error.code)){const cached=await AsyncStorage.getItem('villalbilla.profile.'+user.uid);if(cached)return JSON.parse(cached)}throw error}
+}
+async function getProfileOnline(user) {
   if (!db || !user) throw Error('Firebase todavía no está conectado.');
   const email = (user.email || '').trim().toLowerCase();
   const verifiedIdentity = user.emailVerified || user.providerData?.some(provider => provider.providerId === 'google.com');
@@ -75,6 +80,10 @@ export function watchProfile(user, callback, onError) {
     }
     const profile = { id: snapshot.id, ...snapshot.data() };
     if (isAdminEmail(user.email)) profile.status = 'admin';
+    else if(user.email&&(user.emailVerified||user.providerData?.some(provider=>provider.providerId==='google.com'))){
+     try{if((await getDoc(doc(db,'clubAdmins',user.email.toLowerCase()))).exists())profile.status='admin'}catch{}
+    }
+    AsyncStorage.setItem('villalbilla.profile.'+user.uid,JSON.stringify(profile)).catch(()=>{});
     callback(profile);
   }, onError);
 }
@@ -212,7 +221,18 @@ export async function getTeamWorkspace(teamId) {
   return snap.exists() ? snap.data().data : null;
 }
 
-export function saveTeamWorkspace(teamId, data) {
-  if (!db || !teamId) return Promise.resolve();
-  return setDoc(doc(db, 'teamWorkspaces', teamId), { data, updatedAt: serverTimestamp() });
+export function watchTeamWorkspace(teamId,callback,onError) {
+ if(!db)return ()=>{};
+ return onSnapshot(doc(db,'teamWorkspaces',teamId),snapshot=>callback(snapshot.exists()?snapshot.data().data:null),onError);
+}
+
+export function saveTeamWorkspace(teamId, data, base={}) {
+  if (!db || !teamId) return Promise.reject(Error('Firebase todavía no está conectado.'));
+  const ref=doc(db,'teamWorkspaces',teamId);
+  return runTransaction(db,async transaction=>{
+   const snap=await transaction.get(ref);
+   const merged=mergeChanges(base,data,snap.exists()?snap.data().data:base);
+   transaction.set(ref,{data:merged,updatedAt:serverTimestamp()});
+   return merged;
+  });
 }

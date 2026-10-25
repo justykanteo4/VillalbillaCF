@@ -11,7 +11,12 @@
     "web": "expo start --web",
     "serve": "node --env-file-if-exists=.env server/index.cjs",
     "deploy:cloudflare": "pnpm exec expo export --platform web && pnpm exec wrangler deploy",
-    "dev:cloudflare": "pnpm exec expo export --platform web && pnpm exec wrangler dev"
+    "dev:cloudflare": "pnpm exec expo export --platform web && pnpm exec wrangler dev",
+    "test": "node --test features.test.cjs free-notifications.test.mjs club-summary.test.cjs internet-updates.test.cjs android-config.test.cjs match-refresh.test.cjs && node logic.test.mjs",
+    "export:android-update": "node --env-file-if-exists=.env.local scripts/check-update-config.cjs && expo export --platform android --output-dir work/ota-export",
+    "publish:android-update": "pnpm run export:android-update && pnpm dlx eas-cli@25.3.0 update --channel production --platform android --environment production --input-dir work/ota-export --skip-bundler --non-interactive",
+    "check:android-config": "node --env-file-if-exists=.env.local scripts/check-android-config.cjs",
+    "prebuild:android": "pnpm run check:android-config && expo prebuild --platform android --no-install"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -19,9 +24,12 @@
     "expo": "~55.0.31",
     "expo-asset": "~55.0.20",
     "expo-auth-session": "~55.0.19",
+    "expo-constants": "~55.0.17",
+    "expo-crypto": "~55.0.19",
     "expo-file-system": "~55.0.26",
     "expo-image-manipulator": "~55.0.21",
     "expo-image-picker": "~55.0.24",
+    "expo-notifications": "~55.0.27",
     "expo-secure-store": "~55.0.18",
     "expo-sharing": "~55.0.25",
     "expo-status-bar": "~55.0.6",
@@ -36,7 +44,8 @@
     "react-native": "0.83.10",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-web": "^0.21.4",
-    "react-native-webview": "^13.16.0"
+    "react-native-webview": "^13.16.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "wrangler": "^4.151.3"

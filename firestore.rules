@@ -35,7 +35,8 @@ service cloud.firestore {
       let path = /databases/$(database)/documents/trainerProfiles/$(request.auth.uid);
       return verifiedAccount() && exists(path)
         && get(path).data.status == 'approved'
-        && get(path).data.claim.teamId == teamId;
+        && get(path).data.claim.teamId == teamId
+        && (!('role' in get(path).data.claim) || get(path).data.claim.role == 'trainer');
     }
 
     match /trainerProfiles/{uid} {
@@ -58,6 +59,34 @@ service cloud.firestore {
 
     match /teamWorkspaces/{teamId} {
       allow read, write: if isAdmin() || approvedFor(teamId);
+    }
+
+    match /notificationSubscriptions/{id} {
+      allow read, delete: if signedIn() && resource.data.owner == request.auth.uid;
+      allow create, update: if signedIn()
+        && request.resource.data.owner == request.auth.uid
+        && (!exists(/databases/$(database)/documents/notificationSubscriptions/$(id)) || resource.data.owner == request.auth.uid)
+        && request.resource.data.keys().hasOnly(['owner','enabled','teamIds','playerIds','token','provider','consentedAt','updatedAt'])
+        && request.resource.data.enabled is bool
+        && request.resource.data.teamIds is list && request.resource.data.teamIds.size() <= 100
+        && request.resource.data.playerIds is list && request.resource.data.playerIds.size() <= 500
+        && request.resource.data.token is string && request.resource.data.token.size() < 4096
+        && request.resource.data.provider in ['expo','fcm']
+        && request.resource.data.updatedAt == request.time;
+    }
+    match /clubNotifications/{id} {
+      allow read: if true;
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['title','body','all','teamIds','playerIds','createdBy','createdAt'])
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 120
+        && request.resource.data.body is string && request.resource.data.body.size() > 0 && request.resource.data.body.size() <= 2000
+        && request.resource.data.all is bool
+        && request.resource.data.teamIds is list && request.resource.data.teamIds.size() <= 100
+        && request.resource.data.playerIds is list && request.resource.data.playerIds.size() <= 500
+        && (request.resource.data.all || request.resource.data.teamIds.size() > 0 || request.resource.data.playerIds.size() > 0);
+      allow update, delete: if false;
     }
 
     match /clubAdmins/{email} {

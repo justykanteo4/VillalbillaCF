@@ -1,65 +1,61 @@
 # Villalbilla C.F.
 
-## Trabajar desde otro ordenador
+Aplicación Expo para Android, iOS y web. La actualización completa está guardada en la rama `codex/continuar-cloud-gratis`, preparada para su revisión e integración en `main`.
 
-Clona el repositorio de GitHub y ejecuta `npm install` en la carpeta del proyecto. Para usar las funciones que dependen del servidor, crea `.env` a partir de `.env.example` y configura allí las credenciales privadas; `.env` y `server/data/` no se suben a GitHub. Transfiere esos datos privados desde el ordenador original mediante un medio seguro si necesitas conservar las cuentas locales. Las fotos de jugadores y el código de la app sí están incluidos.
+- [Código actualizado](https://github.com/justykanteo4/VillalbillaCF/tree/codex/continuar-cloud-gratis)
+- [Web publicada](https://villalbilla-cf.albaresfernandez.workers.dev)
+- [APK Android 0.1.9 con actualizaciones por Internet](https://github.com/justykanteo4/VillalbillaCF/raw/refs/heads/codex/apk-0.1.9-internet/VillalbillaCF-0.1.9-internet.apk)
+- [Estado completo para continuar en Codex Cloud](CONTINUAR-EN-CLOUD.md)
+- [Actualizaciones Android: configuración y publicación](ACTUALIZACIONES-ANDROID.md)
 
-App Expo para Android, iOS y web. Tema oscuro con rojo y azul y escudo transparente.
+El repositorio y los APK alojados en sus ramas son privados. Para descargar el APK se necesita una cuenta GitHub con acceso. Instalar encima de la app anterior, sin desinstalar, conserva sus datos cuando coincide la firma.
 
-## Acceso público
+## Funciones actuales
 
-Noticias es la pantalla inicial: no requiere cuenta. Resultados por semana de los 17 equipos en competición identificados en la ficha oficial https://www.rffm.es/fichaclub/4144. Los marcadores se extraen de los calendarios de la RFFM, se comprueban por identificador de equipo y grupo y se actualizan cada cinco minutos en el servidor. La app consulta al abrir Noticias, al volver al primer plano y cada cinco minutos mientras está en esa sección. Ante errores conserva el último dato y señala el equipo afectado. La copia inicial incluida tiene fecha de consulta; no supone actualización si el servidor está apagado. Algunas categorías de fútbol 7 tienen calendarios por fases: revisar el registro teams.json al cambiar de fase o temporada.
+Noticias incluye Instagram, resultados de los 17 equipos del club y un resumen compacto de goles y tarjetas de la jornada y la temporada. Las actas abiertas se actualizan cada minuto, al volver al primer plano y mediante «Actualizar acta». Marcador, resumen, goles y tarjetas reflejan los datos recibidos de la RFFM. Si falla la consulta, se conservan los últimos datos disponibles y se indica el error.
 
-Noticias incluye Instagram de @villalbillacf. El servidor admite Instagram Login con instagram_business_basic o Facebook Login con pages_show_list, pages_read_engagement e instagram_basic. En ambos casos la cuenta debe ser profesional y el administrador debe autorizar el acceso; Facebook Login además requiere que Instagram esté enlazada a una página de Facebook que administre esa persona. La API comprueba el usuario villalbillacf antes de entregar fotos, álbumes, miniaturas de vídeo y textos. No muestra historias privadas. Los tokens se guardan solo en el servidor, nunca en el paquete de la app. Configurar INSTAGRAM_ACCESS_TOKEN o INSTAGRAM_FACEBOOK_ACCESS_TOKEN como secreto del servidor y renovarlo/reautorizarlo cuando caduque o se revoque. La conexión no está probada con una cuenta real.
+Incluye clasificaciones, goleadores, calendario, plantillas, favoritos, asistencia, material y espacios de equipo. Las estadísticas respetan la visibilidad de la fuente federativa. Los datos ausentes se indican como no disponibles. Las categorías con calendarios por fases requieren revisar `teams.json` al cambiar de fase o temporada.
 
-Calendario muestra las 34 jornadas del primer equipo dentro de la app y ofrece actualización manual, filtros y copia local.
+La autenticación de producción utiliza Firebase. Los administradores aprueban el acceso de entrenadores y jugadores a sus equipos. Los espacios compartidos usan Firestore y conservan cambios simultáneos. Las copias locales permiten seguir consultando datos disponibles sin conexión.
 
-## Entrenadores
+Los avisos usan Cloudflare D1, Web Push y Expo, con límites de 1.000 dispositivos y 20 avisos por 24 horas. Los secretos VAPID e Instagram permanecen en Cloudflare. La configuración nativa de Firebase/FCM y la comprobación de Google en un dispositivo Android siguen pendientes; consultar el estado completo antes de distribuir una compilación nativa nueva.
 
-Acceso separado con clave de club validada en el servidor, sesiones aleatorias de ocho horas en memoria, cierre de sesión y límite de intentos. Está cerrado hasta definir TRAINER_PASSWORD. No es todavía un sistema de cuentas individuales o permisos por equipo. La asistencia, el material, las citas y los totales de goles/tarjetas siguen guardándose en el dispositivo; no hay sincronización entre entrenadores. Las sesiones no sobreviven al reinicio del servidor o de la app.
+## Desarrollo desde otro dispositivo
 
-## Ejecutar la vista completa
+Usar Node 24 y pnpm:
 
-Con Node 24 y npm, desde esta carpeta:
-
+```sh
+pnpm install --frozen-lockfile
+pnpm test
+pnpm exec expo export --platform web
 ```
-npm install
-npx expo export --platform all
-npm run serve
+
+Crear `.env.local` a partir de `.env.example` y completar los valores públicos de Firebase, Google y `EXPO_PUBLIC_API_URL` según el entorno. Las sesiones y configuraciones locales se preparan de nuevo en otro entorno y no se transfieren mediante Git. Nunca pegar claves privadas, contraseñas o tokens en el código ni en el chat.
+
+Para desarrollo interactivo, ejecutar `pnpm start`. El servidor Node de `server/` se conserva como alternativa local y tiene sus propios requisitos de configuración. La producción actual utiliza el Worker Cloudflare y Firebase.
+
+## Publicación
+
+Web:
+
+```sh
+pnpm run deploy:cloudflare
 ```
 
-Abrir http://127.0.0.1:8081. El servicio incluye la web y los endpoints de noticias, calendario, Instagram y acceso de entrenadores. Copiar .env.example a .env y completar los valores necesarios de forma local. .env está excluido de Git. No pegar claves o tokens en chats ni en código.
+Android, cambios compatibles con la base instalada 0.1.9:
 
-Para desarrollar el móvil: `npm start`. Definir EXPO_PUBLIC_API_URL con la dirección HTTPS del servidor accesible desde el teléfono antes de compilar. Un teléfono no puede usar el 127.0.0.1 del ordenador. Expo Go debe ser compatible con SDK 55; alternativamente utilizar una compilación de desarrollo.
+```sh
+pnpm run publish:android-update --message "Descripción del cambio"
+```
 
-## Actualizaciones automáticas en móviles
+El APK enlazado habilita el canal `production`. Las mejoras compatibles se descargan por Internet y se aplican en un siguiente arranque. Los cambios de módulos, permisos o configuración nativa requieren un APK y un runtime nuevos. Cualquier APK siguiente debe usar código Android mayor que 16. Para compilar desde cero, completar Firebase Android y ejecutar `pnpm run check:android-config`.
 
-EAS Update está configurado en el canal `preview` para Android e iOS. Instala una vez la nueva compilación que incluye `expo-updates`; las compilaciones anteriores no pueden recibir estas actualizaciones. Después, los cambios de JavaScript, pantallas, textos y estilos se publican con `eas update --channel preview --platform all`. El móvil los comprueba al abrir la app, los descarga en segundo plano y los activa al volver a abrirla. Los cambios nativos (icono, permisos o dependencias nativas) requieren una compilación nueva y un aumento de versión para separar su ejecución de las compilaciones anteriores.
+En Codex Cloud se usan rutas locales específicas para las sesiones CLI. Seguir `ACTUALIZACIONES-ANDROID.md` y `CONTINUAR-EN-CLOUD.md` para publicar desde ese entorno.
 
-Antes de distribuir: alojar el servidor en HTTPS, gestionar cuentas individuales y datos compartidos del equipo, verificar Instagram con su administrador, probar Android/iOS en teléfonos y revisar dependencias. No hay instaladores ni publicación en tiendas.
+## Planes gratuitos y configuración privada
 
-## Comprobaciones
+Mantener exclusivamente planes gratuitos. No activar Blaze, Workers Paid, facturación, servicios de pago ni publicación en tiendas. Las cuotas de los proveedores siguen aplicándose; no actualizar planes automáticamente cuando se alcancen.
 
-`node logic.test.mjs` valida fechas y enlaces. `npx expo export --platform all` comprueba la compilación de las plataformas de Expo.
+Se conservan las dos conexiones D1 existentes y sus secretos. `.env`, `.env.local`, `.dev.vars`, `google-services.json`, claves de firma, sesiones, registros y `node_modules` permanecen fuera de Git. No ejecutar ni desplegar las antiguas Cloud Functions de Firebase.
 
-## Acceso con Google (actualización)
-
-Se ha sustituido la clave compartida por verificación de identidad de Google en el servidor mediante google-auth-library. Administradores: albaresfernandez@gmail.com y appvillalbilla@gmail.com, únicamente después de verificar su correo en un token firmado por Google. El correo nunca permite acceder por sí solo. Los demás usuarios solicitan un equipo/identidad y necesitan aprobación. El administrador puede aprobar, rechazar o retirar el acceso. La identidad elegida es una declaración que el administrador debe comprobar. Las cuentas se guardan en server/data/accounts.json: mantenerlo en almacenamiento persistente y con copias de seguridad. El servicio actual es para una sola instancia; usar una base de datos antes de desplegar varias réplicas.
-
-Para activar la vista web: crear un cliente OAuth de tipo Aplicación web en Google Cloud, configurar la pantalla de consentimiento y añadir http://127.0.0.1:8081 como origen de JavaScript autorizado para desarrollo, además del dominio HTTPS definitivo al publicar. Guardar el identificador en GOOGLE_WEB_CLIENT_ID dentro de .env, reiniciar el servidor y recargar. El cliente usa Google Identity Services con nonce de un uso y el servidor verifica firma, audiencia, caducidad y correo verificado. No necesita la contraseña del usuario ni client secret para este flujo de ID token. Si la app de Google está en pruebas, añadir los usuarios de prueba correspondientes.
-
-El botón nativo de Google para Android/iOS aún requiere implementar el flujo de sus clientes OAuth y configuración de firma/identificadores; la compilación móvil muestra una indicación y no simula un acceso. No se ha probado un inicio de sesión real con Google porque faltan los identificadores del proyecto. Las pruebas automáticas utilizan identidades simuladas y comprueban permisos, aprobaciones, retirada, nonce y rechazo de correo no verificado.
-
-## Plantilla del club
-
-La pestaña Plantilla reúne las fichas públicas de todas las categorías y permite buscar por nombre o filtrar por equipo. Incluye dorsal de la ficha, goles, amarillas y partidos jugados de la temporada 2026/27. Un guion indica dato no disponible y nunca se convierte en cero. Se respetan las marcas de visibilidad de las estadísticas de la RFFM. Si una ficha corresponde a otro equipo o temporada, no se atribuyen sus cifras al equipo solicitado. Los totales con participación en varias competiciones se identifican como totales de la ficha de temporada. No se guardan fotos, fechas de nacimiento ni contacto de los jugadores.
-
-El servidor consulta las fichas bajo demanda y conserva una copia por equipo durante 30 minutos; el cliente ofrece actualización y refresco periódico. La copia inicial de players-seed.json permite mostrar los nombres mientras se consulta la fuente. Los dorsales pueden cambiar entre partidos: son los de la ficha, no una garantía del dorsal utilizado en cada acta. La fuente federativa puede omitir jugadores o estadísticas y modificar su estructura.
-
-## Sesión recordada y métodos adicionales
-
-La sesión dura 30 días. Web: cookie HttpOnly y SameSite=Lax; usar HTTPS y NODE_ENV=production o SESSION_COOKIE_SECURE=true al publicar. El servidor guarda solo el hash del identificador en server/data/sessions.json, fuera de dist y de Git, para sobrevivir a reinicios. Móvil: token de sesión en Expo SecureStore, no en AsyncStorage. Cerrar sesión revoca la sesión y borra su almacenamiento. Las sesiones anteriores al cambio necesitarán iniciar sesión una vez más. Hacer copias persistentes de accounts.json y sessions.json. El despliegue actual es de una sola instancia.
-
-Métodos visibles: Google, correo con código de un uso y correo y contraseña. Google web está configurado. Correo: completar SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD y SMTP_FROM en .env del servidor; no se enviaron correos reales en las pruebas. Los códigos vencen en 10 minutos, admiten 5 intentos y tienen límites de envío; crear o recuperar una contraseña exige verificar el correo. Las contraseñas usan scrypt con sal; al cambiarlas se revocan las sesiones anteriores. Los correos verificados de proveedores distintos se vinculan a la misma cuenta y conservan sus permisos; no se devuelve el hash de contraseña al cliente.
-
-PUBLIC_APP_URL puede fijar el origen HTTPS autorizado del servidor; los cambios de autenticación rechazan orígenes de navegador ajenos. No pegar contraseñas, tokens SMTP o claves privadas en el chat.
+Los APK se mantienen en ramas de distribución separadas, incluido `codex/apk-0.1.9-internet`. Las restauraciones anteriores siguen disponibles en sus ramas. El historial de cambios, verificaciones, versiones publicadas y tareas pendientes está en `CONTINUAR-EN-CLOUD.md`.

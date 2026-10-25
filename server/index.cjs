@@ -1,10 +1,11 @@
 const http=require('http'),fs=require('fs'),path=require('path');
+const {clubStats}=require('./club-stats.cjs');
 const {refreshNews,instagram}=require('./news.cjs'),auth=require('./accounts.cjs');
 const {SOURCE,parseCalendar}=require('../calendar-source.cjs');
 const {standings}=require('./standings.cjs');
 const {matchDetails}=require('./match.cjs');
 const {sanctions}=require('./sanctions.cjs');
-const {scorers}=require('./scorers.cjs');
+const {scorers,leagueScorers}=require('./scorers.cjs');
 const {field}=require('./fields.cjs');
 const {weather}=require('./weather.cjs');
 const {getPlayers,teamRoster}=require('./players.cjs');
@@ -18,10 +19,10 @@ const server=http.createServer(async(req,res)=>{try{
  const u=new URL(req.url,'http://localhost'),bearer=(req.headers.authorization||'').replace(/^Bearer /,''),token=bearer&&bearer!=='cookie'?bearer:sessionStore.cookieToken(req);
  if(req.method==='POST'&&req.headers.origin){const expected=process.env.PUBLIC_APP_URL||((process.env.NODE_ENV==='production'||process.env.SESSION_COOKIE_SECURE==='true')?'https://':'http://')+req.headers.host;if(req.headers.origin!==expected)return json(res,403,{error:'Origen de solicitud no permitido.'})}
  if(u.pathname==='/api/standings'&&req.method==='GET'){const data=await standings(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
- if(u.pathname==='/api/match'&&req.method==='GET'){const data=await matchDetails(u.searchParams.get('team'),u.searchParams.get('match'));return json(res,data?200:404,data||{error:'Partido no encontrado.'})}
+ if(u.pathname==='/api/match'&&req.method==='GET'){const data=await matchDetails(u.searchParams.get('team'),u.searchParams.get('match'),{refresh:u.searchParams.get('refresh')==='1'});return json(res,data?200:404,data||{error:'Partido no encontrado.'})}
  if(u.pathname==='/api/sanctions'&&req.method==='GET'){const data=await sanctions(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/scorers'&&req.method==='GET')return json(res,200,await scorers());
- if(u.pathname==='/api/league-scorers'&&req.method==='GET'){const data=await scorers.leagueScorers(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
+ if(u.pathname==='/api/league-scorers'&&req.method==='GET'){const data=await leagueScorers(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/field'&&req.method==='GET'){const data=await field(u.searchParams.get('id'));return json(res,data?200:404,data||{error:'Campo no encontrado.'})}
  if(u.pathname==='/api/weather'&&req.method==='GET')return json(res,200,await weather(u.searchParams.get('field'),u.searchParams.get('date'),u.searchParams.get('time')));
  if(u.pathname==='/api/players'&&req.method==='GET'){const data=await getPlayers(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
@@ -29,6 +30,7 @@ const server=http.createServer(async(req,res)=>{try{
  if(u.pathname==='/api/team-roster'&&req.method==='GET'){const data=await teamRoster(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/team-staff'&&req.method==='GET'){const data=await teamStaff(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/team-ranking'&&req.method==='GET'){const data=await getPlayers(u.searchParams.get('team'));if(!data)return json(res,404,{error:'Equipo no encontrado.'});let minutesError=false;let players=data.players.map(p=>({...p,minutes:null}));if(u.searchParams.get('metric')==='minutes'){try{const totals=await require('./minutes.cjs').teamMinutes(data);if(!totals.unsupported)players=players.map(p=>{if(p.minutesAllowed!==true)return p;let total=0,partial=false;for(const record of totals.records){if(record.error||record.minutes[p.id]===null)partial=true;else total+=record.minutes[p.id]??0}return {...p,minutes:total,minutesPartial:partial}})}catch{minutesError=true}}return json(res,200,{players,minutesError})}
+ if(u.pathname==='/api/club-stats'&&req.method==='GET'){const offset=Number(u.searchParams.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return json(res,400,{error:'Página no válida.'});const data=await clubStats(u.searchParams.get('team'),offset);return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/news'&&req.method==='GET')return json(res,200,await refreshNews());
  if(u.pathname==='/api/instagram'&&req.method==='GET')return json(res,200,await instagram());
  if(u.pathname==='/api/auth/config')return json(res,200,{...auth.config(),emailConfigured:emailAuth.configured()});

@@ -1,4 +1,6 @@
+import {handleFreeNotifications,scheduledNotifications} from './free-notifications.mjs';
 import news from './server/news.cjs';
+import clubStats from './server/club-stats.cjs';
 import calendar from './calendar-source.cjs';
 import standings from './server/standings.cjs';
 import matches from './server/match.cjs';
@@ -16,7 +18,7 @@ const json = (value, status = 200, origin = '*', maxAge = 0) => new Response(JSO
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': maxAge ? `public, max-age=0, s-maxage=${maxAge}` : 'no-store',
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     'X-Content-Type-Options': 'nosniff',
   },
@@ -24,6 +26,12 @@ const json = (value, status = 200, origin = '*', maxAge = 0) => new Response(JSO
 
 async function data(request, env) {
   const url = new URL(request.url), p = url.searchParams;
+  if (url.pathname === '/api/club-stats') {
+    const offset=Number(p.get('offset')||0);
+    if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida.'},400,0];
+    const result=await clubStats.clubStats(p.get('team'),offset);
+    return result?[result,200,result.error?0:300]:[{error:'Equipo no encontrado.'},404,0];
+  }
   if (url.pathname === '/api/news') return [await news.refreshNews({ persistComments: false }), 200, 60];
   if (url.pathname === '/api/instagram') return [await news.instagram(env.INSTAGRAM_ACCESS_TOKEN, env.INSTAGRAM_FACEBOOK_ACCESS_TOKEN), 200, 60];
   if (url.pathname === '/api/calendar') {
@@ -36,8 +44,8 @@ async function data(request, env) {
     return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/match') {
-    const result = await matches.matchDetails(p.get('team'), p.get('match'));
-    return result ? [result, 200, 300] : [{ error: 'Partido no encontrado.' }, 404, 0];
+    const result = await matches.matchDetails(p.get('team'), p.get('match'),{refresh:p.get('refresh')==='1'});
+    return result ? [result, 200, result.error||p.get('refresh')==='1'?0:60] : [{ error: 'Partido no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/sanctions') {
     const result = await sanctions.sanctions(p.get('team'));
@@ -95,6 +103,7 @@ async function data(request, env) {
 }
 
 export default {
+  async scheduled(event,env,ctx){ctx.waitUntil(scheduledNotifications(env))},
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '*';
@@ -103,11 +112,13 @@ export default {
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
+    const notificationResponse=await handleFreeNotifications(request,env,ctx);
+    if(notificationResponse)return notificationResponse;
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (request.method !== 'GET') return json({ error: 'Método no permitido.' }, 405, origin);
     const cacheKey = new Request(url.toString(), { method: 'GET' });
     try {
-      const cached = await caches.default.match(cacheKey);
+      const cached = url.pathname==='/api/match'&&url.searchParams.get('refresh')==='1'?null:await caches.default.match(cacheKey);
       if (cached) {
         const headers = new Headers(cached.headers);
         headers.set('Access-Control-Allow-Origin', origin);

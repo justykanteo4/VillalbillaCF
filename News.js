@@ -1,5 +1,5 @@
 import React,{useState,useEffect,useRef} from 'react';
-import {View,Text,Pressable,Image,StyleSheet,AppState} from 'react-native';
+import {View,Text,Pressable,Image,StyleSheet,AppState,ScrollView,Linking} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {api} from './api';
 import seed from './news-seed.json';
@@ -7,11 +7,13 @@ import MatchSummary,{buildSummary} from './MatchSummary';
 import VenueDirections from './VenueDirections';
 import MatchWeather from './MatchWeather';
 import FavoritePlayers from './FavoritePlayers';
+import ClubNewsSummary from './ClubNewsSummary';
 
 const dayKey=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 function week(offset){
-  const end=new Date();end.setHours(12,0,0,0);end.setDate(end.getDate()-end.getDay()+offset*7);
-  const start=new Date(end);start.setDate(start.getDate()-6);
+  const start=new Date(new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'})+'T12:00:00');
+  start.setDate(start.getDate()-(start.getDay()+6)%7+offset*7);
+  const end=new Date(start);end.setDate(start.getDate()+6);
   return {start:dayKey(start),end:dayKey(end),label:`${start.toLocaleDateString('es-ES',{day:'numeric',month:'short'})} — ${end.toLocaleDateString('es-ES',{day:'numeric',month:'short'})}`};
 }
 
@@ -119,8 +121,8 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
       {ig.error&&<Text style={s.warning}>Instagram no está disponible ahora. {ig.posts.length?'Se mantiene la última consulta.':''}</Text>}
       {ig.connected&&!ig.posts.length&&<Text style={s.muted}>No hay publicaciones disponibles.</Text>}
     </View>
-    {ig.posts.map(post=><View key={post.id} style={s.card}>
-      {post.images.map((url,index)=><Image key={index} source={{uri:url}} accessibilityLabel={post.caption||'Foto de Villalbilla C.F.'} style={{width:'100%',aspectRatio:1,borderRadius:12}} resizeMode="contain"/>)}
+    {ig.posts.slice(0,8).map(post=><View key={post.id} style={s.card}>
+      <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator accessibilityLabel="Fotos de la publicación; desliza para ver más">{post.images.map((url,index)=><Image key={index} source={{uri:url}} accessibilityLabel={(post.caption||'Foto de Villalbilla C.F.')+' · '+(index+1)+' de '+post.images.length} style={{width:280,height:280,borderRadius:12,marginRight:8}} resizeMode="contain"/>)}</ScrollView>{post.images.length>1&&<Text style={s.muted}>Desliza para ver las {post.images.length} fotos →</Text>}{(post.permalink?.startsWith('https://www.instagram.com/')||post.permalink?.startsWith('https://instagram.com/'))&&<Pressable accessibilityRole="link" onPress={()=>Linking.openURL(post.permalink).catch(()=>setError('No se pudo abrir Instagram.'))}><Text style={s.link}>Ver publicación en Instagram ↗</Text></Pressable>}
       <Text style={s.muted}>{new Date(post.date).toLocaleDateString('es-ES')}</Text><Text style={s.team}>{post.caption}</Text>
     </View>)}
   </>);
@@ -133,6 +135,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
   return <View style={{gap:18}}>
     <MatchSummary entry={summary} onClose={()=>setSummary(null)}/>
     {mode==='results'?<><Text style={s.title}>Resultados</Text>{results}<FavoritePlayers favoritePlayerIds={favoritePlayerIds}/></>:<>
+      <ClubNewsSummary teams={news.teams} range={range}/>
       {instagram}<Text style={s.heading}>Los partidos de la jornada</Text><Text style={s.muted}>{range.label}</Text>
       {!!error&&<Text style={s.warning}>{error}</Text>}
       {!highlights.length&&<View style={s.card}><Text style={s.muted}>Todavía no hay resultados publicados para esta semana.</Text></View>}

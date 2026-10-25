@@ -4,7 +4,7 @@
     "slug": "villalbilla-cf",
     "scheme": "villalbilla-cf",
     "icon": "./assets/app-icon-crest.png",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "ios": {
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.villalbilla.cf",
-      "versionCode": 11,
+      "versionCode": 16,
       "intentFilters": [
         {
           "action": "VIEW",
@@ -39,7 +39,8 @@
         "foregroundImage": "./assets/app-icon-crest.png",
         "monochromeImage": "./assets/app-icon-crest.png",
         "backgroundColor": "#0b121d"
-      }
+      },
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "name": "VillalbillaCF",
@@ -58,7 +59,8 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.758134560563-j98or1f7n4jrfanklgo1pg85davlvt9p"
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "extra": {
       "eas": {
@@ -72,7 +74,11 @@
     "updates": {
       "url": "https://u.expo.dev/8aa9b217-1386-4b74-9a15-9e93d127030b",
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 3000,
+      "enabled": true,
+      "requestHeaders": {
+        "expo-channel-name": "production"
+      }
     }
   }
 }

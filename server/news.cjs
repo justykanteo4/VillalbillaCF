@@ -34,12 +34,12 @@ async function instagram(accessToken=process.env.INSTAGRAM_ACCESS_TOKEN,facebook
    mediaUrl=new URL('https://graph.instagram.com/me/media');
   }
   mediaUrl.searchParams.set('fields','id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,children{media_type,media_url,thumbnail_url}');
-  mediaUrl.searchParams.set('limit','24');
+  mediaUrl.searchParams.set('limit','8');
   const response=await fetch(mediaUrl,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});
   if(!response.ok)throw Error('instagram media');
   const data=await response.json();
   if(!Array.isArray(data.data))throw Error('instagram response');
-  igCache={connected:true,username:target,updatedAt:new Date().toISOString(),posts:data.data.map(m=>({id:m.id,caption:m.caption||'',date:m.timestamp,images:(m.children?.data||[m]).map(c=>c.media_type==='VIDEO'?c.thumbnail_url:c.media_url).filter(x=>typeof x==='string'&&x.startsWith('https://'))}))};
+  igCache={connected:true,username:target,updatedAt:new Date().toISOString(),posts:data.data.slice(0,8).map(m=>({id:m.id,permalink:m.permalink||null,caption:m.caption||'',date:m.timestamp,images:(m.children?.data||[m]).map(c=>c.media_type==='VIDEO'?c.thumbnail_url:c.media_url).filter(x=>typeof x==='string'&&x.startsWith('https://'))}))};
   igChecked=Date.now();
   return igCache;
  }catch{return {...(igCache||{connected:false,username:target,posts:[]}),error:true}}

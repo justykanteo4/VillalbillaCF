@@ -1,13 +1,24 @@
 # Villalbilla C.F. — continuar en Codex Cloud
 
 ## Estado actual prioritario: 0.1.9 con Internet
-La cuenta Expo justykanteo4 ya está autorizada y se confirmó su plan Free. Se creó production y se publicó Android runtime 0.1.9: update 01a173a1-b222-739e-bd2b-9189019af54d, grupo 19272470-f305-4b5c-b43c-7cc64169f546. Se verificaron manifiesto, descarga autenticada de assets y hash del bundle; el runtime 0.1.8 no recibe la actualización.
+La cuenta Expo justykanteo4 ya está autorizada y se confirmó su plan Free. Se creó production y se publicó Android runtime 0.1.9: update 01a173ba-024c-7ecc-ab08-9522cae2a18d, grupo 4910b73a-7923-4848-a1a8-e729b380f42a. Se verificaron manifiesto, descarga autenticada de assets y hash del bundle; el runtime 0.1.8 no recibe la actualización.
 
 El usuario debe instalar una vez https://github.com/justykanteo4/VillalbillaCF/raw/refs/heads/codex/apk-0.1.9-internet/VillalbillaCF-0.1.9-internet.apk encima de su APK, sin desinstalar. Este APK reutiliza todos los archivos de la base 0.1.9; solo se cambió el manifiesto a código Android 16, cabecera production y espera de arranque 3 s. Firma y payload comprobados contra el original. No se ha probado en su teléfono. SHA-256 646b16597532e0e9f831dfe0d85733ae0449bafa1ad62c3e02271288ba4a6130.
 
 La rama de código queda alineada en versión 0.1.9/código 16 para publicar mejoras JavaScript compatibles. Cualquier APK posterior debe tener código mayor que 16; los cambios nativos necesitan runtime nuevo. El archivo google-services.json y las credenciales FCM siguen pendientes para corregir completamente notificaciones Android; no se ha fingido su configuración ni se ha distribuido el APK intermedio 0.1.10. Consultar ACTUALIZACIONES-ANDROID.md, actualizado con el procedimiento vigente. Las notas siguientes son el historial de esta conversación y pueden describir estados previos.
 
-No se cambiaron planes, facturación, web, D1 o secretos de Cloudflare ni se enviaron notificaciones. La sesión Expo está solo en work/expo-session. En este entorno publicar con work/eas.sh, no con una sesión HOME inexistente.
+No se cambiaron planes, facturación, D1 o secretos de Cloudflare ni se enviaron notificaciones. La sesión Expo está solo en work/expo-session. En este entorno publicar con work/eas.sh, no con una sesión HOME inexistente.
+
+## Actas y cabecera compacta — última publicación
+- Se corrigió la consulta de actas nuevas: ya no depende de news-seed.json. Se valida el identificador y se comprueba en el acta que pertenece al equipo solicitado, también al leer la caché.
+- Caché normal de actas de 60 s. refresh=1 vuelve a RFFM y omite la caché interna y la caché del Worker; respuesta no-store. Si falla la fuente se conservan los datos disponibles con indicador de error.
+- MatchEvents se actualiza cada minuto con el resumen abierto y al volver al primer plano, permite «Actualizar acta» y cancela consultas/timers al cerrarse. No consulta en segundo plano. El siguiente partido también consulta su acta cada minuto.
+- El marcador, la ficha y el resumen se recalculan cuando el acta aporta un resultado nuevo. Campos vacíos no se convierten en cero y un fallo de actualización no restaura un marcador antiguo.
+- Cabecera principal reducida a unos 51 px en la comprobación web móvil; escudo, texto y márgenes más pequeños. Se compactaron también la cabecera y el marcador del resumen.
+- Validación: 32 pruebas más logic.test.mjs; exportaciones web/Android correctas. Chromium/Playwright a 320 y 390 px: sin desbordamiento, actualización manual/periódica, marcador actualizado y conservado ante errores, consultas detenidas al cerrar. Prueba de producción con acta 5587337: dos consultas forzadas devuelven horas distintas, cuatro goles y cinco tarjetas; no-store comprobado. La fuente real publica marcador 4–0.
+- Web final: versión Cloudflare 563b8eec-f45b-4780-b554-c5acafa6e9c8. Índice publicado apunta al bundle final correcto. Rutas públicas y control de acceso de notificaciones verificados.
+- OTA final production/Android/runtime 0.1.9: update 01a173ba-024c-7ecc-ab08-9522cae2a18d; grupo 4910b73a-7923-4848-a1a8-e729b380f42a; código fuente publicado c8635b39201a7489be225a4e09bb787ef088e7b0. Se verificaron manifiesto, descarga autorizada del bundle (3.708.240 bytes) y SHA-256. No hace falta APK nuevo si está instalada la copia 0.1.9-internet/código 16. Aplicación en el teléfono pendiente de su siguiente arranque.
+- Sin cambios de plan, recursos de pago, secretos o envíos de notificaciones reales. Las correcciones nativas pendientes de Firebase/FCM continúan como estaban.
 
 ## Objetivo y restricciones del usuario
 Corregir los requisitos de la revisión y mantener la aplicación sin planes de pago. No activar Blaze, Workers Paid, servicios de pago ni publicaciones en tiendas. El usuario solicita continuar desde otro dispositivo usando Codex Cloud.

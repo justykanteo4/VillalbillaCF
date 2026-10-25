@@ -18,10 +18,10 @@ JavaScript y recursos compatibles se publican por Internet. Añadir o cambiar m�
 
 ## Publicación verificada
 
-- Actualización: 01a173a1-b222-739e-bd2b-9189019af54d.
-- Grupo: 19272470-f305-4b5c-b43c-7cc64169f546.
+- Actualización: 01a173ba-024c-7ecc-ab08-9522cae2a18d.
+- Grupo: 4910b73a-7923-4848-a1a8-e729b380f42a.
 - Canal/ramificación: production. Runtime: 0.1.9. Android.
-- Se verificó el manifiesto del protocolo Expo y la descarga del bundle usando las cabeceras de assets proporcionadas en la parte extensions, igual que Expo Updates. SHA-256 del bundle correcto, 3.705.627 bytes.
+- Se verificó el manifiesto del protocolo Expo y la descarga del bundle usando las cabeceras de assets proporcionadas en la parte extensions, igual que Expo Updates. SHA-256 del bundle correcto, 3.708.240 bytes.
 - El runtime 0.1.8 recibe 204 y no recibe esta actualización incompatible.
 - Pendiente de instalación y prueba en el teléfono del usuario; no afirmar que ya se ha actualizado su móvil.
 - SHA-256 APK: 646b16597532e0e9f831dfe0d85733ae0449bafa1ad62c3e02271288ba4a6130; tamaño 54.137.997 bytes.

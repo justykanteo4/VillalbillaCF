@@ -4,7 +4,7 @@
     "slug": "villalbilla-cf",
     "scheme": "villalbilla-cf",
     "icon": "./assets/app-icon-crest.png",
-    "version": "0.1.9",
+    "version": "0.1.11",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "ios": {
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.villalbilla.cf",
-      "versionCode": 16,
+      "versionCode": 17,
       "intentFilters": [
         {
           "action": "VIEW",

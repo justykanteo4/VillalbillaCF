@@ -16,6 +16,14 @@ web-build/
 .expo-home/
 .git/
 .DS_Store
+work/
+dist-audit/
+dist-audit-native/
+dist-audit-all/
+.wrangler/
+.dev.vars
+firebase-debug.log
+credentials.json
 .metro-health-check*
 npm-debug.*
 yarn-debug.*

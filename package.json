@@ -5,6 +5,7 @@
   "version": "55.1.38",
   "main": "index.js",
   "scripts": {
+    "eas-build-post-install": "node scripts/check-android-build.cjs",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",

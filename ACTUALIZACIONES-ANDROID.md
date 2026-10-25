@@ -46,10 +46,14 @@ bash work/eas.sh update --channel production --platform android --environment pr
 
 La publicación web de Cloudflare es independiente. Respetar las cuotas Free. Si se agotan, conservar la copia instalada; no activar facturación ni actualizar planes automáticamente.
 
-## Firebase/Google Android: pendiente independiente
+## Firebase y avisos Android: versión 0.1.11
 
-El APK conserva la configuración nativa original de la 0.1.9. El cliente público Google recuperado sí se incluye en el JavaScript publicado y los errores técnicos se presentan como mensajes comprensibles. Eso no demuestra que la recepción push Android esté reparada.
+La versión 0.1.11, código Android 17, incorpora la configuración Android real de Firebase para `com.villalbilla.cf`. Se ha recuperado `google-services.json` del proyecto `villalbillacf`, validado el cliente OAuth y registrado también la huella de la firma de Expo. El archivo permanece ignorado por Git; conservarlo en el entorno de compilación. Las credenciales privadas de FCM permanecen en Expo.
 
-Para una compilación nativa nueva, primero autorizar Firebase, recuperar google-services.json del proyecto existente, comprobar paquete com.villalbilla.cf y huellas SHA, y verificar que Expo tenga las credenciales FCM v1 correctas. Ejecutar pnpm run check:android-config y pnpm run prebuild:android. La comprobación nativa continúa bloqueando una compilación sin configuración válida. Credenciales privadas de FCM solo en Expo, nunca en Git ni en el chat. No enviar notificaciones reales sin autorización específica.
+El perfil `preview` utiliza las variables de `production`, incluida `EXPO_PUBLIC_API_URL`. El hook `eas-build-post-install` rechaza una compilación Android sin Firebase, OAuth o servidor HTTPS correctamente configurados. Para comprobarlo localmente: `EAS_BUILD_PLATFORM=android node --env-file=.env.local scripts/check-android-build.cjs`.
 
-Una vez se cambie esa configuración nativa, usar un runtime nuevo y código Android mayor que 16. No distribuir el APK intermedio 0.1.10 anterior: era una comprobación sin Firebase Android configurado.
+Se ha generado el APK localmente con JDK 17, manteniendo TLS verificado y sin contratar un plan de Expo. La preparación del entorno incluye el resolver Foojay 1.0.0 para Gradle 9 y memoria de Gradle ampliada; conservar estos ajustes al reutilizar el entorno. La versión nativa y su runtime son 0.1.11, separados de las actualizaciones anteriores.
+
+Verificado: 32 pruebas automáticas, fechas/enlaces, exportación Android, `assembleRelease`, firma APK, `FirebaseInitProvider`, permiso `POST_NOTIFICATIONS`, recursos `google_app_id`/emisor, módulo nativo de notificaciones y dirección del servidor dentro del bundle. La recepción real de avisos y el acceso con Google quedan pendientes de probar en un teléfono; no se han enviado avisos reales.
+
+`VillalbillaCF-0.1.11.apk` conserva el certificado de pruebas del APK 0.1.9 distribuido en sus ramas, para actualizarlo sin desinstalar. `VillalbillaCF-0.1.11-Expo.apk` usa la firma remota de Expo, compatible con el APK 0.1.8 generado allí. Ambos contienen la misma aplicación; elegir el certificado correspondiente a la instalación existente. No distribuir el APK intermedio 0.1.10 sin configuración Firebase.

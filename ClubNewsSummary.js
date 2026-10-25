@@ -23,21 +23,23 @@ function Totals({title,subtitle,total,loading}){
  </View>;
 }
 
-export default function ClubNewsSummary({teams,range}){
+export default function ClubNewsSummary({teams}){
  const [details,setDetails]=useState(false);
  const [records,setRecords]=useState([]),[loading,setLoading]=useState(true),[failed,setFailed]=useState(false);
  useEffect(()=>{
-  let active=true,cursor=0;const collected=[],controller=new AbortController();
+  let active=true,cursor=0;const pages=new Map(),controller=new AbortController();
   setLoading(true);setFailed(false);setRecords([]);
   async function load(){
    while(active&&cursor<teams.length){
     const team=teams[cursor++];let offset=0;
     try{
      do{
-      const data=await api(`/api/club-stats?team=${encodeURIComponent(team.id)}&offset=${offset}`,{signal:controller.signal});
+      const path=`/api/club-stats?team=${encodeURIComponent(team.id)}&offset=${offset}`;
+      const apply=data=>{if(!active)return;pages.set(path,data.records||[]);setRecords([...pages.values()].flat());if(data.error||data.offline)setFailed(true)};
+      const data=await api(path,{signal:controller.signal,onUpdate:apply});
       if(!active)return;
       if(data.error||data.offline)setFailed(true);
-      collected.push(...(data.records||[]));setRecords([...collected]);
+      apply(data);
       offset=data.nextOffset;
      }while(active&&Number.isSafeInteger(offset)&&offset>0);
     }catch{if(active)setFailed(true)}
@@ -48,7 +50,6 @@ export default function ClubNewsSummary({teams,range}){
  },[teams]);
  return <View style={{gap:8}}>
   <View style={s.header}><Text style={s.heading}>Resumen del club</Text><Text style={s.muted}>Todos los equipos · RFFM</Text></View>
-  <Totals title="La jornada" subtitle={range.label} total={buildClubSummary(teams,records,range)} loading={loading}/>
   <Totals title="La temporada" subtitle="Acumulado 2026/27" total={buildClubSummary(teams,records)} loading={loading}/>
   {failed&&<Text style={s.warning}>Algunas actas están pendientes de actualizar.</Text>}
   <Pressable accessibilityRole="button" accessibilityState={{expanded:details}} onPress={()=>setDetails(value=>!value)} hitSlop={8}><Text style={s.detailLink}>{details?'Ocultar detalle':'Cómo se calcula'} {details?'−':'+'}</Text></Pressable>

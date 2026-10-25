@@ -6,13 +6,13 @@ const text={color:'#dce6f2',lineHeight:22};
 function label(key){
  if(!key.startsWith('/api/'))return key;
  const [path,query]=key.split('?'),params=new URLSearchParams(query||''),team=teams.find(row=>row.id===params.get('team'));
- const names={news:'Noticias',instagram:'Instagram',standings:'Clasificación',players:'Plantilla','team-ranking':'Ranking','league-scorers':'Goleadores de la liga',scorers:'Goleadores del club',sanctions:'Sanciones',match:'Partido','team-roster':'Plantilla de asistencia','team-staff':'Cuerpo técnico',weather:'Tiempo',field:'Campo','player-minutes':'Ficha del jugador'};
+ const names={notifications:'Avisos',news:'Noticias',instagram:'Instagram',standings:'Clasificación',players:'Plantilla','team-ranking':'Ranking','league-scorers':'Goleadores de la liga',scorers:'Goleadores del club',sanctions:'Sanciones',match:'Partido','team-roster':'Plantilla de asistencia','team-staff':'Cuerpo técnico',weather:'Tiempo',field:'Campo','player-minutes':'Ficha del jugador'};
  return (names[path.slice(5)]||'Consulta')+(team?' · '+team.category+' · '+team.name:'');
 }
 function Preview({data}){
  const fixture=row=><Text key={row.id} style={text}>{row.date||'Sin fecha'} · {row.home} {row.homeScore??'—'} – {row.awayScore??'—'} {row.away}</Text>;
  if(data.teams)return <View style={{gap:14}}>{data.teams.map(team=><View key={team.id} style={{gap:6}}><Text style={{...text,fontWeight:'800'}}>{team.category} · {team.name}</Text>{(team.fixtures||[]).map(fixture)}</View>)}</View>;
- if(data.posts)return <View style={{gap:12}}>{data.posts.map(post=><Text key={post.id} style={text}>{post.caption||'Publicación de Instagram'}</Text>)}</View>;
+ if(data.posts)return <View style={{gap:12}}>{data.posts.slice(0,8).map(post=><Text key={post.id} style={text}>{post.caption||'Publicación de Instagram'}</Text>)}</View>;
  if(data.attendance)return <View style={{gap:12}}><Text style={text}>{data.team}</Text><Text style={text}>Asistencia</Text>{Object.entries(data.attendance).map(([day,entries])=><View key={day}><Text style={{...text,fontWeight:'800'}}>{day}</Text>{Object.entries(entries).map(([id,value])=><Text key={id} style={text}>{data.players?.find(player=>player.id===id)?.name||'Jugador'}: {value}</Text>)}</View>)}<Text style={text}>Material</Text>{(data.materials||[]).map(row=><Text key={row.id} style={text}>{row.qty} × {row.name} · {row.holder} · {row.returned?'Devuelto':'Pendiente'}</Text>)}</View>;
  const rows=data.players||data.rows||data.people||data.allSanctions||data.fixtures||[];
  return <View style={{gap:10}}>{!rows.length&&<Text style={text}>No hay registros en esta copia.</Text>}{rows.map((row,index)=>row.home?fixture(row):<View key={(row.id||index)+':'+index}><Text style={{...text,fontWeight:'700'}}>{row.position?row.position+' · ':''}{row.name}</Text><Text style={text}>{row.points!=null?row.points+' puntos · ':''}{row.goals!=null?row.goals+' goles · ':''}{row.reason||row.role||row.teamName||''}</Text></View>)}</View>;

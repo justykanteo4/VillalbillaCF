@@ -1,25 +1,58 @@
 import {readCopy,saveCopy} from './offline';
 import {Platform} from 'react-native';
 export const apiBase=Platform.OS==='web'?'':(process.env.EXPO_PUBLIC_API_URL||'');
-const PUBLIC_DATA=/^\/api\/(?:news|club-stats|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather)(?:\?|$)/;
+const PUBLIC_DATA=/^\/api\/(?:news|club-stats|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather|notifications)(?:\?|$)/;
+const refreshing=new Map(),versions=new Map(),MAX_AGE=60000;
+const limitData=(path,data)=>path.split('?')[0]==='/api/instagram'?{...data,posts:(Array.isArray(data.posts)?data.posts:[]).slice(0,8)}:data;
 export async function api(path,options={}){
  if(Platform.OS!=='web'&&!apiBase)throw Error('Servicio pendiente de configurar para móvil');
+ if(options.signal?.aborted)throw Object.assign(Error('Consulta cancelada'),{name:'AbortError'});
+ const {onUpdate,onRefreshError,cache:cacheMode,...requestOptions}=options;
  const cacheable=(options.method||'GET')==='GET'&&PUBLIC_DATA.test(path);
  const cached=cacheable?await readCopy(path).catch(()=>null):null;
- if(cached&&Platform.OS==='web'&&globalThis.navigator?.onLine===false)return {...cached.data,error:true,offline:true,savedAt:cached.savedAt};
- const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),cached?8000:25000);
+ if(options.signal?.aborted)throw Object.assign(Error('Consulta cancelada'),{name:'AbortError'});
+ if(cached&&Platform.OS==='web'&&globalThis.navigator?.onLine===false)return {...limitData(path,cached.data),error:true,offline:true,savedAt:cached.savedAt};
+ const forceNetwork=['reload','no-store'].includes(cacheMode)||/[?&]refresh=1(?:&|$)/.test(path);
+ if(cached&&!forceNetwork){
+  const age=Date.now()-Date.parse(cached.savedAt);
+  if(!Number.isFinite(age)||age<0||age>=MAX_AGE){
+   if(!refreshing.has(path)){
+    const job=api(path,{...requestOptions,signal:undefined,cache:'reload',_background:true});
+    refreshing.set(path,job);job.finally(()=>{if(refreshing.get(path)===job)refreshing.delete(path)}).catch(()=>{});
+   }
+   refreshing.get(path).then(data=>{if(!options.signal?.aborted)onUpdate?.(data)}).catch(error=>{
+    if(options.signal?.aborted)return;
+    if(onRefreshError)onRefreshError(error);
+    else onUpdate?.({...limitData(path,cached.data),fromCache:true,error:true,offline:true,savedAt:cached.savedAt});
+   }).catch(()=>{});
+  }
+  return {...limitData(path,cached.data),fromCache:true,savedAt:cached.savedAt};
+ }
+ if(cached&&forceNetwork)onUpdate?.({...limitData(path,cached.data),fromCache:true,savedAt:cached.savedAt});
+ const {_background,...fetchOptions}=requestOptions;
+ const version=cacheable?(versions.get(path)||0)+1:0;
+ if(cacheable)versions.set(path,version);
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),_background?45000:25000);
  const abortFromCaller=()=>controller.abort();
  if(options.signal?.aborted)controller.abort();
  else options.signal?.addEventListener('abort',abortFromCaller,{once:true});
  try{
-  const r=await fetch(apiBase+path,{...options,headers:{...options.headers,'X-App-Platform':Platform.OS},signal:controller.signal});
-  const d=await r.json();
+  const r=await fetch(apiBase+path,{...fetchOptions,...(['reload','no-store'].includes(cacheMode)?{cache:cacheMode}:{}),headers:{...options.headers,'X-App-Platform':Platform.OS},signal:controller.signal});
+  const d=limitData(path,await r.json());
   if(!r.ok){const e=Error(d.error||'Servicio no disponible');e.status=r.status;throw e}
+  if(cacheable&&version!==versions.get(path)){
+   const latest=await readCopy(path).catch(()=>null);
+   return latest?{...limitData(path,latest.data),fromCache:true,savedAt:latest.savedAt}:d;
+  }
   if(cacheable&&!d.error)await saveCopy(path,d).catch(()=>{});
   return d;
  }catch(error){
-  if(cacheable&&!options.signal?.aborted&&(!error.status||error.status>=500)){
-   if(cached)return {...cached.data,error:true,offline:true,savedAt:cached.savedAt};
+  if(cacheable&&version!==versions.get(path)&&!options.signal?.aborted){
+   const latest=await readCopy(path).catch(()=>null);
+   if(latest)return {...limitData(path,latest.data),fromCache:true,savedAt:latest.savedAt};
+  }
+  if(cacheable&&!_background&&!options.signal?.aborted&&(!error.status||error.status>=500)){
+   if(cached)return {...limitData(path,cached.data),error:true,offline:true,savedAt:cached.savedAt};
   }
   if(controller.signal.aborted&&!options.signal?.aborted)throw Error('La consulta tardó demasiado. Comprueba la conexión e inténtalo de nuevo.');
   throw error;

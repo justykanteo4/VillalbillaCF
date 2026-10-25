@@ -1,0 +1,48 @@
+import React,{useEffect,useState} from 'react';
+import {Image} from 'react-native';
+import {Directory,File,Paths} from 'expo-file-system';
+import {digestStringAsync,CryptoDigestAlgorithm} from 'expo-crypto';
+
+const directory=new Directory(Paths.cache,'club-images');
+const pending=new Map(),writing=new Set(),waiting=[];
+let downloads=0;
+async function withDownloadSlot(work){
+ if(downloads>=3)await new Promise(resolve=>waiting.push(resolve));else downloads++;
+ try{return await work()}finally{if(waiting.length)waiting.shift()();else downloads--}
+}
+function prune(){
+ const files=directory.list().filter(file=>file instanceof File).sort((a,b)=>(a.modificationTime||0)-(b.modificationTime||0));
+ let bytes=files.reduce((sum,file)=>sum+file.size,0),count=files.length;
+ for(const file of files){
+  if(bytes<=128*1024*1024&&count<=160)break;
+  if(writing.has(file.uri))continue;
+  bytes-=file.size;count--;file.delete();
+ }
+}
+async function localImage(uri){
+ if(!/^https:\/\//.test(uri||''))return uri;
+ if(!pending.has(uri)){
+  const job=(async()=>{
+   directory.create({idempotent:true,intermediates:true});
+   const key=await digestStringAsync(CryptoDigestAlgorithm.SHA256,uri);
+   const file=new File(directory,key+'.jpg');
+   if(file.exists&&file.size>0)return file.uri;
+   return withDownloadSlot(async()=>{
+    writing.add(file.uri);
+    try{
+     await File.downloadFileAsync(uri,file,{idempotent:true});
+     try{prune()}catch{/* Image display does not depend on cache maintenance. */}
+     return file.uri;
+    }catch(error){if(file.exists)file.delete();throw error}
+    finally{writing.delete(file.uri)}
+   });
+  })();
+  pending.set(uri,job);job.finally(()=>pending.delete(uri)).catch(()=>{});
+ }
+ return pending.get(uri);
+}
+export default function CachedImage({uri,...props}){
+ const [source,setSource]=useState();
+ useEffect(()=>{let active=true;setSource(undefined);localImage(uri).then(value=>{if(active)setSource({uri:value})}).catch(()=>{if(active)setSource({uri})});return()=>{active=false}},[uri]);
+ return <Image {...props} source={source} onError={event=>{if(source?.uri!==uri)setSource({uri});props.onError?.(event)}}/>;
+}

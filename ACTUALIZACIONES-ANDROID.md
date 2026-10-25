@@ -57,3 +57,15 @@ Se ha generado el APK localmente con JDK 17, manteniendo TLS verificado y sin co
 Verificado: 32 pruebas automáticas, fechas/enlaces, exportación Android, `assembleRelease`, firma APK, `FirebaseInitProvider`, permiso `POST_NOTIFICATIONS`, recursos `google_app_id`/emisor, módulo nativo de notificaciones y dirección del servidor dentro del bundle. La recepción real de avisos y el acceso con Google quedan pendientes de probar en un teléfono; no se han enviado avisos reales.
 
 `VillalbillaCF-0.1.11.apk` conserva el certificado de pruebas del APK 0.1.9 distribuido en sus ramas, para actualizarlo sin desinstalar. `VillalbillaCF-0.1.11-Expo.apk` usa la firma remota de Expo, compatible con el APK 0.1.8 generado allí. Ambos contienen la misma aplicación; elegir el certificado correspondiente a la instalación existente. No distribuir el APK intermedio 0.1.10 sin configuración Firebase.
+
+## Carga local y selección de avisos: versión 0.1.12
+
+Código Android 18 y runtime 0.1.12. Se elimina la tarjeta «La jornada» del resumen y la sección «Consulta de equipos» de Ajustes. Se conserva el resumen de temporada y las pantallas de resultados y calendario.
+
+Las consultas públicas muestran primero la copia del dispositivo. Cuando tiene más de un minuto se actualiza en segundo plano, se avisa a la pantalla y se conserva la copia anterior si falla la red. Una respuesta antigua no puede sobrescribir una recarga posterior. La actualización explícita de actas y clasificaciones sigue consultando la red; autenticación, permisos y escrituras no usan esta caché. Los datos y preferencias anteriores se conservan, incluidos los registros locales del vestuario. La presentación completa se mantiene en el primer inicio; los siguientes accesos pasan directamente a la carga de datos.
+
+Instagram queda limitado a ocho publicaciones tanto en pantalla como al guardar la respuesta de la API y al consultar copias. Android/iOS guardan sus imágenes en la caché privada del dispositivo, con tres descargas simultáneas y limpieza por tamaño/número de archivos (128 MB/160 archivos). Esta caché de imágenes es recuperable y puede limpiarla el sistema operativo.
+
+Avisos permite marcar los equipos que se quieren seguir, guardar la selección y modificarla después. La selección es independiente de los favoritos generales; se mantienen los avisos generales del club y los jugadores favoritos. Los cambios se guardan localmente y, si falta conexión, quedan pendientes para el siguiente inicio o retorno a la app. La sincronización serializa las escrituras para no sustituir una elección nueva por una respuesta anterior.
+
+Verificación: 42 pruebas, exportación Android/iOS/web y construcción Android release. No se han enviado avisos reales ni modificado la facturación. Los dos APK de distribución mantienen las respectivas firmas de 0.1.11; se instalan encima de la variante correspondiente sin desinstalar.

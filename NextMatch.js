@@ -21,7 +21,7 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
     setTeam(seed.teams.find(t=>t.id===teamId));
     setExpanded(false);
     async function refresh(){
-      try{const data=await api('/api/news');if(active){setTeam(data.teams.find(t=>t.id===teamId));setError(false)}}
+      try{const data=await api('/api/news',{onUpdate:value=>{if(active){setTeam(value.teams.find(t=>t.id===teamId));setError(!!value.error)}}});if(active){setTeam(data.teams.find(t=>t.id===teamId));setError(!!data.error)}}
       catch{if(active)setError(true)}
     }
     refresh();const timer=setInterval(refresh,300000);
@@ -31,7 +31,7 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
   useEffect(()=>{
     let active=true;
     setStandings(standingsSeed[teamId]||null);
-    async function refresh(){try{const data=await api('/api/standings?team='+encodeURIComponent(teamId));if(active&&Array.isArray(data?.rows))setStandings(data)}catch{}}
+    async function refresh(){try{const data=await api('/api/standings?team='+encodeURIComponent(teamId),{onUpdate:value=>{if(active&&Array.isArray(value?.rows))setStandings(value)}});if(active&&Array.isArray(data?.rows))setStandings(data)}catch{}}
     refresh();const timer=setInterval(refresh,300000);
     return()=>{active=false;clearInterval(timer)};
   },[teamId]);
@@ -41,7 +41,7 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
 
   useEffect(()=>{
     let active=true;setActa(null);if(!next)return;
-    async function fetchActa(){try{const data=await api('/api/match?team='+encodeURIComponent(teamId)+'&match='+encodeURIComponent(next.id)+'&refresh=1');if(active)setActa(data)}catch{if(active)setActa({error:true})}}
+    async function fetchActa(){try{const data=await api('/api/match?team='+encodeURIComponent(teamId)+'&match='+encodeURIComponent(next.id)+'&refresh=1',{onUpdate:value=>{if(active)setActa(value)}});if(active)setActa(data)}catch{if(active)setActa({error:true})}}
     fetchActa();const timer=setInterval(fetchActa,60000);
     return()=>{active=false;clearInterval(timer)};
   },[teamId,next?.id]);

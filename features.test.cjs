@@ -66,9 +66,9 @@ test('consultas públicas se recuperan de la copia local ante fallo de red',asyn
   global.fetch=async()=>({ok:true,json:async()=>({rows:[{name:'Club',points:3}]})});
   await api('/api/standings?team=1');
   global.fetch=async()=>{throw Error('Sin red')};
-  const value=await api('/api/standings?team=1');assert.equal(value.offline,true);assert.equal(value.rows[0].points,3);
+  const value=await api('/api/standings?team=1',{cache:'reload'});assert.equal(value.offline,true);assert.equal(value.rows[0].points,3);
   await assert.rejects(api('/api/auth/me'));assert(!copies.has('/api/auth/me'));
   global.fetch=async()=>({ok:false,status:403,json:async()=>({error:'Sin permiso'})});
-  await assert.rejects(api('/api/standings?team=1'),/Sin permiso/);
+  await assert.rejects(api('/api/standings?team=1',{cache:'reload'}),/Sin permiso/);
  }finally{global.fetch=original;delete global.__testOffline}
 });

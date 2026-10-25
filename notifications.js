@@ -5,9 +5,16 @@ import {auth} from './firebase';
 import {api} from './api';
 import {registerPush} from './push';
 import {saveCopy,readCopy} from './offline';
+import {resolveDeviceTargets} from './notification-targets.cjs';
 export const NOTIFICATION_KEY='villalbilla.notifications.v1';
-export async function notificationPreferences(){const raw=await AsyncStorage.getItem(NOTIFICATION_KEY);return raw?JSON.parse(raw):null}
-export async function saveNotificationPreferences(value){await AsyncStorage.setItem(NOTIFICATION_KEY,JSON.stringify(value))}
+let changes=Promise.resolve(),syncing=Promise.resolve();
+async function readPreferences(){const raw=await AsyncStorage.getItem(NOTIFICATION_KEY);return raw?JSON.parse(raw):null}
+export async function notificationPreferences(){await changes;return readPreferences()}
+function changePreferences(change){
+ const job=changes.then(async()=>{const previous=await readPreferences(),next=change(previous);if(next!==previous)await AsyncStorage.setItem(NOTIFICATION_KEY,JSON.stringify(next));return next});
+ changes=job.catch(()=>{});return job;
+}
+export function saveNotificationPreferences(value){return changePreferences(()=>value)}
 async function installationKey(){
  let key=await AsyncStorage.getItem('villalbilla.push-installation-key');
  if(!key){key=Array.from(await getRandomBytesAsync(32)).map(byte=>byte.toString(16).padStart(2,'0')).join('');await AsyncStorage.setItem('villalbilla.push-installation-key',key)}
@@ -16,24 +23,40 @@ async function installationKey(){
 async function saveSubscription(value){
  await api('/api/push/subscription',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...value,installationKey:await installationKey()})});
 }
+function syncSavedPreferences(){
+ const job=syncing.then(async()=>{
+  const value=await notificationPreferences();if(!value?.pendingSync)return value;
+  await saveSubscription(value);
+  return changePreferences(current=>JSON.stringify(current)===JSON.stringify(value)?{...current,pendingSync:false}:current);
+ });
+ syncing=job.catch(()=>{});return job;
+}
 export async function enableNotifications(teamIds,playerIds){
  const push=await registerPush();
- const value={enabled:true,teamIds,playerIds,...push,consentedAt:new Date().toISOString()};
- await saveSubscription(value);await saveNotificationPreferences(value);return value;
+ await saveNotificationPreferences({enabled:true,teamIds,playerIds,teamSelection:'custom',...push,consentedAt:new Date().toISOString(),pendingSync:true});
+ await syncSavedPreferences();return notificationPreferences();
 }
 export async function updateNotificationTargets(teamIds,playerIds){
- const value=await notificationPreferences();if(!value?.enabled)return;
- const next={...value,teamIds,playerIds};await saveSubscription(next);await saveNotificationPreferences(next);
+ const next=await changePreferences(value=>value?{...value,...resolveDeviceTargets(value,teamIds,playerIds),pendingSync:!!(value.enabled||value.pendingSync)}:value);
+ if(next?.pendingSync)await syncSavedPreferences();
+}
+export async function saveNotificationTeams(teamIds,playerIds){
+ const next=await changePreferences(previous=>({...previous,enabled:!!previous?.enabled,...resolveDeviceTargets({teamSelection:'custom',teamIds},teamIds,playerIds),teamSelection:'custom',pendingSync:!!(previous?.enabled||previous?.pendingSync)}));
+ if(next.pendingSync){try{await syncSavedPreferences()}catch{/* Retry with the saved selection when the app becomes active. */}}
+ return notificationPreferences();
 }
 export async function disableNotifications(){
- await saveSubscription({enabled:false});await saveNotificationPreferences({enabled:false});
+ await changePreferences(previous=>({...previous,enabled:false,pendingSync:true}));
+ try{await syncSavedPreferences()}catch{/* The saved opt-out will be retried on return to the app. */}
+ return notificationPreferences();
 }
 export function watchNotifications(callback,onError){
  let active=true,running=false;
  readCopy('Avisos').then(copy=>{if(active&&copy)callback(copy.data.messages)}).catch(()=>{});
  const refresh=async()=>{
   if(running||AppState.currentState==='background')return;running=true;
-  try{const data=await api('/api/notifications');if(active){callback(data.messages);saveCopy('Avisos',data).catch(()=>{})}}catch(error){if(active)onError?.(error)}finally{running=false}
+  const apply=data=>{if(active){callback(data.messages);saveCopy('Avisos',data).catch(()=>{})}};
+  try{apply(await api('/api/notifications',{onUpdate:apply,onRefreshError:error=>{if(active)onError?.(error)}}))}catch(error){if(active)onError?.(error)}finally{running=false}
  };
  refresh();const timer=setInterval(refresh,60000),sub=AppState.addEventListener('change',state=>{if(state==='active')refresh()});
  return()=>{active=false;clearInterval(timer);sub.remove()};

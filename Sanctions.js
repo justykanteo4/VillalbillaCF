@@ -6,7 +6,7 @@ function Person({item}){return <View style={s.person}><View style={[s.badge,item
 
 export default function Sanctions({teamId,compact=false,rivalOnly=false,teamAlertsOnly=false}){
  const [data,setData]=useState(null),[busy,setBusy]=useState(true),[failed,setFailed]=useState(false);
- const refresh=useCallback(async()=>{setBusy(true);try{const next=await api('/api/sanctions?team='+encodeURIComponent(teamId));setData(next);setFailed(Boolean(next.error))}catch{setFailed(true)}finally{setBusy(false)}},[teamId]);
+ const refresh=useCallback(async()=>{setBusy(true);try{const next=await api('/api/sanctions?team='+encodeURIComponent(teamId),{onUpdate:value=>{setData(value);setFailed(!!value.error)}});setData(next);setFailed(Boolean(next.error))}catch{setFailed(true)}finally{setBusy(false)}},[teamId]);
  useEffect(()=>{refresh();const timer=setInterval(refresh,300000);return()=>clearInterval(timer)},[refresh]);
  const rival=data?.opponentDismissals||[];
  const all=(data?.allSanctions||data?.pending||[]).slice().sort((a,b)=>(a.teamName||'').localeCompare(b.teamName||'')||(a.name||'').localeCompare(b.name||''));

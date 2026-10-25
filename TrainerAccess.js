@@ -66,14 +66,14 @@ export default function TrainerAccess({onSuccess,role='trainer',initialTeamId='6
   useEffect(()=>{
     if(!authUser||user?.status==='admin')return;
     let active=true;sr([]);sn('');
-    api('/api/team-staff?team='+encodeURIComponent(team)).then(d=>{if(active)sr(d.people||[])}).catch(()=>{});
+    api('/api/team-staff?team='+encodeURIComponent(team),{onUpdate:value=>{if(active)sr(value.people||[])}}).then(d=>{if(active)sr(d.people||[])}).catch(()=>{});
     return()=>{active=false};
   },[team,authUser,user?.status,role]);
 
   useEffect(()=>{
     if(role!=='player'||!authUser||!user||['admin','approved','pending'].includes(user.status))return;
     let active=true;spr([]);ssp(null);
-    api('/api/players?team='+encodeURIComponent(team)).then(d=>{if(active)spr(d.players||[])}).catch(e=>{if(active)se(e.message||'No se pudo consultar la plantilla oficial.')});
+    api('/api/players?team='+encodeURIComponent(team),{onUpdate:value=>{if(active)spr(value.players||[])}}).then(d=>{if(active)spr(d.players||[])}).catch(e=>{if(active)se(e.message||'No se pudo consultar la plantilla oficial.')});
     return()=>{active=false};
   },[team,authUser,user?.status,role]);
 

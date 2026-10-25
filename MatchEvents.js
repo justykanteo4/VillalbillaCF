@@ -2,9 +2,9 @@ import React,{useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,StyleSheet,AppState} from 'react-native';
 import {api} from './api';
 import PlayerPortrait from './PlayerPortrait';
-export default function MatchEvents({match,onVenue}){
+export default function MatchEvents({match,onVenue,onUpdate}){
  const [data,set]=useState(null),[busy,sb]=useState(true),[retry,sr]=useState(0);
- const venue=useRef(onVenue);venue.current=onVenue;
+ const venue=useRef(onVenue),update=useRef(onUpdate);venue.current=onVenue;update.current=onUpdate;
  useEffect(()=>{set(null)},[match.team.id,match.id]);
  useEffect(()=>{
   let active=true,running=false,controller;
@@ -13,7 +13,7 @@ export default function MatchEvents({match,onVenue}){
    running=true;sb(true);controller=new AbortController();
    try{
     const value=await api('/api/match?team='+encodeURIComponent(match.team.id)+'&match='+encodeURIComponent(match.id)+'&refresh=1',{signal:controller.signal,cache:'no-store'});
-    if(active){set(value);if(value.venue)venue.current?.(value.venue)}
+    if(active){set(value);update.current?.(value);if(value.venue)venue.current?.(value.venue)}
    }catch{if(active)set(previous=>({...previous,error:true}))}
    finally{running=false;if(active)sb(false)}
   };

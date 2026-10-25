@@ -22,3 +22,8 @@ test('rechaza identificadores inválidos y no entrega un acta cacheada a otro eq
   assert.equal(result.error,true);assert(!result.goalsAvailable);assert.equal(calls,2);
  }finally{global.fetch=original}
 });
+test('el marcador y el resumen utilizan los resultados nuevos del acta sin convertir campos vacíos en cero',()=>{
+ const {matchWithReport}=require('./match-report.cjs'),match={id:'5',homeScore:1,awayScore:0,comment:'Crónica antigua'};
+ const fresh=matchWithReport(match,{id:'5',homeScore:'2',awayScore:'1'});assert.equal(fresh.homeScore,2);assert.equal(fresh.awayScore,1);assert.equal(fresh.comment,undefined);
+ for(const report of [{id:'5',homeScore:'',awayScore:'1'},{id:'6',homeScore:'9',awayScore:'0'},{id:'5',homeScore:null,awayScore:1},{id:'5',homeScore:2,awayScore:1,error:true}])assert.equal(matchWithReport(match,report),match);
+});

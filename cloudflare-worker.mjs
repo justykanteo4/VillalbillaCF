@@ -118,7 +118,7 @@ export default {
     if (request.method !== 'GET') return json({ error: 'Método no permitido.' }, 405, origin);
     const cacheKey = new Request(url.toString(), { method: 'GET' });
     try {
-      const cached = await caches.default.match(cacheKey);
+      const cached = url.pathname==='/api/match'&&url.searchParams.get('refresh')==='1'?null:await caches.default.match(cacheKey);
       if (cached) {
         const headers = new Headers(cached.headers);
         headers.set('Access-Control-Allow-Origin', origin);

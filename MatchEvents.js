@@ -13,7 +13,7 @@ export default function MatchEvents({match,onVenue,onUpdate}){
    running=true;sb(true);controller=new AbortController();
    try{
     const value=await api('/api/match?team='+encodeURIComponent(match.team.id)+'&match='+encodeURIComponent(match.id)+'&refresh=1',{signal:controller.signal,cache:'no-store'});
-    if(active){set(value);update.current?.(value);if(value.venue)venue.current?.(value.venue)}
+    if(active){set(value);if(!value.error)update.current?.(value);if(value.venue)venue.current?.(value.venue)}
    }catch{if(active)set(previous=>({...previous,error:true}))}
    finally{running=false;if(active)sb(false)}
   };

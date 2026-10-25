@@ -1,0 +1,4 @@
+Restauración verificada: todos los archivos originales conservados, incluido Expo Updates. Solo cambia el código Android a 15 y la firma se renueva con el mismo certificado.
+package: name='com.villalbilla.cf' versionCode='15' versionName='0.1.9' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+Bytes: 54137997
+SHA-256: 1f10c882499ec509cfb5e3a88ef4dde745198e9af1f234f2e23c7588d58dbf6f

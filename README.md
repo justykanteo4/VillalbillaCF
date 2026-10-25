@@ -1,6 +1,6 @@
 APK Android 0.1.9 (código de versión 12) con el resumen compacto de Noticias: jornada arriba y temporada debajo, goles a favor/en contra y tarjetas de todos los equipos.
 
-Descarga VillalbillaCF-0.1.9.apk desde Assets en tu móvil y ábrelo para instalarlo encima de la versión anterior. No desinstales la app para conservar sus datos.
+Descarga [VillalbillaCF-0.1.9.apk](https://github.com/justykanteo4/VillalbillaCF/raw/refs/heads/codex/apk-0.1.9/VillalbillaCF-0.1.9.apk) en tu móvil y ábrelo para instalarlo encima de la versión anterior. No desinstales la app para conservar sus datos.
 
 Compilación local completada, firma verificada y coincidente con el APK 0.1.8 anterior. Paquete com.villalbilla.cf, arquitecturas arm64-v8a y armeabi-v7a. Incluye los módulos nativos actuales de Expo Crypto y Expo Notifications. Pendiente de prueba en dispositivo físico.
 

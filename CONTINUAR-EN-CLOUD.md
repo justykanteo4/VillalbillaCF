@@ -46,6 +46,16 @@ Usar Node 24 para node:sqlite de los tests, pnpm y pnpm install --frozen-lockfil
 - Exportación web correcta y vista comprobada con Chromium/Playwright en móvil de 390 px y escritorio, sin errores JavaScript ni desbordamiento horizontal.
 - Publicado y comprobado el nuevo bundle en producción. Versión vigente: bed0da21-35f2-441e-bff8-5f0db92e0543. Sin cambios de datos, recursos, notificaciones o facturación.
 
+## APK Android 0.1.9 — 25 de octubre de 2026
+- El usuario confirmó que usa el APK y que no recibía el cambio. La publicación de Cloudflare actualiza la web, no el código incluido en un APK instalado. La copia anterior de compilación tampoco contenía los nuevos módulos nativos expo-crypto y expo-notifications.
+- Se incrementó app.json a versión 0.1.9, código Android 12, y se compiló localmente sin EAS Build ni servicios de pago. Se conserva el paquete com.villalbilla.cf y la firma del APK 0.1.8; permite instalar encima sin desinstalar.
+- Compilación en /workspace/apk-build reutilizando SDK /workspace/android-sdk, Java 17 en /workspace/java17/jdk-17.0.16+8 y caché /workspace/gradle-home. Scripts y logs en /workspace/VillalbillaCF/work. La copia Android generada y la clave de firma NO se incluyen en Git.
+- Se copió la configuración pública .env.local a la copia de compilación. Se ejecutó Expo prebuild para Android. Por el enlace simbólico de node_modules se añadió una configuración Metro únicamente en /workspace/apk-build/metro.config.js, con watchFolders hacia /workspace/VillalbillaCF y nodeModulesPaths hacia su node_modules. No añadir esta ruta absoluta a la configuración de producción del repositorio.
+- Gradle assembleRelease completado para arm64-v8a y armeabi-v7a. APK de 54.024.834 bytes. Se verificaron firma idéntica al anterior, paquete, versión, resumen nuevo en el bundle y presencia de Expo Crypto/Notifications en los DEX. No se ha probado en un dispositivo físico.
+- SHA-256: 90e264bbcf38e953c0a95db4a5c876ceca0fefebab7e80451719c16d0d7684ba.
+- Se entrega el APK como adjunto de una release en borrador del repositorio privado (apk-0.1.9); el directorio de salida local habitual de este entorno no se podía crear porque /codex está en un sistema de archivos de solo lectura. El borrador evita publicar un anuncio de release y mantiene el acceso privado.
+- La instalación es manual. No se ha publicado EAS Update, configurado una nueva canalización OTA ni activado planes de pago, recursos nuevos de Cloudflare o envíos de notificaciones. No afirmar que futuros cambios web se recibirán automáticamente en el APK.
+
 ## Próximos pasos
 1. Comprobar inicio de sesión de administrador en navegador y, con consentimiento, suscripción de un dispositivo voluntario. No enviar notificaciones reales sin autorización específica.
 2. Verificar recepción Web Push/Expo en dispositivo real cuando se autorice un envío. La exportación web no demuestra recepción en dispositivos físicos.

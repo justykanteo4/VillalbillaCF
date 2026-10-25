@@ -40,6 +40,12 @@ Usar Node 24 para node:sqlite de los tests, pnpm y pnpm install --frozen-lockfil
 - Comprobación real en producción: /api/club-stats?team=680163&offset=0 devuelve seis actas disponibles, incluida 5587337 con una amarilla y una roja del club, contrastada con el acta RFFM. Rutas web y notificaciones anteriores siguen respondiendo como antes (200 públicas, 401 envío/procesamiento sin sesión).
 - No se enviaron avisos ni se modificaron las bases, secretos o facturación. Las cuotas gratuitas de los proveedores siguen aplicándose.
 
+## Resumen compacto — 25 de octubre de 2026
+- A petición del usuario, jornada y temporada se muestran como dos franjas compactas: cuatro métricas en una fila, cifras y textos más pequeños, menos márgenes y encabezado con fecha en la misma línea.
+- Los detalles del recuento se conservan en «Cómo se calcula», desplegable. Se mantienen los avisos de datos parciales.
+- Exportación web correcta y vista comprobada con Chromium/Playwright en móvil de 390 px y escritorio, sin errores JavaScript ni desbordamiento horizontal.
+- Publicado y comprobado el nuevo bundle en producción. Versión vigente: bed0da21-35f2-441e-bff8-5f0db92e0543. Sin cambios de datos, recursos, notificaciones o facturación.
+
 ## Próximos pasos
 1. Comprobar inicio de sesión de administrador en navegador y, con consentimiento, suscripción de un dispositivo voluntario. No enviar notificaciones reales sin autorización específica.
 2. Verificar recepción Web Push/Expo en dispositivo real cuando se autorice un envío. La exportación web no demuestra recepción en dispositivos físicos.

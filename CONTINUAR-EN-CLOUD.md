@@ -66,6 +66,16 @@ Usar Node 24 para node:sqlite de los tests, pnpm y pnpm install --frozen-lockfil
 - Pendientes las autorizaciones solicitadas: Firebase requiere código temporal; Expo requiere el número mostrado en su página de comprobación. No se han recibido aún. No se ha publicado EAS Update, ni cambiado planes, facturación o recursos de Cloudflare, ni enviado notificaciones.
 - El procedimiento y límites están en ACTUALIZACIONES-ANDROID.md. La web desplegada y el APK 0.1.9 privado anterior permanecen como estaban.
 
+## Restauración del APK 0.1.8 solicitada por el usuario
+- El usuario ha elegido volver a la 0.1.8 y conservar su configuración original de actualizaciones. La configuración nueva de OTA y la reparación de Firebase/Google quedan pausadas; no continuar con autorizaciones ni publicar 0.1.10 sin nueva indicación.
+- Se confirmó en el APK original: Expo Updates habilitado, comprobación ALWAYS al abrir, URL https://u.expo.dev/8aa9b217-1386-4b74-9a15-9e93d127030b y runtime 0.1.8. No se ha comprobado recepción real de una actualización ni se han modificado las cabeceras/canales del original.
+- Para instalar sobre las versiones más recientes sin desinstalar, se creó una copia de la 0.1.8 modificando únicamente android:versionCode de 11 a 14 en el manifiesto binario. No se recompiló ni sustituyó el JavaScript, recursos, configuración Expo o bibliotecas. Se alineó el ZIP y se firmó con la misma clave; certificado comprobado idéntico al original.
+- Se verificó igualdad de TODOS los archivos originales salvo el valor versionCode del manifiesto y las firmas renovadas. Paquete com.villalbilla.cf, versión visible 0.1.8. El archivo original permanece intacto en /workspace/downloads/VillalbillaCF-0.1.8.apk.
+- Descarga privada: https://github.com/justykanteo4/VillalbillaCF/raw/refs/heads/codex/apk-0.1.8-restaurada/VillalbillaCF-0.1.8-restaurada.apk. Rama de distribución independiente codex/apk-0.1.8-restaurada; no mezclar el binario en la rama de código.
+- Archivo de 53.030.307 bytes. SHA-256 b5274acb42d5801b1c7694830193bae8630c8f45f55610f9b71d6836b8a5029a. Pendiente de instalar/probar en el móvil del usuario. Instalar encima, sin desinstalar.
+- Cualquier APK futuro debe usar versionCode mayor que 14. La rama de código mantiene los cambios anteriores por petición de conservarlos; la app instalada restaurada corresponde al binario original 0.1.8, no al código pendiente 0.1.10.
+- No se ha cambiado la web, facturación, bases D1 o secretos ni se han enviado notificaciones. Restaurar 0.1.8 no significa haber corregido su configuración original de Firebase/Google.
+
 ## Próximos pasos
 1. Comprobar inicio de sesión de administrador en navegador y, con consentimiento, suscripción de un dispositivo voluntario. No enviar notificaciones reales sin autorización específica.
 2. Verificar recepción Web Push/Expo en dispositivo real cuando se autorice un envío. La exportación web no demuestra recepción en dispositivos físicos.

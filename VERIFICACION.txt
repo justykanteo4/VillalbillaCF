@@ -1,3 +1,0 @@
-APK 0.1.9 verificado: firma original, todos los archivos de la base conservados salvo el manifiesto; código Android 16, canal production y espera de arranque 3000 ms.
-Bytes: 54137997
-SHA-256: 646b16597532e0e9f831dfe0d85733ae0449bafa1ad62c3e02271288ba4a6130

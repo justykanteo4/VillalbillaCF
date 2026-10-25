@@ -1,5 +1,8 @@
 # Villalbilla C.F. — continuar en Codex Cloud
 
+## Consolidación en el repositorio solicitado
+Todo el código nuevo está subido a justykanteo4/VillalbillaCF, en codex/continuar-cloud-gratis. main permanece en 22df24f892ee3f69b5ee3fceec83c65b371896fb. Se preparó la integración mediante una solicitud de cambios en borrador: la revisión automática bloqueó actualizar main directamente porque el usuario pidió guardar el trabajo en el repositorio, sin autorizar expresamente la modificación de la rama principal. Esperar autorización explícita para integrar el PR. README.md contiene enlaces al código, APK y documentación actual. Se conservan las ramas y binarios anteriores; no se añaden secretos locales ni se realiza otro despliegue por esta consolidación.
+
 ## Estado actual prioritario: 0.1.9 con Internet
 La cuenta Expo justykanteo4 ya está autorizada y se confirmó su plan Free. Se creó production y se publicó Android runtime 0.1.9: update 01a173ba-024c-7ecc-ab08-9522cae2a18d, grupo 4910b73a-7923-4848-a1a8-e729b380f42a. Se verificaron manifiesto, descarga autenticada de assets y hash del bundle; el runtime 0.1.8 no recibe la actualización.
 

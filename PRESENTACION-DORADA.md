@@ -15,3 +15,5 @@ La presentación reutiliza stadium.js con captura de fotogramas y proyección de
 Al cambiar stadium.js se deben regenerar ambos paquetes con npm run build:visuals.
 
 Las tarjetas de presentación se amplían un40% manteniendo el tamaño final al colocarse en el campo. Se retira el contador de jugador (1 de11) tanto del vídeo como del progreso del visor; se conserva únicamente la posición.
+
+Debajo de VILLALBILLA C.F. se muestran el escudo pequeño de la RFFM con transparencia, la bandera de la Comunidad de Madrid y la bandera de España. El recurso original oficial está incluido localmente en assets/rffm-logo.png (https://rffm-cms.s3.eu-west-1.amazonaws.com/small_default_image_0672bf0fff.png); se dibuja únicamente el escudo, sin el texto de la federación. No requiere conexión al reproducir o descargar.

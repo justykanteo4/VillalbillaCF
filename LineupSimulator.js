@@ -107,7 +107,7 @@ export default function LineupSimulator({teamId,players=[],lineups=[],onChange,s
       if(message.type==='ready'){setPresentationReady(true);return}
       if(message.type==='finished'){finishPresentation();return}
       if(message.type==='error')throw Error(message.message||'No se pudo crear el vídeo.');
-      if(message.type==='progress'){if(videoBusy)setVideoProgress('Grabando jugador '+message.current+' de '+message.total);return}
+      if(message.type==='progress'){if(videoBusy)setVideoProgress('Generando vídeo de la presentación…');return}
       if(message.type==='recording'){setVideoBusy(true);setVideoProgress('Grabando presentación…');return}
       if(message.type!=='video')return;
       if(Platform.OS==='web')await saveLineupVideoInBrowser(message,'villalbilla-alineacion');

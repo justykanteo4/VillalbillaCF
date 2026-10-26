@@ -13,3 +13,5 @@ Validación: 108 pruebas de datos/orden/ceros/ausencias y escape del HTML con ap
 La presentación reutiliza stadium.js con captura de fotogramas y proyección de puntos; actualiza el campo al colocar cada jugador y reutiliza esos fondos para mantener la fluidez. Durante el visor se desmonta la pizarra/escena que queda detrás para evitar dos renderizadores activos en el móvil. El emulador Firestore comprobó que dos entrenadores aprobados pueden leer y editar alias, posición de ficha y coordenadas de alineación del mismo espacio de equipo, conservando el rechazo de jugadores, pendientes y equipos ajenos. No se alteraron cuentas o datos reales.
 
 Al cambiar stadium.js se deben regenerar ambos paquetes con npm run build:visuals.
+
+Las tarjetas de presentación se amplían un40% manteniendo el tamaño final al colocarse en el campo. Se retira el contador de jugador (1 de11) tanto del vídeo como del progreso del visor; se conserva únicamente la posición.

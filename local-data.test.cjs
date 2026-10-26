@@ -119,6 +119,8 @@ test('guarda la selección, reintenta cambios sin red y conserva los equipos al 
  online=false;await service.disableNotifications();assert.equal((await service.notificationPreferences()).enabled,false);
  online=true;await service.updateNotificationTargets(['a'],[]);
  assert.equal(sent.at(-1).enabled,false);assert.deepEqual(sent.at(-1).teamIds,['b']);
+ global.__notificationTest.auth.currentUser={emailVerified:false,providerData:[],getIdToken:()=>assert.fail('No debe pedir token ni enviar con cuenta sin verificar')};
+ await assert.rejects(()=>service.sendClubNotification({title:'Fixture',body:'No enviar'}),/Verifica tu cuenta/);
 });
 test('un acta histórica cerrada se consulta desde el dispositivo sin red; actualizar sigue forzando la red',async t=>{
  let calls=0;const path='/api/match?team=a&match=old';const {api}=await client(t,async()=>{calls++;return response({closed:true,goals:[{name:'Nuevo'}]})},[[path,stale({closed:true,goals:[{name:'Guardado'}]})]]);

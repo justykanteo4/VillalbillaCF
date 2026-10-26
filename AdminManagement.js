@@ -1,6 +1,7 @@
+import {matchesPersonQuery,displayPersonName} from './name-search.cjs';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import { addClubAdmin, listClubAdmins } from './firebase';
+import { addClubAdmin, listClubAdmins, listClubAccounts } from './firebase';
 
 const styles = {
   card: { padding: 20, borderRadius: 20, backgroundColor: '#151f2d', borderWidth: 1, borderColor: '#2c3e54', gap: 13 },
@@ -18,6 +19,7 @@ const styles = {
 export default function AdminManagement() {
   const [email, setEmail] = useState('');
   const [admins, setAdmins] = useState([]);
+  const [query,setQuery]=useState(''),[accounts,setAccounts]=useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -25,7 +27,7 @@ export default function AdminManagement() {
   const refresh = useCallback(async () => {
     setBusy(true);
     setError('');
-    try { setAdmins(await listClubAdmins()); }
+    try { const [list,people]=await Promise.all([listClubAdmins(),listClubAccounts()]);setAdmins(list);setAccounts(people); }
     catch (e) { setError(e.message || 'No se pudo cargar la lista de administradores.'); }
     finally { setBusy(false); }
   }, []);
@@ -51,6 +53,8 @@ export default function AdminManagement() {
   return <View style={styles.card}>
     <Text style={styles.title}>Administradores del club</Text>
     <Text style={styles.text}>Añade un correo verificado para darle acceso de administrador a toda la app. Solo los administradores actuales pueden gestionar esta lista.</Text>
+    <TextInput accessibilityLabel="Buscar administrador por nombre" placeholder="Buscar por nombre o correo" placeholderTextColor="#91a5be" style={styles.input} value={query} onChangeText={setQuery}/>
+    {query.trim().length>=2&&accounts.filter(p=>!admins.some(a=>a.email===p.email)&&matchesPersonQuery(p.name+' '+p.email,query)).map(p=><Pressable accessibilityRole="button" key={p.id} onPress={()=>setEmail(p.email)} style={styles.button}><Text style={styles.buttonText}>{displayPersonName(p.name)||p.email} · {p.email}</Text></Pressable>)}
     <TextInput
       accessibilityLabel="Correo del nuevo administrador"
       autoCapitalize="none"
@@ -71,7 +75,7 @@ export default function AdminManagement() {
     {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     {!!notice && <Text style={styles.success}>{notice}</Text>}
     <Text style={styles.title}>Cuentas con acceso</Text>
-    {admins.map(admin => <Text key={admin.email} style={styles.admin}>{admin.email}{admin.primary ? ' · Administrador principal' : ''}</Text>)}
+    {admins.filter(admin=>matchesPersonQuery(admin.name+' '+admin.email,query)).map(admin => <Text key={admin.email} style={styles.admin}>{admin.name?displayPersonName(admin.name)+' · ':''}{admin.email}{admin.primary ? ' · Administrador principal' : ''}</Text>)}
     <Pressable accessibilityRole="button" disabled={busy} onPress={refresh}>
       <Text style={styles.secondary}>{busy ? 'Actualizando…' : 'Actualizar lista'}</Text>
     </Pressable>

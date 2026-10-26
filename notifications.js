@@ -63,6 +63,7 @@ export function watchNotifications(callback,onError){
 }
 async function adminRequest(path,value={}){
  if(!auth?.currentUser)throw Error('Inicia sesión como administrador.');
+ if(!auth.currentUser.emailVerified&&!auth.currentUser.providerData?.some(p=>p.providerId==='google.com'))throw Error('Verifica tu cuenta antes de enviar notificaciones.');
  const token=await auth.currentUser.getIdToken();
  return api(path,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(value)});
 }

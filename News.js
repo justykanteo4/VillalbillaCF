@@ -11,18 +11,18 @@ import ClubNewsSummary from './ClubNewsSummary';
 import CachedImage from './CachedImage';
 import {instagramPostUrl} from './instagram-post.cjs';
 import MatchEvents from './MatchEvents';
-import {nextRoundFixtures} from './result-fixtures.cjs';
+import {fixturesForResults,resultsRound} from './result-fixtures.cjs';
 import TeamSelector from './TeamSelector';
 import {VisitCounter} from './AppVisits';
 
 function UpcomingMatchCard({match}){
   const [expanded,setExpanded]=useState(false);
   useBackAction(()=>{setExpanded(false);return true},20,expanded);
-  return <View style={s.upcomingCard}><Pressable accessibilityRole="button" accessibilityState={{expanded}} accessibilityLabel={'Detalles: '+match.home+' vs '+match.away} onPress={()=>setExpanded(v=>!v)}><Text style={s.team}>{match.home} vs {match.away} {expanded?'−':'+'}</Text></Pressable>{expanded&&<View style={{gap:12}}><Text style={s.kicker}>{match.team.category} · Jornada {match.round}</Text><Text style={s.muted}>{match.date?match.date.split('-').reverse().join('/'):'Fecha por confirmar'} · {match.time||'Hora por confirmar'}</Text><VenueDirections fieldId={match.venueId} venue={match.venue}/><MatchWeather fieldId={match.venueId} date={match.date} time={match.time}/><MatchEvents match={match} onVenue={()=>{}}/></View>}</View>;
+  return <View style={s.upcomingCard}><Pressable accessibilityRole="button" accessibilityState={{expanded}} accessibilityLabel={'Detalles: '+match.home+' vs '+match.away} onPress={()=>setExpanded(v=>!v)}><Text style={s.team}>{match.home} vs {match.away} {expanded?'−':'+'}</Text>{Number.isInteger(match.homeScore)&&Number.isInteger(match.awayScore)&&<Text style={s.score}>{match.homeScore} — {match.awayScore}</Text>}</Pressable>{expanded&&<View style={{gap:12}}><Text style={s.kicker}>{match.team.category} · Jornada {match.round}</Text><Text style={s.muted}>{match.date?match.date.split('-').reverse().join('/'):'Fecha por confirmar'} · {match.time||'Hora por confirmar'}</Text><VenueDirections fieldId={match.venueId} venue={match.venue}/><MatchWeather fieldId={match.venueId} date={match.date} time={match.time}/><MatchEvents match={match} onVenue={()=>{}}/></View>}</View>;
 }
 
 export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[],favoritesOnly=false}){
-  const [news,setNews]=useState(seed),[ig,setIg]=useState({connected:false,posts:[]}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[team,st]=useState('Todos');
+  const [news,setNews]=useState(seed),[ig,setIg]=useState({connected:false,posts:[]}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[team,st]=useState('Todos'),[roundSelection,setRoundSelection]=useState('auto');
   const alive=useRef(true),newsUpdated=useRef(false),inFlight=useRef(false);
   async function refresh(force=false){
     if(inFlight.current)return;
@@ -50,7 +50,8 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
   const activeTeam=team==='Todos'?'Todos':availableTeams.some(item=>item.id===team)?team:'Todos',selected=availableTeams.filter(item=>activeTeam==='Todos'||item.id===activeTeam);
   const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
 
-  const results=(<><Pressable accessibilityRole="button" disabled={busy} onPress={()=>refresh(true)} style={s.chip}><Text style={s.white}>{busy?'Actualizando…':'Actualizar resultados'}</Text></Pressable><TeamSelector value={activeTeam} onChange={st} options={[{id:'Todos',category:'Todos',name:'Equipos del club'},...availableTeams]}/>{!!error&&<Text style={s.warning}>{error}</Text>}{selected.flatMap(item=>nextRoundFixtures(item,today).map(match=><UpcomingMatchCard key={item.id+':'+match.id} match={{...match,team:item}}/>))}{!selected.some(item=>nextRoundFixtures(item,today).length)&&<Text style={s.muted}>No hay próximos partidos publicados.</Text>}</>);
+  const rounds=[...new Set(selected.flatMap(t=>(t.fixtures||[]).map(m=>m.round)).filter(Number.isInteger))].sort((a,b)=>a-b),activeRound=roundSelection==='auto'?resultsRound(selected[0]||{},today):Number(roundSelection),roundIndex=rounds.indexOf(activeRound);
+  const results=(<><Pressable accessibilityRole="button" disabled={busy} onPress={()=>refresh(true)} style={s.chip}><Text style={s.white}>{busy?'Actualizando…':'Actualizar resultados'}</Text></Pressable><TeamSelector value={activeTeam} onChange={id=>{st(id);setRoundSelection('auto')}} options={[{id:'Todos',category:'Todos',name:'Equipos del club'},...availableTeams]}/><View style={s.row}><Pressable accessibilityRole="button" accessibilityLabel="Jornada anterior" disabled={roundIndex<=0} onPress={()=>setRoundSelection(String(rounds[roundIndex-1]))} style={s.chip}><Text style={s.white}>←</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Jornada siguiente" disabled={roundIndex<0||roundIndex>=rounds.length-1} onPress={()=>setRoundSelection(String(rounds[roundIndex+1]))} style={s.chip}><Text style={s.white}>→</Text></Pressable></View><TeamSelector label="Jornada" value={roundSelection} onChange={setRoundSelection} options={[{id:'auto',category:'Jornada actual',name:'Por equipo'},...rounds.map(round=>({id:String(round),category:'Jornada '+round,name:'Ver partidos'}))]}/><Text style={s.muted}>Los resultados del fin de semana se mantienen hasta el lunes. Desde el martes aparece la siguiente jornada.</Text>{!!error&&<Text style={s.warning}>{error}</Text>}{selected.flatMap(item=>fixturesForResults(item,today,roundSelection).map(match=><UpcomingMatchCard key={item.id+':'+match.id} match={{...match,team:item}}/>))}{!selected.some(item=>fixturesForResults(item,today,roundSelection).length)&&<Text style={s.muted}>No hay partidos publicados para esta jornada.</Text>}</>);
 
   const instagram=(<>
     {!ig.posts.length&&<Text style={s.muted}>{ig.error?'No se pudieron actualizar las fotos.':'Todavía no hay fotos disponibles.'}</Text>}

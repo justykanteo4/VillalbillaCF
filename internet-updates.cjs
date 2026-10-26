@@ -10,3 +10,5 @@ function createForegroundUpdater(updates,{now=Date.now,isActive=()=>true}={}){
  };
 }
 module.exports={createForegroundUpdater,CHECK_INTERVAL};
+async function manualUpdate(updates,{pending=false,onStatus=()=>{}}={}){if(!updates.isEnabled)return 'unsupported';onStatus('checking');if(pending){onStatus('installing');await updates.reloadAsync();return 'installed'}const result=await updates.checkForUpdateAsync();if(!result.isAvailable)return 'current';onStatus('downloading');await updates.fetchUpdateAsync();onStatus('installing');await updates.reloadAsync();return 'installed'}
+module.exports.manualUpdate=manualUpdate;

@@ -95,7 +95,7 @@ export function watchProfiles(callback, onError) {
   if (!db) return () => {};
   return onSnapshot(collection(db, 'trainerProfiles'), async snapshot => {
     let currentAdmins = ADMIN_EMAILS;
-    try { currentAdmins = [...new Set([...ADMIN_EMAILS, ...(await listClubAdmins()).map(admin => admin.email)])]; } catch {}
+    try { currentAdmins = [...new Set([...ADMIN_EMAILS, ...(await listClubAdmins(false)).map(admin => admin.email)])]; } catch {}
     const profiles = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
       .filter(profile => !currentAdmins.includes((profile.email || '').trim().toLowerCase()));
     profiles.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
@@ -107,7 +107,7 @@ export async function getProfiles() {
   if (!db) throw Error('Firebase todavía no está conectado.');
   const [snapshot, admins] = await Promise.all([
     getDocs(collection(db, 'trainerProfiles')),
-    listClubAdmins(),
+    listClubAdmins(false),
   ]);
   const adminEmailsSet = new Set(admins.map(admin => admin.email));
   return snapshot.docs
@@ -116,15 +116,18 @@ export async function getProfiles() {
     .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
 }
 
-export async function listClubAdmins() {
-  if (!db) throw Error('Firebase todavía no está conectado.');
-  const snapshot = await getDocs(collection(db, 'clubAdmins'));
-  const admins = new Map(ADMIN_EMAILS.map(email => [email, { email, primary: true }]));
-  snapshot.docs.forEach(item => {
-    const email = (item.data().email || item.id).trim().toLowerCase();
-    if (email) admins.set(email, { email, primary: false });
-  });
-  return [...admins.values()].sort((a, b) => a.email.localeCompare(b.email));
+export async function listClubAccounts(){
+ if(!db)throw Error('Firebase todavía no está conectado.');
+ const snapshot=await getDocs(collection(db,'trainerProfiles'));
+ return snapshot.docs.map(row=>({id:row.id,email:(row.data().email||'').trim().toLowerCase(),name:row.data().claim?.name||row.data().name||''})).filter(row=>row.email);
+}
+export async function listClubAdmins(includeNames=true){
+ if(!db)throw Error('Firebase todavía no está conectado.');
+ const [snapshot,profiles]=await Promise.all([getDocs(collection(db,'clubAdmins')),includeNames?listClubAccounts():Promise.resolve([])]);
+ const names=new Map(profiles.map(p=>[p.email,p.name]));
+ const admins=new Map(ADMIN_EMAILS.map(email=>[email,{email,name:names.get(email)||'',primary:true}]));
+ snapshot.docs.forEach(item=>{const email=(item.data().email||item.id).trim().toLowerCase();if(email)admins.set(email,{email,name:names.get(email)||'',primary:false})});
+ return [...admins.values()].sort((a,b)=>(a.name||a.email).localeCompare(b.name||b.email,'es'));
 }
 
 export async function addClubAdmin(value) {

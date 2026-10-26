@@ -72,3 +72,8 @@ test('consultas públicas se recuperan de la copia local ante fallo de red',asyn
   await assert.rejects(api('/api/standings?team=1',{cache:'reload'}),/Sin permiso/);
  }finally{global.fetch=original;delete global.__testOffline}
 });
+test('acumulación: avisa desde cuatro amarillas solo con todas las actas disponibles, sin inventar sanciones',()=>{
+ const fixtures=Array.from({length:4},(_,i)=>({id:String(i),round:i+1,date:'2026-09-01',homeId:'a',awayId:'b',home:'Club',away:'Rival',homeScore:1,awayScore:0}));
+ const reports=new Map(fixtures.map(m=>[m.id,{cardsAvailable:true,cards:[{name:'Jugador',playerId:'p',team:'Club',color:'yellow',type:'Amarilla'}]}]));
+ const complete=currentSuspensions(fixtures,reports,'a');assert.equal(complete.yellowWarnings[0].yellowCards,4);assert.equal(complete.sanctions.length,0);reports.delete('0');assert.equal(currentSuspensions(fixtures,reports,'a').yellowWarnings.length,0);
+});

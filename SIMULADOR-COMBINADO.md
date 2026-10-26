@@ -11,3 +11,9 @@ SimulatorBoard usa iframe en web y el WebView nativo ya incluido en Android/iOS.
 Fuente del motor: simulator/board.js y stadium.js. Ejecutar npm run build:simulator tras cambiarlas y versionar simulator-bundle.cjs, que permite abrir sin red. Three.js 0.160.1, licencia MIT en simulator/THREE-LICENSE.txt. Es JavaScript dentro del WebView existente, no incorpora un módulo nativo nuevo.
 
 Validación: 99 pruebas, validación del puente, fusión de objetos y posiciones entre entrenadores sin alterar el once. Playwright con WebGL y datos simulados comprueba cámara giratoria, vista cercana, once, cuatro herramientas, color, extremos de flecha, ajuste de 0,25%, deshacer/rehacer, cambio 2D/3D y persistencia del plan entre modos. Pendiente probar rendimiento y gestos de dos dedos en teléfonos reales.
+
+## Sistemas y nombres
+
+Sistema permite añadir manualmente distribuciones como 3-5-2 o 4-1-4-1 (F11) y 2-2-2 (F7). Se validan los jugadores de campo y se añade el portero. Las variantes se guardan en customSystems dentro del plan y se ofrecen en las demás alineaciones del mismo equipo. Se conservan los planes existentes con sus identificadores; su selector y botones usan Alineación, sin campo editable de rival/partido.
+
+Alineación también tiene campo completo 2D. Jugadas conserva medio campo. La vista elegida se mantiene al abrir/cerrar pantalla completa durante la sesión. Rótulos: alias manual/de plantilla primero; en su defecto, nombre de pila (respeta los nombres compuestos después de la coma de una ficha oficial), junto con el dorsal. No se muestran los apellidos en los rótulos del simulador.

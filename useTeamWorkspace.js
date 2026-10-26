@@ -3,12 +3,13 @@ import {AppState} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {watchTeamWorkspace,saveTeamWorkspace} from './firebase';
 import {mergeChanges} from './workspace-sync.cjs';
+import {trackLocalSave} from './update-save-guard.cjs';
 import {saveCopy} from './offline';
 
 export default function useTeamWorkspace(teamId,storageKey,initial){
  const [data,setData]=useState(initial),[ready,setReady]=useState(false),[saved,setSaved]=useState(false),[error,setError]=useState('');
  const state=useRef({base:initial,data:initial,dirty:false});
- const persist=()=>AsyncStorage.setItem(storageKey,JSON.stringify({syncVersion:2,...state.current}));
+ const persist=()=>trackLocalSave(storageKey,AsyncStorage.setItem(storageKey,JSON.stringify({syncVersion:2,...state.current})));
  const set=update=>{
   const current=state.current,next=typeof update==='function'?update(current.data):update;
   if(next===current.data)return;

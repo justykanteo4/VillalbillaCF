@@ -3,6 +3,7 @@ import {Image,Modal,Platform,Pressable,ScrollView,Share,StyleSheet,Text,TextInpu
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {WebView} from 'react-native-webview';
 import {makeLineupVideoHtml,recordLineupVideoInBrowser} from './LineupVideo';
+import {makeSystem,shortPlayerName} from './lineup-systems.cjs';
 import SimulatorBoard from './SimulatorBoard';
 import seed from './players-seed.json';
 import teams from './teams.json';
@@ -21,7 +22,7 @@ const colors={panel:'#151f2d',dark:'#0b121d',line:'#e2f0df',text:'#edf3fa',muted
 const defaultFormation=id=>String(teams.find(team=>team.id===id)?.gameType)==='2'?'2-3-1':'4-3-3';
 const formationMap=isSeven=>isSeven?SEVEN:ELEVEN;
 const pointOf=point=>Array.isArray(point)?{x:point[0],y:point[1]}:point;
-const emptyPlan=teamId=>({id:'plan-default',name:'Nuevo partido',formation:defaultFormation(teamId),starters:[],positions:{},playPositions:{}});
+const emptyPlan=teamId=>({id:'plan-default',name:'Alineación',formation:defaultFormation(teamId),starters:[],positions:{},playPositions:{}});
 const shirtNumber=p=>{const n=parseInt(p.number,10);return Number.isFinite(n)?n:999};
 const normalized=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const lineupPlayerName=player=>String(player?.alias||'').trim()||String(player?.name||'').trim();
@@ -39,21 +40,24 @@ function PlayerBadge({player,photo,compact=false,alias}){
 }
 
 export default function LineupSimulator({teamId,players=[],lineups=[],onChange,sharedDetails=null}){
-  const isSeven=String(teams.find(team=>team.id===teamId)?.gameType)==='2',formations=formationMap(isSeven),maxPlayers=isSeven?7:11;
+  const isSeven=String(teams.find(team=>team.id===teamId)?.gameType)==='2',maxPlayers=isSeven?7:11;
   const seeded=seed.teams.find(team=>team.id===teamId)?.players||[];
   const roster=useMemo(()=>{
     const merged=seeded.map(p=>{const live=players.find(row=>String(row.federationId||row.id)===String(p.id)||normalized(row.name)===normalized(p.name));return {...p,...(live||{}),id:String(p.id),name:live?.name||p.name,number:p.number??live?.number??null}});
     for(const p of players){const key=String(p.federationId||p.id);if(!merged.some(item=>item.id===key||normalized(item.name)===normalized(p.name)))merged.push({...p,id:key,number:p.number??null})}
     return merged;
   },[teamId,players]);
+  const [newSystem,setNewSystem]=useState(''),[lineupView,setLineupView]=useState('3d'),[playView,setPlayView]=useState('2d');
   const [photos,setPhotos]=useState({}),[localPositions,setManualPositions]=useState({}),[localAliases,setAliases]=useState({}),[activeId,setActiveId]=useState(lineups[0]?.id||'plan-default'),[error,setError]=useState(''),[planPicker,setPlanPicker]=useState(false),[fullScreen,setFullScreen]=useState(false),[videoHtml,setVideoHtml]=useState(''),[videoBusy,setVideoBusy]=useState(false);
   const manualPositions=sharedDetails===null?localPositions:Object.fromEntries(Object.entries(sharedDetails).map(([id,p])=>[id,p.position||'']));
   const aliases=sharedDetails===null?localAliases:Object.fromEntries(Object.entries(sharedDetails).map(([id,p])=>[id,p.alias||'']));
   const [tacticalMode,setTacticalMode]=useState(false);
-  const plans=lineups.length?lineups:[emptyPlan(teamId)],activePlan=plans.find(item=>item.id===activeId)||plans[0],slots=formations[activePlan.formation]||Object.values(formations)[0],starters=activePlan.starters||[],placed=new Set(starters);
+  const plans=lineups.length?lineups:[emptyPlan(teamId)],activePlan=plans.find(item=>item.id===activeId)||plans[0];
+  const formations={...formationMap(isSeven)};for(const plan of plans)for(const name of Object.keys(plan.customSystems||{})){try{formations[name]=makeSystem(name,maxPlayers).slots}catch{}}
+  const slots=formations[activePlan.formation]||Object.values(formations)[0],starters=activePlan.starters||[],placed=new Set(starters);
   const orderedRoster=useMemo(()=>roster.slice().sort((a,b)=>positionRank(playerPosition(a,manualPositions))-positionRank(playerPosition(b,manualPositions))||shirtNumber(a)-shirtNumber(b)||a.name.localeCompare(b.name,'es')),[roster,manualPositions]);
   const available=orderedRoster.filter(player=>!placed.has(player.id));
-  const photoFor=playerId=>photos[playerId]||getPlayerPhoto(playerId);const displayName=player=>String(aliases[player.id]||'').trim()||player.name;
+  const photoFor=playerId=>photos[playerId]||getPlayerPhoto(playerId);const displayName=player=>shortPlayerName(player,aliases[player.id]);
 
   useEffect(()=>{let active=true;setPhotos({});setManualPositions({});setAliases({});Promise.all([AsyncStorage.getItem('villalbilla.player-photos.'+teamId),AsyncStorage.getItem('villalbilla.manual-positions.'+teamId),AsyncStorage.getItem('villalbilla.player-aliases')]).then(([rawPhotos,rawPositions,rawAliases])=>{if(!active)return;if(rawPhotos)setPhotos(JSON.parse(rawPhotos));if(rawPositions)setManualPositions(JSON.parse(rawPositions));if(rawAliases)setAliases(JSON.parse(rawAliases))}).catch(()=>{if(active)setError('No se pudieron cargar las fotos, posiciones o alias guardados.')});return()=>{active=false}},[teamId]);
 
@@ -63,7 +67,8 @@ export default function LineupSimulator({teamId,players=[],lineups=[],onChange,s
   function autoFill(){const candidates=orderedRoster.slice().sort((a,b)=>positionRank(playerPosition(a,manualPositions))-positionRank(playerPosition(b,manualPositions))||shirtNumber(a)-shirtNumber(b));const selected=candidates.slice(0,maxPlayers),positions=Object.fromEntries(selected.map((p,index)=>[p.id,pointOf(slots[index])]));updatePlan({starters:selected.map(p=>p.id),positions,playPositions:{}})}
   function clearField(){updatePlan({starters:[],positions:{},playPositions:{}})}
   function changeFormation(value){const nextSlots=formations[value],positions=Object.fromEntries(starters.map((id,index)=>[id,pointOf(nextSlots[index]||slots[index]||[50,50])]));updatePlan({formation:value,positions,playPositions:{}})}
-  function addPlan(){const id='plan-'+Date.now().toString(36),next=[...plans,{id,name:'Partido '+(plans.length+1),formation:defaultFormation(teamId),starters:[],positions:{},playPositions:{}}];setActiveId(id);setPlanPicker(false);setError('');onChange?.(next)}
+  function addSystem(){try{const system=makeSystem(newSystem,maxPlayers);const positions=Object.fromEntries(starters.map((id,index)=>[id,pointOf(system.slots[index]||[50,50])]));updatePlan({customSystems:{...(activePlan.customSystems||{}),[system.name]:true},formation:system.name,positions,playPositions:{}});setNewSystem('')}catch(e){setError(e.message)}}
+  function addPlan(){const id='plan-'+Date.now().toString(36),next=[...plans,{id,name:'Alineación '+(plans.length+1),formation:defaultFormation(teamId),starters:[],positions:{},playPositions:{}}];setActiveId(id);setPlanPicker(false);setError('');onChange?.(next)}
   function removePlan(){if(plans.length<=1)return;const next=plans.filter(item=>item.id!==activePlan.id);setActiveId(next[0].id);onChange?.(next);setError('')}
   function exportLineup(){
     const placedPlayers=starters.map(id=>roster.find(player=>player.id===id)).filter(Boolean),filename=(activePlan.name||'alineacion').trim().replace(/[^a-z0-9]+/gi,'-').toLowerCase();
@@ -99,7 +104,7 @@ export default function LineupSimulator({teamId,players=[],lineups=[],onChange,s
 
   function pitch(full=false,tactics=false){
     const boardPlayers=starters.map((id,index)=>{const player=roster.find(p=>p.id===id);if(!player)return null;const pt=pointOf((tactics?activePlan.playPositions?.[id]:null)||activePlan.positions?.[id]||slots[index]||[50,50]);return {id,name:displayName(player),number:player.number,x:pt.x,y:pt.y}}).filter(Boolean);
-    return <SimulatorBoard key={activePlan.id+'-'+tactics+'-'+full} full={full} tactical={tactics} players={boardPlayers} items={tactics?activePlan.playItems||[]:[]} onChange={({positions,items})=>updatePlan(tactics?{playPositions:positions,playItems:items}:{positions})}/>;
+    return <SimulatorBoard key={activePlan.id+'-'+tactics+'-'+full} full={full} tactical={tactics} initialView={tactics?playView:lineupView} onViewChange={tactics?setPlayView:setLineupView} players={boardPlayers} items={tactics?activePlan.playItems||[]:[]} onChange={({positions,items})=>updatePlan(tactics?{playPositions:positions,playItems:items}:{positions})}/>;
   }
 
 
@@ -107,14 +112,14 @@ export default function LineupSimulator({teamId,players=[],lineups=[],onChange,s
     <Text style={styles.title}>Simulador de alineación</Text>
     <View style={styles.modeRow}>{[['lineup','Alineación'],['plays','Jugadas']].map(([mode,label])=><Pressable key={mode} accessibilityRole="button" accessibilityState={{selected:tacticalMode===(mode==='plays')}} onPress={()=>{setTacticalMode(mode==='plays');setError('')}} style={[styles.modeButton,tacticalMode===(mode==='plays')&&styles.modeButtonActive]}><Text style={[styles.modeText,tacticalMode===(mode==='plays')&&styles.modeTextActive]}>{label}</Text></Pressable>)}</View>
     <Text style={styles.muted}>{tacticalMode?'Medio campo · Coloca jugadores y objetos con precisión, edita flechas y comprueba la jugada en 3D.':'Estadio 3D · Gira el campo y acerca la cámara. Activa «Mover jugadores» para colocar el once. Añade titulares desde la lista o completa la alineación.'}</Text>
-    <View style={styles.planBar}><Pressable accessibilityRole="button" accessibilityLabel="Elegir alineación" onPress={()=>setPlanPicker(!planPicker)} style={styles.planSelect}><Text numberOfLines={1} style={styles.planSelectText}>⚽ {activePlan.name||'Partido'}　⌄</Text></Pressable><Pressable accessibilityRole="button" onPress={addPlan} style={styles.action}><Text style={styles.actionText}>＋ Partido</Text></Pressable></View>
-    {planPicker&&<View style={styles.planList}>{plans.map(plan=><Pressable key={plan.id} accessibilityRole="button" onPress={()=>{setActiveId(plan.id);setPlanPicker(false);setError('')}} style={[styles.planOption,plan.id===activePlan.id&&styles.planOptionActive]}><Text style={styles.planOptionText}>{plan.name||'Partido'}</Text></Pressable>)}</View>}
-    {!tacticalMode&&<TextInput accessibilityLabel="Nombre del partido" value={activePlan.name||''} onChangeText={name=>updatePlan({name})} placeholder="Rival o nombre del partido" placeholderTextColor="#91a5be" style={styles.input}/>}
+    <View style={styles.planBar}><Pressable accessibilityRole="button" accessibilityLabel="Elegir alineación" onPress={()=>setPlanPicker(!planPicker)} style={styles.planSelect}><Text numberOfLines={1} style={styles.planSelectText}>⚽ Alineación {plans.indexOf(activePlan)+1}　⌄</Text></Pressable><Pressable accessibilityRole="button" onPress={addPlan} style={styles.action}><Text style={styles.actionText}>＋ Alineación</Text></Pressable></View>
+    {planPicker&&<View style={styles.planList}>{plans.map((plan,index)=><Pressable key={plan.id} accessibilityRole="button" onPress={()=>{setActiveId(plan.id);setPlanPicker(false);setError('')}} style={[styles.planOption,plan.id===activePlan.id&&styles.planOptionActive]}><Text style={styles.planOptionText}>Alineación {index+1}</Text></Pressable>)}</View>}
     {!tacticalMode&&<View style={styles.formationRow}><Text style={styles.sectionTitle}>Sistema</Text>{Object.keys(formations).map(formation=><Pressable key={formation} accessibilityRole="button" accessibilityState={{selected:activePlan.formation===formation}} onPress={()=>changeFormation(formation)} style={[styles.formation,activePlan.formation===formation&&styles.formationActive]}><Text style={styles.formationText}>{formation}</Text></Pressable>)}</View>}
+    {!tacticalMode&&<View style={{gap:8}}><TextInput accessibilityLabel="Nuevo sistema" value={newSystem} onChangeText={setNewSystem} placeholder={isSeven?'Nuevo sistema, p. ej. 2-2-2':'Nuevo sistema, p. ej. 3-5-2'} placeholderTextColor="#91a5be" style={styles.input}/><Pressable accessibilityRole="button" onPress={addSystem} style={styles.secondary}><Text style={styles.secondaryText}>Añadir sistema</Text></Pressable></View>}
     <View style={styles.counterRow}><Text style={styles.sectionTitle}>{tacticalMode?'Jugadores en la jugada':isSeven?'Siete inicial':'Once inicial'}</Text><Text style={styles.counter}>{starters.length} / {maxPlayers}</Text></View>
     <View style={{width:'100%'}}>{!fullScreen&&pitch(false,tacticalMode)}</View>
     {!!error&&<Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-    <View style={styles.toolbar}>{tacticalMode?<Pressable accessibilityRole="button" onPress={resetPlay} style={styles.action}><Text style={styles.actionText}>Restablecer posiciones</Text></Pressable>:<><Pressable accessibilityRole="button" onPress={autoFill} style={styles.action}><Text style={styles.actionText}>Completar alineación</Text></Pressable><Pressable accessibilityRole="button" onPress={exportLineup} style={styles.secondary}><Text style={styles.secondaryText}>⇧ Exportar</Text></Pressable><Pressable accessibilityRole="button" onPress={clearField} style={styles.secondary}><Text style={styles.secondaryText}>Vaciar campo</Text></Pressable>{plans.length>1&&<Pressable accessibilityRole="button" onPress={removePlan} style={styles.secondary}><Text style={styles.secondaryText}>Eliminar partido</Text></Pressable>}</>}<Pressable accessibilityRole="button" onPress={()=>{setFullScreen(true)}} style={styles.secondary}><Text style={styles.secondaryText}>⛶ Pantalla completa 3D</Text></Pressable></View>
+    <View style={styles.toolbar}>{tacticalMode?<Pressable accessibilityRole="button" onPress={resetPlay} style={styles.action}><Text style={styles.actionText}>Restablecer posiciones</Text></Pressable>:<><Pressable accessibilityRole="button" onPress={autoFill} style={styles.action}><Text style={styles.actionText}>Completar alineación</Text></Pressable><Pressable accessibilityRole="button" onPress={exportLineup} style={styles.secondary}><Text style={styles.secondaryText}>⇧ Exportar</Text></Pressable><Pressable accessibilityRole="button" onPress={clearField} style={styles.secondary}><Text style={styles.secondaryText}>Vaciar campo</Text></Pressable>{plans.length>1&&<Pressable accessibilityRole="button" onPress={removePlan} style={styles.secondary}><Text style={styles.secondaryText}>Eliminar alineación</Text></Pressable>}</>}<Pressable accessibilityRole="button" onPress={()=>{setFullScreen(true)}} style={styles.secondary}><Text style={styles.secondaryText}>⛶ Pantalla completa · 2D / 3D</Text></Pressable></View>
     {!tacticalMode&&<><Text style={styles.sectionTitle}>Jugadores · por posición y dorsal</Text>
     {!available.length&&<Text style={styles.muted}>Todos los jugadores de la plantilla están en el campo.</Text>}
     <ScrollView style={styles.rosterList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
@@ -124,7 +129,7 @@ export default function LineupSimulator({teamId,players=[],lineups=[],onChange,s
     <Text style={styles.footnote}>Las alineaciones se guardan para los entrenadores aprobados de este equipo.</Text></>}
 
     <Modal visible={fullScreen} animationType="slide" supportedOrientations={['portrait','landscape']} onRequestClose={()=>setFullScreen(false)}><View style={styles.fullScreen}>
-      <View style={styles.fullHeader}><View style={{flex:1}}><Text style={styles.title}>{tacticalMode?'Jugada 3D':'Vista 3D'} · {activePlan.name||'Partido'}</Text><Text style={styles.muted}>{tacticalMode?'Pizarra precisa y previsualización 3D':activePlan.formation+' · cámara libre y jugadores con volumen'}</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Cerrar pantalla completa" onPress={()=>setFullScreen(false)} style={styles.closeButton}><Text style={styles.closeText}>✕</Text></Pressable></View>
+      <View style={styles.fullHeader}><View style={{flex:1}}><Text style={styles.title}>{tacticalMode?'Jugada':'Alineación'} · {activePlan.formation}</Text><Text style={styles.muted}>{tacticalMode?'Pizarra precisa y previsualización 3D':activePlan.formation+' · cámara libre y jugadores con volumen'}</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Cerrar pantalla completa" onPress={()=>setFullScreen(false)} style={styles.closeButton}><Text style={styles.closeText}>✕</Text></Pressable></View>
       <View style={{flex:1,width:'100%'}}>{fullScreen&&pitch(true,tacticalMode)}</View>
       <View style={styles.fullBottom}><Pressable accessibilityRole="button" disabled={videoBusy} onPress={generateVideo} style={[styles.action,videoBusy&&styles.disabledAction]}><Text style={styles.actionText}>{videoBusy?'Preparando vídeo…':'▶ Descargar vídeo · WhatsApp'}</Text></Pressable><Pressable accessibilityRole="button" onPress={exportLineup} style={styles.secondary}><Text style={styles.secondaryText}>⇧ Exportar imagen</Text></Pressable><Pressable accessibilityRole="button" onPress={()=>setFullScreen(false)} style={styles.secondary}><Text style={styles.secondaryText}>Volver</Text></Pressable></View>
     </View></Modal>

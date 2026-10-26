@@ -7,6 +7,9 @@ function Totals({title,subtitle,total,loading}){
  const cardValue=value=>total.teamMatches&&!total.cardMatches?'—':String(value);
  return <View style={s.card}>
   <View style={s.header}><Text style={s.title}>{title}</Text><Text style={s.muted}>{subtitle}</Text></View>
+  <View style={s.balance}>
+   {[['PG',total.won,'Partidos ganados'],['PE',total.drawn,'Partidos empatados'],['PP',total.lost,'Partidos perdidos']].map(([label,value,description])=><Text key={label} accessibilityLabel={description+': '+value} style={s.balanceValue}>{label} <Text style={{color:'#fff'}}>{value}</Text></Text>)}
+  </View>
   <View style={s.metrics}>
    {[
     ['Goles a favor',String(total.goalsFor),'#91adff'],
@@ -53,7 +56,7 @@ export default function ClubNewsSummary({teams}){
   <Totals title="La temporada" subtitle="Acumulado 2026/27" total={buildClubSummary(teams,records)} loading={loading}/>
   {failed&&<Text style={s.warning}>Algunas actas están pendientes de actualizar.</Text>}
   <Pressable accessibilityRole="button" accessibilityState={{expanded:details}} onPress={()=>setDetails(value=>!value)} hitSlop={8}><Text style={s.detailLink}>{details?'Ocultar detalle':'Cómo se calcula'} {details?'−':'+'}</Text></Pressable>
-  {details&&<Text style={s.muted}>Las actas que faltan no se cuentan como cero. Solo se suman goles y tarjetas de los equipos del club. Una segunda amarilla cuenta como amarilla y expulsión. Los partidos aplazados se incluyen en la semana en que se juegan.</Text>}
+  {details&&<Text style={s.muted}>PG: ganados; PE: empatados; PP: perdidos. Se cuenta el resultado de cada equipo del club; en un cruce entre dos equipos del club se cuenta uno para cada equipo. Los partidos pendientes no se cuentan. Las actas que faltan no se cuentan como cero. Solo se suman goles y tarjetas de los equipos del club. Una segunda amarilla cuenta como amarilla y expulsión.</Text>}
  </View>;
 }
 const s=StyleSheet.create({
@@ -64,4 +67,5 @@ const s=StyleSheet.create({
  metrics:{flexDirection:'row',gap:5},metric:{flex:1,minWidth:0,paddingVertical:7,paddingHorizontal:2,borderRadius:8,backgroundColor:'#0b121d',gap:2,alignItems:'center'},
  value:{fontSize:22,lineHeight:26,fontWeight:'900'},label:{fontSize:10,lineHeight:13,color:'#dce6f2',textAlign:'center'},
  detailLink:{fontSize:11,lineHeight:18,color:'#91adff'},
+ balance:{flexDirection:'row',justifyContent:'space-around',gap:10,paddingVertical:6},balanceValue:{fontSize:14,fontWeight:'800',color:'#91adff'},
 });

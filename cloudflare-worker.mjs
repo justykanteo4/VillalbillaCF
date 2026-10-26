@@ -1,3 +1,4 @@
+import {handleVisits} from './visits-service.mjs';
 import {handleFreeNotifications,scheduledNotifications} from './free-notifications.mjs';
 import news from './server/news.cjs';
 import clubStats from './server/club-stats.cjs';
@@ -109,9 +110,11 @@ export default {
     const origin = request.headers.get('Origin') || '*';
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: {
       'Access-Control-Allow-Origin': origin,
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
+    const visitResponse=await handleVisits(request,env);
+    if(visitResponse)return visitResponse;
     const notificationResponse=await handleFreeNotifications(request,env,ctx);
     if(notificationResponse)return notificationResponse;
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);

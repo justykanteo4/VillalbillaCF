@@ -17,10 +17,16 @@ test('no convierte actas no publicadas en cero y distingue un acta sin tarjetas'
  assert.equal(missing.cardMatches,0);assert.equal(missing.cardsComplete,false);assert.equal(missing.stale,true);
  assert.equal(buildClubSummary(teams,[{teamId:'a',id:'1',available:true,yellow:0,red:0}]).cardsComplete,true);
 });
+test('PG, PE y PP respetan local/visitante y no incluyen partidos pendientes o duplicados',()=>{
+ const fixtures=[match('1','2026-10-20','a','r',3,1),match('2','2026-10-21','r','a',0,2),match('3','2026-10-22','a','r',0,0),match('4','2026-10-23','a','r',0,1),match('5','2026-10-24','r','a',2,0),match('6','2026-10-25','a','r',null,null)];
+ const total=buildClubSummary([{id:'a',fixtures:[...fixtures,fixtures[0]]}],[]);
+ assert.deepEqual([total.won,total.drawn,total.lost],[2,1,2]);assert.equal(total.won+total.drawn+total.lost,total.teamMatches);
+});
 test('un partido entre dos equipos del club se cuenta una vez; cada equipo aporta sus propios goles y tarjetas',()=>{
  const fixture=match('derby','2026-10-20','a','b',3,2);
  const result=buildClubSummary([{id:'a',fixtures:[fixture,fixture]},{id:'b',fixtures:[fixture]}],[{teamId:'a',id:'derby',available:true,yellow:1,red:0},{teamId:'b',id:'derby',available:true,yellow:2,red:1}]);
  assert.deepEqual([result.matches,result.goalsFor,result.goalsAgainst,result.yellow,result.red,result.teamMatches],[1,5,5,3,1,2]);
+ assert.deepEqual([result.won,result.drawn,result.lost],[1,0,1]);
 });
 test('el endpoint pagina las actas y suma solo las tarjetas del club, incluida segunda amarilla',async()=>{
  const news=require('./server/news.cjs'),matches=require('./server/match.cjs'),{clubStats}=require('./server/club-stats.cjs');

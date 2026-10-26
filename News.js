@@ -1,14 +1,15 @@
 import React,{useState,useEffect,useRef} from 'react';
-import {View,Text,Pressable,StyleSheet,AppState,ScrollView,Linking} from 'react-native';
+import {View,Text,Pressable,StyleSheet,AppState,Linking} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {api} from './api';
 import seed from './news-seed.json';
-import MatchSummary,{buildSummary} from './MatchSummary';
 import VenueDirections from './VenueDirections';
 import MatchWeather from './MatchWeather';
 import FavoritePlayers from './FavoritePlayers';
 import ClubNewsSummary from './ClubNewsSummary';
 import CachedImage from './CachedImage';
+import {instagramPostUrl} from './instagram-post.cjs';
+import {VisitCounter} from './AppVisits';
 
 const dayKey=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 function week(offset){
@@ -34,18 +35,7 @@ function UpcomingMatchCard({match}){
 
 export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[],favoritesOnly=false}){
   const [news,setNews]=useState(seed),[ig,setIg]=useState({connected:false,posts:[]}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[offset,so]=useState(0),[team,st]=useState('Todos');
-  const alive=useRef(true),newsUpdated=useRef(false),inFlight=useRef(false),summaries=useRef(new Map()),variants=useRef([]);
-  const [summary,setSummary]=useState(null);
-
-  function openSummary(match){
-    const key=match.team.id+':'+match.id+':'+match.homeScore+':'+match.awayScore;
-    if(!summaries.current.has(key)){
-      if(!variants.current.length)variants.current=[0,1,2,3,4,5].sort(()=>Math.random()-.5);
-      summaries.current.set(key,buildSummary(match,variants.current.pop()));
-    }
-    setSummary({match,text:summaries.current.get(key)});
-  }
-
+  const alive=useRef(true),newsUpdated=useRef(false),inFlight=useRef(false);
   async function refresh(){
     if(inFlight.current)return;
     inFlight.current=true;setBusy(true);
@@ -117,42 +107,24 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
   </>);
 
   const instagram=(<>
-    <View style={s.card}>
-      <Text style={s.kicker}>INSTAGRAM · @VILLALBILLACF</Text><Text style={s.heading}>El club en imágenes</Text>
-      {!ig.connected&&<Text style={s.muted}>Estamos preparando las publicaciones del club. Falta autorizar la cuenta de Instagram para mostrar automáticamente sus fotos aquí.</Text>}
-      {ig.error&&<Text style={s.warning}>Instagram no está disponible ahora. {ig.posts.length?'Se mantiene la última consulta.':''}</Text>}
-      {ig.connected&&!ig.posts.length&&<Text style={s.muted}>No hay publicaciones disponibles.</Text>}
-    </View>
-    {ig.posts.slice(0,8).map(post=><View key={post.id} style={s.card}>
-      <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator accessibilityLabel="Fotos de la publicación; desliza para ver más">{post.images.map((url,index)=><CachedImage key={index} uri={url} accessibilityLabel={(post.caption||'Foto de Villalbilla C.F.')+' · '+(index+1)+' de '+post.images.length} style={{width:280,height:280,borderRadius:12,marginRight:8}} resizeMode="contain"/>)}</ScrollView>{post.images.length>1&&<Text style={s.muted}>Desliza para ver las {post.images.length} fotos →</Text>}{(post.permalink?.startsWith('https://www.instagram.com/')||post.permalink?.startsWith('https://instagram.com/'))&&<Pressable accessibilityRole="link" onPress={()=>Linking.openURL(post.permalink).catch(()=>setError('No se pudo abrir Instagram.'))}><Text style={s.link}>Ver publicación en Instagram ↗</Text></Pressable>}
-      <Text style={s.muted}>{new Date(post.date).toLocaleDateString('es-ES')}</Text><Text style={s.team}>{post.caption}</Text>
-    </View>)}
+    {!ig.posts.length&&<Text style={s.muted}>{ig.error?'No se pudieron actualizar las fotos.':'Todavía no hay fotos disponibles.'}</Text>}
+    {ig.posts.slice(0,8).filter(post=>post.images?.length).map(post=><Pressable key={post.id} accessibilityRole="link" accessibilityLabel="Abrir publicación de Instagram y ver más información" onPress={()=>Linking.openURL(instagramPostUrl(post)).catch(()=>setError('No se pudo abrir Instagram.'))} style={s.photo}>
+      <CachedImage uri={post.images[0]} accessibilityLabel={post.caption||'Publicación de Villalbilla C.F.'} style={{width:'100%',aspectRatio:1}} resizeMode="contain"/>
+    </Pressable>)}
   </>);
 
-  const highlights=availableTeams.flatMap(item=>item.fixtures
-    .filter(match=>match.date&&match.date>=range.start&&match.date<=range.end&&match.homeScore!==null&&match.awayScore!==null)
-    .map(match=>({...match,team:item})))
-    .sort((a,b)=>Number(favoriteSet.has(b.team.id))-Number(favoriteSet.has(a.team.id))||b.date.localeCompare(a.date));
-
   return <View style={{gap:18}}>
-    <MatchSummary entry={summary} onClose={()=>setSummary(null)}/>
     {mode==='results'?<><Text style={s.title}>Resultados</Text>{results}<FavoritePlayers favoritePlayerIds={favoritePlayerIds}/></>:<>
       <ClubNewsSummary teams={news.teams}/>
-      {instagram}<Text style={s.heading}>Los partidos de la jornada</Text><Text style={s.muted}>{range.label}</Text>
+      {instagram}
       {!!error&&<Text style={s.warning}>{error}</Text>}
-      {!highlights.length&&<View style={s.card}><Text style={s.muted}>Todavía no hay resultados publicados para esta semana.</Text></View>}
-      {highlights.map(match=><Pressable accessibilityRole="button" accessibilityLabel={'Leer resumen: '+match.home+' contra '+match.away} onPress={()=>openSummary(match)} style={s.card} key={match.team.id+':'+match.id}>
-        <Text style={s.kicker}>{match.team.category}</Text><Text style={s.heading}>{match.home}</Text><Text style={s.score}>{match.homeScore} — {match.awayScore}</Text><Text style={s.heading}>{match.away}</Text>
-        <Text style={s.muted}>Jornada {match.round} · {match.date.split('-').reverse().join('/')}</Text>
-        {match.comment&&<Text style={[s.team,{borderTopWidth:1,borderColor:'#2d3e52',paddingTop:14}]}>{match.comment}</Text>}
-        {match.team.error&&<Text style={s.warning}>Actualización pendiente: mostramos el último resultado disponible.</Text>}
-        <Text style={s.link}>Leer resumen →</Text>
-      </Pressable>)}
       <FavoritePlayers favoritePlayerIds={favoritePlayerIds}/>
+      <VisitCounter/>
     </>}
   </View>;
 }
 
 const s=StyleSheet.create({
+  photo:{borderRadius:16,overflow:'hidden',backgroundColor:'#0b121d'},
   title:{fontSize:32,lineHeight:38,fontWeight:'900',color:'#fff'},kicker:{fontSize:11,letterSpacing:1,color:'#91adff',fontWeight:'800'},muted:{fontSize:13,lineHeight:21,color:'#aab8cb'},row:{flexDirection:'row',alignItems:'center',gap:9,flexWrap:'wrap'},chip:{backgroundColor:'#25364c',borderRadius:10,padding:12},active:{backgroundColor:'#b42122'},white:{color:'#fff',fontWeight:'700'},link:{color:'#91adff',fontWeight:'700',paddingVertical:8},card:{padding:20,borderRadius:20,backgroundColor:'#151f2d',borderWidth:1,borderColor:'#2d3e52',gap:13},heading:{color:'#fff',fontSize:18,fontWeight:'800'},warning:{color:'#ffc1c9',lineHeight:21},filter:{color:'#dce6f2',fontSize:10},team:{color:'#eaf0fa',fontSize:15,lineHeight:23,fontWeight:'600'},score:{color:'#91adff',fontWeight:'900',fontSize:25},match:{borderTopWidth:1,borderColor:'#2d3e52',paddingTop:13,gap:10},upcomingCard:{backgroundColor:'#0b121d',padding:15,borderRadius:15,borderWidth:1,borderColor:'#2d3e52',gap:10},upcomingDate:{color:'#91adff',fontSize:13,fontWeight:'700'},vs:{fontSize:11,color:'#ff9995',fontWeight:'900'},expandIcon:{fontSize:18,color:'#91adff'},venueDetails:{borderTopWidth:1,borderColor:'#2d3e52',paddingTop:13},
 });

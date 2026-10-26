@@ -38,10 +38,11 @@ function currentSuspensions(fixtures,actByMatch,teamId){
   if(item.unit==='matches'?item.remaining<=0:item.until<today)continue;
   sanctions.push({name:state.name,number:state.number,playerId:state.playerId,yellowCards:state.yellowCards,pendingMatches:item.unit==='matches'?item.remaining:null,duration:item.text,reason:item.text+(item.unit==='matches'?' · '+item.remaining+' partido(s) pendiente(s) estimado(s)':' · hasta '+item.until+' (estimado)'),round:item.round,matchId:item.matchId,minute:item.minute,complete});
  }
- return {sanctions,yellowWarnings:[],complete};
+ const yellowWarnings=complete?[...players.values()].filter(p=>p.yellowCards>=4&&!sanctions.some(s=>s.playerId&&s.playerId===p.playerId||normalize(s.name)===normalize(p.name))).map(p=>({name:p.name,number:p.number,playerId:p.playerId,yellowCards:p.yellowCards})):[];
+ return {sanctions,yellowWarnings,complete};
 }
 
-async function sanctions(teamId){const team=teams.find(item=>item.id===String(teamId));if(!team)return null;try{
+async function sanctions(teamId,{scope='all',db=null}={}){const team=teams.find(item=>item.id===String(teamId));if(!team)return null;try{
  const fixtures=await groupFixtures(team.id);if(!fixtures)return null;
  const ordered=fixtures.slice().sort((a,b)=>a.round-b.round||(a.date||'').localeCompare(b.date||''));
  const teamIds=[...new Set(ordered.flatMap(match=>[match.homeId,match.awayId]).filter(Boolean))];
@@ -50,11 +51,12 @@ async function sanctions(teamId){const team=teams.find(item=>item.id===String(te
  const matchesBeforeNext=id=>{const next=nextFor(id);return (byTeam.get(id)||[]).filter(match=>played(match)&&(!next||match.round<next.round)).sort((a,b)=>a.round-b.round||(a.date||'').localeCompare(b.date||''))};
  const next=nextFor(team.id),opponentId=next?(next.homeId===team.id?next.awayId:next.homeId):null;
  const opponentLast=opponentId?matchesBeforeNext(opponentId).slice(-1)[0]||null:null;
- const teamFixtures=new Map(teamIds.map(id=>[id,matchesBeforeNext(id)]));
+ const selectedTeamIds=scope==='team'?teamIds.filter(id=>id===team.id||id===opponentId):teamIds;
+ const teamFixtures=new Map(selectedTeamIds.map(id=>[id,matchesBeforeNext(id)]));
  const required=[...new Map([...teamFixtures.values()].flat().map(match=>[match.id,match])).values()];
- const acts=await mapLimit(required,8,match=>matchFixtureDetails(team.id,match,match.homeId));
+ const acts=await mapLimit(required,8,match=>matchFixtureDetails(team.id,match,match.homeId,{db}));
  const actByMatch=new Map(required.map((match,index)=>[match.id,acts[index]]));
- const perTeam=await Promise.all(teamIds.map(async id=>{const result=currentSuspensions(teamFixtures.get(id)||[],actByMatch,id);return {id,result}}));
+ const perTeam=await Promise.all(selectedTeamIds.map(async id=>{const result=currentSuspensions(teamFixtures.get(id)||[],actByMatch,id);return {id,result}}));
  const teamLabels=new Map();for(const id of teamIds){const fixture=(byTeam.get(id)||[])[0];if(fixture)teamLabels.set(id,teamName(fixture,id))}
  const allSanctions=await Promise.all(perTeam.flatMap(({id,result})=>result.sanctions.map(async row=>({...((await addMissingNumbers([row],id))[0]),teamId:id,teamName:teamLabels.get(id)||team.name}))));
  const pending=allSanctions.filter(row=>row.teamId===team.id),opponentDismissals=opponentId?allSanctions.filter(row=>row.teamId===opponentId):[];

@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {View,Text,TextInput,Pressable,ScrollView} from 'react-native';
 import {api} from './api';
 import AccessMethods from './AccessMethods';
+import TeamSelector from './TeamSelector';
 import teams from './teams.json';
 import {
   adminEmails,auth,claimPlayer,claimTeam,decideRequest,firebaseConfigured,
@@ -43,6 +44,7 @@ function AddPassword({user}){
 }
 
 export default function TrainerAccess({onSuccess,role='trainer',initialTeamId='680163'}){
+  const [assignments,setAssignments]=useState([]);
   const [authUser,su]=useState(auth?.currentUser?.isAnonymous?null:auth?.currentUser||null),[user,sprofile]=useState(null),[team,sc]=useState(initialTeamId),[teamPicker,stp]=useState(false),[name,sn]=useState(''),[roster,sr]=useState([]),[playerRoster,spr]=useState([]),[selectedPlayer,ssp]=useState(null),[requests,sq]=useState([]),[error,se]=useState(''),[notice,snotice]=useState(''),[busy,sbusy]=useState(false);
 
   useEffect(()=>{
@@ -81,7 +83,7 @@ export default function TrainerAccess({onSuccess,role='trainer',initialTeamId='6
 
   async function submitClaim(){
     sbusy(true);se('');snotice('');
-    try{const selected=teams.find(item=>item.id===team);sprofile(await claimTeam(authUser,selected,name));snotice('Solicitud enviada y guardada. El administrador ya puede aceptarla en «Solicitudes».');}
+    try{const first=!name.trim()?assignments[0]:null;const selected=teams.find(item=>item.id===(first?.teamId||team));sprofile(await claimTeam(authUser,selected,first?.name||name,!name.trim()||assignments.some(t=>t.teamId===team)?assignments:[...assignments,{teamId:team,name:name.trim(),category:selected.category,teamName:selected.name}]));snotice('Solicitud enviada y guardada. El administrador ya puede aceptarla en «Solicitudes».');}
     catch(e){se(e.message||'No se pudo enviar la solicitud.');}
     finally{sbusy(false)}
   }
@@ -137,10 +139,10 @@ export default function TrainerAccess({onSuccess,role='trainer',initialTeamId='6
         <Pressable style={button} onPress={()=>onSuccess(user)}><Text style={text}>Entrar a la gestión del equipo</Text></Pressable>
       </>:user.status==='approved'?<><Text style={text}>Acceso aprobado: {user.claim?.category} · {user.claim?.name}</Text><Text style={text}>Abriendo tu equipo…</Text></>:user.status==='pending'?<><Text style={text}>Tu solicitud para {user.claim?.category} está pendiente de aprobación por el administrador. Se actualizará automáticamente.</Text><Pressable style={button} disabled={busy} onPress={refreshMyRequest}><Text style={text}>{busy?'Comprobando…':'Comprobar estado de la solicitud'}</Text></Pressable></>:<>
         <Text style={text}>{user.status==='revoked'?'Tu acceso ha sido retirado. Puedes solicitar una nueva revisión.':user.status==='rejected'?'La solicitud ha sido rechazada. Comprueba tu identidad y equipo antes de volver a solicitarlo.':'Selecciona tu equipo y tu identidad.'}</Text>
-        {teams.map(t=><Pressable key={t.id} style={[button,team===t.id&&{backgroundColor:'#b42122'}]} onPress={()=>sc(t.id)}><Text style={text}>{t.category} {t.name.match(/'([^']+)'/)?.[1]||''}</Text></Pressable>)}
+        <Text style={text}>Si entrenas a varios equipos, añade todos antes de enviar la solicitud. Solo tendrás que hacerlo en tu primer acceso.</Text><TeamSelector value={team} onChange={sc}/>{assignments.map(t=><Pressable key={t.teamId} accessibilityRole="button" onPress={()=>setAssignments(list=>list.filter(a=>a.teamId!==t.teamId))}><Text style={text}>✓ {t.category} · {t.teamName} · {t.name} · Quitar</Text></Pressable>)}
         <Text style={text}>¿Quién eres dentro del cuerpo técnico?</Text>{roster.map((r,i)=><Pressable key={i} style={[button,name===r.name&&{backgroundColor:'#b42122'}]} onPress={()=>sn(r.name)}><Text style={text}>{r.name} · {r.role||'Cuerpo técnico'}</Text></Pressable>)}
         <Text style={text}>Si no apareces todavía, indica tu nombre para que el administrador lo revise.</Text><TextInput placeholder="Tu nombre en el cuerpo técnico" placeholderTextColor="#91a5be" style={{...text,padding:14,backgroundColor:'#0b121d',borderRadius:10}} value={name} onChangeText={sn}/>
-        <Pressable style={[button,{opacity:busy||!name.trim() ? .55 : 1}]} disabled={busy||!name.trim()} onPress={submitClaim}><Text style={text}>{busy?'Enviando solicitud…':'Solicitar acceso a este equipo'}</Text></Pressable>
+        <Pressable style={button} disabled={!name.trim()} onPress={()=>{const t=teams.find(t=>t.id===team);setAssignments(list=>[...list.filter(a=>a.teamId!==team),{teamId:team,name:name.trim(),category:t.category,teamName:t.name}]);sn('')}}><Text style={text}>Añadir este equipo y seleccionar otro</Text></Pressable><Pressable style={[button,{opacity:busy||(!name.trim()&&!assignments.length) ? .55 : 1}]} disabled={busy||(!name.trim()&&!assignments.length)} onPress={submitClaim}><Text style={text}>{busy?'Enviando solicitud…':'Solicitar acceso a mis equipos'}</Text></Pressable>
       </>}
       <Pressable onPress={logout}><Text style={{color:'#ffc1c9'}}>Cerrar sesión</Text></Pressable>
     </>}

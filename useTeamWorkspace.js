@@ -16,9 +16,10 @@ export default function useTeamWorkspace(teamId,storageKey,initial){
   persist().catch(()=>setError('No se pudieron guardar los cambios en este dispositivo.'));
  };
  useEffect(()=>{
-  let alive=true,writing=false,stop=()=>{};
+  let alive=true,writing=false,hydrated=false,stop=()=>{};
+  state.current={base:initial,data:initial,dirty:false};setData(initial);setReady(false);setSaved(false);setError('');
   const flush=async()=>{
-   if(!alive||writing||!state.current.dirty)return;
+   if(!alive||!hydrated||writing||!state.current.dirty)return;
    writing=true;
    const sent=state.current;
    try{
@@ -35,7 +36,7 @@ export default function useTeamWorkspace(teamId,storageKey,initial){
     const raw=await AsyncStorage.getItem(storageKey);
     if(!alive)return;
     if(raw){const old=JSON.parse(raw);state.current=old.syncVersion===2?{base:old.base,data:old.data,dirty:old.dirty}:{base:{},data:old,dirty:true}}
-    setData(state.current.data);setReady(true);
+    hydrated=true;setData(state.current.data);setReady(true);
     stop=watchTeamWorkspace(teamId,remote=>{
      if(!alive||!remote)return;
      const current=state.current,next=current.dirty?mergeChanges(current.base,current.data,remote):remote;

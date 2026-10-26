@@ -140,10 +140,11 @@ export async function addClubAdmin(value) {
   return email;
 }
 
-export async function claimTeam(user, team, name) {
+export async function claimTeam(user, team, name, assignments=[]) {
   if (!db || !user || !team || !name?.trim()) throw Error('Indica tu equipo y tu nombre.');
   const ref = doc(db, 'trainerProfiles', user.uid), current = await getDoc(ref);
-  const claim = { teamId: team.id, name: name.trim(), category: team.category, teamName: team.name };
+  const selected=assignments.length?assignments:[{teamId:team.id,name:name.trim(),category:team.category,teamName:team.name}];
+  const claim = { teamId: team.id, name: name.trim(), category: selected.map(t=>t.category).join(' · '), teamName: team.name, role:'trainer',teamIds:[...new Set(selected.map(t=>String(t.teamId)))],assignments:selected };
   const status = 'pending', updatedAt = Date.now();
   try {
     if (current.exists()) {

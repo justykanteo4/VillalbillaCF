@@ -33,6 +33,7 @@ async function data(request, env) {
     const result=await clubStats.clubStats(p.get('team'),offset);
     return result?[result,200,result.error?0:300]:[{error:'Equipo no encontrado.'},404,0];
   }
+  if (url.pathname === '/api/team-calendar') {const result=await news.teamCalendar(p.get('team'),p.get('current')==='1');return result?[result,200,result.error?0:60]:[{error:'Equipo no encontrado.'},404,0] }
   if (url.pathname === '/api/news') return [await news.refreshNews({ persistComments: false }), 200, 60];
   if (url.pathname === '/api/instagram') return [await news.instagram(env.INSTAGRAM_ACCESS_TOKEN, env.INSTAGRAM_FACEBOOK_ACCESS_TOKEN), 200, 60];
   if (url.pathname === '/api/calendar') {
@@ -45,11 +46,11 @@ async function data(request, env) {
     return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/match') {
-    const result = await matches.matchDetails(p.get('team'), p.get('match'),{refresh:p.get('refresh')==='1'});
+    const result = await matches.matchDetails(p.get('team'), p.get('match'),{refresh:p.get('refresh')==='1',db:env.VISITS_DB});
     return result ? [result, 200, result.error||p.get('refresh')==='1'?0:60] : [{ error: 'Partido no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/sanctions') {
-    const result = await sanctions.sanctions(p.get('team'));
+    const result = await sanctions.sanctions(p.get('team'),{scope:p.get('scope')==='team'?'team':'all',db:env.VISITS_DB});
     return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/scorers') return [await scorers.scorers(), 200, 300];

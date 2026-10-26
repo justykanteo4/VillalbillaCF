@@ -28,14 +28,16 @@ service cloud.firestore {
         && claim.name is string
         && claim.name.size() > 0
         && claim.category is string
-        && claim.teamName is string;
+        && claim.teamName is string
+        && (!('teamIds' in claim) || (claim.teamIds is list && claim.teamIds.size() > 0 && claim.teamIds.size() <= 30 && claim.teamId in claim.teamIds));
     }
 
     function approvedFor(teamId) {
       let path = /databases/$(database)/documents/trainerProfiles/$(request.auth.uid);
       return verifiedAccount() && exists(path)
         && get(path).data.status == 'approved'
-        && get(path).data.claim.teamId == teamId
+        && (get(path).data.claim.teamId == teamId
+          || ('teamIds' in get(path).data.claim && teamId in get(path).data.claim.teamIds))
         && (!('role' in get(path).data.claim) || get(path).data.claim.role == 'trainer');
     }
 

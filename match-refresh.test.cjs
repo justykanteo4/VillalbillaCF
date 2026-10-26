@@ -27,3 +27,8 @@ test('el marcador y el resumen utilizan los resultados nuevos del acta sin conve
  const fresh=matchWithReport(match,{id:'5',homeScore:'2',awayScore:'1'});assert.equal(fresh.homeScore,2);assert.equal(fresh.awayScore,1);assert.equal(fresh.comment,undefined);
  for(const report of [{id:'5',homeScore:'',awayScore:'1'},{id:'6',homeScore:'9',awayScore:'0'},{id:'5',homeScore:null,awayScore:1},{id:'5',homeScore:2,awayScore:1,error:true}])assert.equal(matchWithReport(match,report),match);
 });
+test('las actas cerradas antiguas persisten en D1 y se reutilizan sin volver a la federación',async()=>{
+ const original=global.fetch;let calls=0;const rows=new Map();const db={prepare(sql){let key;return {bind(...values){key=values[0];this.values=values;return this},async first(){return rows.has(key)?{data:rows.get(key)}:null},async run(){rows.set(key,this.values[1]);return {success:true}}}}};
+ global.fetch=async()=>{calls++;return {ok:true,text:async()=>html('999999999993',3)}};
+ try{const fixture={id:'999999999993',date:'2025-10-01',homeId:team.id,awayId:'other'};await matches.matchFixtureDetails(team.id,fixture,team.id,{db});assert.equal(calls,1);assert.equal(rows.size,1);const data=await matches.matchFixtureDetails(team.id,fixture,team.id,{db});assert.equal(data.goals.length,3);assert.equal(calls,1);await matches.matchFixtureDetails(team.id,fixture,team.id,{db,refresh:true});assert.equal(calls,2)}finally{global.fetch=original}
+});

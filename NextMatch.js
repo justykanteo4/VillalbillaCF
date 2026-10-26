@@ -1,6 +1,7 @@
 import React,{useState,useEffect} from 'react';
 import {View,Text,StyleSheet,Pressable} from 'react-native';
 import {api} from './api';
+import {loadTeamCalendar} from './team-calendar';
 import seed from './news-seed.json';
 import standingsSeed from './standings-seed.json';
 import VenueDirections from './VenueDirections';
@@ -14,6 +15,7 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
   const [acta,setActa]=useState(null);
   const [standings,setStandings]=useState(standingsSeed[teamId]||null);
   const [expanded,setExpanded]=useState(false);
+  const [rivalExpanded,setRivalExpanded]=useState(null);
   const [error,setError]=useState(false);
 
   useEffect(()=>{
@@ -21,7 +23,7 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
     setTeam(seed.teams.find(t=>t.id===teamId));
     setExpanded(false);
     async function refresh(){
-      try{const data=await api('/api/news',{onUpdate:value=>{if(active){setTeam(value.teams.find(t=>t.id===teamId));setError(!!value.error)}}});if(active){setTeam(data.teams.find(t=>t.id===teamId));setError(!!data.error)}}
+      try{const data=await loadTeamCalendar(teamId,{onUpdate:value=>{if(active){setTeam(value);setError(!!value.error)}}});if(active){setTeam(data);setError(!!data.error)}}
       catch{if(active)setError(true)}
     }
     refresh();const timer=setInterval(refresh,300000);
@@ -51,7 +53,7 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
     const rivalId=isHome(match,team)?match.awayId:match.homeId;
     const clean=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[’']/g,'').replace(/[^a-z0-9]+/gi,' ').trim().toLowerCase();
     const row=standings?.rows?.find(item=>rivalId&&String(item.id)===String(rivalId))||standings?.rows?.find(item=>clean(item.name)===clean(opponent(match)));
-    return row?.position;
+    return row;
   };
 
   return <View style={{gap:16}}>
@@ -68,7 +70,7 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
           <Text style={s.muted}>Jornada {next.round} · {isHome(next,team)?'En casa':'Fuera'} · Pulsa para ver los detalles</Text>
         </>:<Text style={s.muted}>No hay próximos partidos publicados para este equipo.</Text>}
       </Pressable>
-      {showOpponentSanctions&&next&&<Sanctions key={`rival-sanctions-${teamId}`} teamId={teamId} compact rivalOnly/>}
+      {showOpponentSanctions&&expanded&&next&&<Sanctions key={`rival-sanctions-${teamId}`} teamId={teamId} compact rivalOnly/>}
       {expanded&&next&&<View style={s.details}>
         <Text style={s.kicker}>DETALLES DEL ENCUENTRO</Text>
         <Text style={s.muted}>{isHome(next,team)?'Local':'Visitante'} · {next.date.split('-').reverse().join('/')} · {next.time||'Hora por confirmar'} · Jornada {next.round}</Text>
@@ -83,11 +85,11 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
     </View>
     {showFollowing&&matches.length>1&&<View style={s.card}>
       <Text style={s.heading}>Los tres próximos rivales</Text>
-      {matches.slice(1,4).map((match,index)=><View style={s.rival} key={match.id}>
+      {matches.slice(1,4).map((match,index)=><View key={match.id}><Pressable accessibilityRole="button" accessibilityState={{expanded:rivalExpanded===match.id}} onPress={()=>setRivalExpanded(rivalExpanded===match.id?null:match.id)} style={s.rival}>
         <View style={s.number}><Text style={s.numberText}>{index+1}</Text></View>
         <View style={{flex:1,gap:3}}><Text style={s.rivalName}>{opponent(match)}</Text><Text style={s.muted}>Jornada {match.round} · {match.date.split('-').reverse().join('/')}</Text></View>
-        <View style={s.position}><Text style={s.positionValue}>{positionFor(match)??'—'}</Text><Text style={s.positionLabel}>puesto</Text></View>
-      </View>)}
+        <View style={s.position}><Text style={s.positionValue}>{positionFor(match)?.position??'—'}</Text><Text style={s.positionLabel}>puesto</Text></View>
+      </Pressable>{rivalExpanded===match.id&&<Text style={s.muted}>{[['PG','won'],['PE','drawn'],['PP','lost'],['GF','gf'],['GC','ga']].map(([label,key])=>label+' '+(positionFor(match)?.[key]??'—')).join('   ')}</Text>}</View>)}
     </View>}
   </View>;
 }

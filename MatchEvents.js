@@ -1,8 +1,10 @@
 import React,{useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,StyleSheet,AppState} from 'react-native';
 import {api} from './api';
+import {currentRound} from './team-experience.cjs';
 import PlayerPortrait from './PlayerPortrait';
 export default function MatchEvents({match,onVenue,onUpdate}){
+ const historical=match.round!==currentRound(match.team.fixtures||[match],new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}));
  const [data,set]=useState(null),[busy,sb]=useState(true),[retry,sr]=useState(0);
  const venue=useRef(onVenue),update=useRef(onUpdate);venue.current=onVenue;update.current=onUpdate;
  useEffect(()=>{set(null)},[match.team.id,match.id]);
@@ -12,18 +14,18 @@ export default function MatchEvents({match,onVenue,onUpdate}){
    if(running||['background','inactive'].includes(AppState.currentState))return;
    running=true;sb(true);controller=new AbortController();
    try{
-    const value=await api('/api/match?team='+encodeURIComponent(match.team.id)+'&match='+encodeURIComponent(match.id)+'&refresh=1',{signal:controller.signal,cache:'no-store',onUpdate:value=>{if(active)set(value)}});
+    const value=await api('/api/match?team='+encodeURIComponent(match.team.id)+'&match='+encodeURIComponent(match.id)+(historical&&!retry?'':'&refresh=1'),{signal:controller.signal,cache:historical&&!retry?'archive':'no-store',onUpdate:value=>{if(active)set(value)}});
     if(active){set(value);if(!value.error)update.current?.(value);if(value.venue)venue.current?.(value.venue)}
    }catch{if(active)set(previous=>({...previous,error:true}))}
    finally{running=false;if(active)sb(false)}
   };
-  void refresh();const timer=setInterval(refresh,60000);
-  const listener=AppState.addEventListener('change',state=>{if(state==='active')void refresh()});
+  void refresh();const timer=historical?null:setInterval(refresh,60000);
+  const listener=AppState.addEventListener('change',state=>{if(state==='active'&&!historical)void refresh()});
   return()=>{active=false;clearInterval(timer);listener.remove();controller?.abort()};
- },[match.team.id,match.id,retry]);
+ },[match.team.id,match.id,retry,historical]);
  return <View style={{gap:12}}>
   <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}>
-   <Text style={s.muted}>{data?.updatedAt?'Acta consultada: '+new Date(data.updatedAt).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}):'Actualización automática cada minuto'}</Text>
+   <Text style={s.muted}>{data?.updatedAt?'Acta consultada: '+new Date(data.updatedAt).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}):historical?'Acta guardada en este dispositivo':'Actualización automática cada minuto'}</Text>
    <Pressable accessibilityRole="button" accessibilityLabel="Actualizar acta" disabled={busy} onPress={()=>sr(value=>value+1)}><Text style={s.link}>{busy?'Actualizando…':'Actualizar acta'}</Text></Pressable>
   </View>
   {busy&&!data?<Text style={s.muted}>Consultando goles y tarjetas del acta…</Text>:<>

@@ -45,3 +45,12 @@ async function instagram(accessToken=process.env.INSTAGRAM_ACCESS_TOKEN,facebook
  }catch{return {...(igCache||{connected:false,username:target,posts:[]}),error:true}}
 }
 module.exports={parseTeam,pageData,refreshNews,instagram,groupFixtures};
+
+async function teamCalendar(id,current=false){
+ const team=teams.find(t=>t.id===String(id));if(!team)return null;
+ try{let fixtures=(await groupFixtures(team.id)).filter(m=>m.homeId===team.id||m.awayId===team.id);
+ if(current){const {currentRound}=require('../team-experience.cjs');const round=currentRound(fixtures,new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}));fixtures=fixtures.filter(m=>m.round===round)}
+ return {...team,fixtures,updatedAt:new Date().toISOString(),error:false};
+ }catch{return {...team,fixtures:[],error:true}}
+}
+module.exports.teamCalendar=teamCalendar;

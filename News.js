@@ -9,6 +9,7 @@ import FavoritePlayers from './FavoritePlayers';
 import ClubNewsSummary from './ClubNewsSummary';
 import CachedImage from './CachedImage';
 import {instagramPostUrl} from './instagram-post.cjs';
+import TeamSelector from './TeamSelector';
 import {VisitCounter} from './AppVisits';
 
 const dayKey=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
@@ -36,14 +37,14 @@ function UpcomingMatchCard({match}){
 export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[],favoritesOnly=false}){
   const [news,setNews]=useState(seed),[ig,setIg]=useState({connected:false,posts:[]}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[offset,so]=useState(0),[team,st]=useState('Todos');
   const alive=useRef(true),newsUpdated=useRef(false),inFlight=useRef(false);
-  async function refresh(){
+  async function refresh(force=false){
     if(inFlight.current)return;
     inFlight.current=true;setBusy(true);
     const applyNews=value=>{if(alive.current){newsUpdated.current=true;setNews(value);setError(value.offline?'No se pudo actualizar. Mostramos la información guardada.':'');AsyncStorage.setItem('villalbilla.public.news',JSON.stringify(value)).catch(()=>{})}};
     const applyInstagram=value=>{if(alive.current)setIg({...value,posts:(value.posts||[]).slice(0,8)})};
     const failNews=()=>{if(alive.current)setError('No se pudo actualizar. Mostramos la última información disponible.')};
     await Promise.allSettled([
-      api('/api/news',{onUpdate:applyNews,onRefreshError:failNews}).then(applyNews).catch(failNews),
+      api('/api/news',{cache:force?'reload':undefined,onUpdate:applyNews,onRefreshError:failNews}).then(applyNews).catch(failNews),
       api('/api/instagram',{onUpdate:applyInstagram}).then(applyInstagram).catch(()=>{if(alive.current)setIg(value=>({...value,error:true}))}),
     ]);
     if(alive.current)setBusy(false);
@@ -59,7 +60,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
 
   const favoriteSet=new Set(favoriteTeamIds),orderedTeams=[...news.teams].sort((a,b)=>Number(favoriteSet.has(b.id))-Number(favoriteSet.has(a.id))||a.category.localeCompare(b.category,'es'));
   const availableTeams=favoritesOnly?orderedTeams.filter(item=>favoriteSet.has(item.id)):orderedTeams;
-  const range=week(offset),activeTeam=availableTeams.some(item=>item.id===team)?team:'Todos',selected=availableTeams.filter(item=>activeTeam==='Todos'||item.id===activeTeam);
+  const range=week(offset),activeTeam=availableTeams.some(item=>item.id===team)?team:availableTeams[0]?.id,selected=availableTeams.filter(item=>item.id===activeTeam);
   const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
   const upcomingMatches=selected.flatMap(item=>item.fixtures
     .filter(match=>match.date&&match.date>=today&&!(typeof match.homeScore==='number'&&typeof match.awayScore==='number'))
@@ -79,10 +80,8 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
       {news.checkedAt&&<Text style={s.muted}>Última consulta: {new Date(news.checkedAt).toLocaleString('es-ES',{timeZone:'Europe/Madrid'})}</Text>}
       {!!error&&<Text style={s.warning}>{error}</Text>}
     </View>
-    <View style={s.row}>
-      <Pressable style={[s.chip,activeTeam==='Todos'&&s.active]} onPress={()=>st('Todos')}><Text style={s.white}>Todos</Text></Pressable>
-      {availableTeams.map(item=><Pressable key={item.id} style={[s.chip,activeTeam===item.id&&s.active]} onPress={()=>st(item.id)}><Text style={s.filter}>{favoriteSet.has(item.id)?'★ ':''}{item.category.replace('VILLALBILLA','')} {item.name.match(/'([^']+)'/)?.[1]||''}</Text></Pressable>)}
-    </View>
+    <Pressable accessibilityRole="button" disabled={busy} onPress={()=>refresh(true)} style={s.chip}><Text style={s.white}>{busy?'Actualizando…':'Actualizar resultados'}</Text></Pressable>
+    <TeamSelector value={activeTeam} onChange={st} options={availableTeams}/>
     {!availableTeams.length&&<Text style={s.muted}>{news.teams.length?'No hay equipos favoritos seleccionados. Añade alguno en Ajustes.':'Cargando los equipos del club…'}</Text>}
     {selected.map(item=>{
       const matches=item.fixtures.filter(match=>match.date&&match.date>=range.start&&match.date<=range.end);

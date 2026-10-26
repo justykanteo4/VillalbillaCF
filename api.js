@@ -1,7 +1,7 @@
 import {readCopy,saveCopy} from './offline';
 import {Platform} from 'react-native';
 export const apiBase=Platform.OS==='web'?'':(process.env.EXPO_PUBLIC_API_URL||'');
-const PUBLIC_DATA=/^\/api\/(?:news|club-stats|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather|notifications)(?:\?|$)/;
+const PUBLIC_DATA=/^\/api\/(?:news|team-calendar|club-stats|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather|notifications)(?:\?|$)/;
 const refreshing=new Map(),versions=new Map(),MAX_AGE=60000;
 const limitData=(path,data)=>path.split('?')[0]==='/api/instagram'?{...data,posts:(Array.isArray(data.posts)?data.posts:[]).slice(0,8)}:data;
 export async function api(path,options={}){
@@ -11,6 +11,7 @@ export async function api(path,options={}){
  const cacheable=(options.method||'GET')==='GET'&&PUBLIC_DATA.test(path);
  const cached=cacheable?await readCopy(path).catch(()=>null):null;
  if(options.signal?.aborted)throw Object.assign(Error('Consulta cancelada'),{name:'AbortError'});
+ if(cached&&cacheMode==='archive'&&cached.data.closed&&!cached.data.error)return {...cached.data,fromCache:true,savedAt:cached.savedAt};
  if(cached&&Platform.OS==='web'&&globalThis.navigator?.onLine===false)return {...limitData(path,cached.data),error:true,offline:true,savedAt:cached.savedAt};
  const forceNetwork=['reload','no-store'].includes(cacheMode)||/[?&]refresh=1(?:&|$)/.test(path);
  if(cached&&!forceNetwork){

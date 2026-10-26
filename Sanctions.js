@@ -6,14 +6,14 @@ function Person({item}){return <View style={s.person}><View style={[s.badge,item
 
 export default function Sanctions({teamId,compact=false,rivalOnly=false,teamAlertsOnly=false}){
  const [data,setData]=useState(null),[busy,setBusy]=useState(true),[failed,setFailed]=useState(false);
- const refresh=useCallback(async()=>{setBusy(true);try{const next=await api('/api/sanctions?team='+encodeURIComponent(teamId),{onUpdate:value=>{setData(value);setFailed(!!value.error)}});setData(next);setFailed(Boolean(next.error))}catch{setFailed(true)}finally{setBusy(false)}},[teamId]);
+ const refresh=useCallback(async()=>{setBusy(true);try{const next=await api('/api/sanctions?team='+encodeURIComponent(teamId)+(rivalOnly||teamAlertsOnly?'&scope=team':''),{onUpdate:value=>{setData(value);setFailed(!!value.error)}});setData(next);setFailed(Boolean(next.error))}catch{setFailed(true)}finally{setBusy(false)}},[teamId]);
  useEffect(()=>{refresh();const timer=setInterval(refresh,300000);return()=>clearInterval(timer)},[refresh]);
  const rival=data?.opponentDismissals||[];
  const all=(data?.allSanctions||data?.pending||[]).slice().sort((a,b)=>(a.teamName||'').localeCompare(b.teamName||'')||(a.name||'').localeCompare(b.name||''));
  const teams=[...new Set(all.map(item=>item.teamName||'Equipo'))];
  const pending=data?.pending||[],yellowWarnings=data?.yellowWarnings||[];
- if(teamAlertsOnly&&(!data||failed||(!pending.length&&!yellowWarnings.length)))return null;
- if(teamAlertsOnly)return <View style={[s.card,s.compact,s.alertCard]}>{pending.map((item,index)=><Text key={'pending-'+index} style={s.alertRed}>🚫 {item.name}{item.number?' · dorsal '+item.number:''}: {item.reason}. Consulta la resolución oficial.</Text>)}{yellowWarnings.map((item,index)=><Text key={'yellow-'+index} style={s.alertYellow}>🟨 {item.name}{item.number?' · dorsal '+item.number:''} tiene {item.yellowCards} amarillas; una más supondría un partido de sanción.</Text>)}</View>;
+ if(teamAlertsOnly&&(!data||(!pending.length&&!yellowWarnings.length)))return null;
+ if(teamAlertsOnly)return <View style={[s.card,s.compact,s.alertCard]}>{failed&&<Text style={s.warning}>Avisos guardados: no se pudo actualizar la resolución.</Text>}{pending.map((item,index)=><Text key={'pending-'+index} style={s.alertRed}>🚫 {item.name}{item.number?' · dorsal '+item.number:''}: {item.reason}. Consulta la resolución oficial.</Text>)}{yellowWarnings.map((item,index)=><Text key={'yellow-'+index} style={s.alertYellow}>🟨 {item.name}{item.number?' · dorsal '+item.number:''} · acumulación de {item.yellowCards} amarillas. Revisa el ciclo y la resolución de su competición.</Text>)}</View>;
  return <View style={[s.card,compact&&s.compact,rivalOnly&&s.rivalCard]}>
   {!compact&&<><Text style={s.eyebrow}>COMPETICIÓN · DISCIPLINA</Text><Text style={s.title}>Sanciones de todos los equipos</Text><Text style={s.muted}>Solo se muestran sanciones cuya fuente publica una duración explícita.</Text></>}
   {busy&&!data&&<View style={s.loading}><ActivityIndicator color="#91adff"/><Text style={s.muted}>Consultando las actas…</Text></View>}

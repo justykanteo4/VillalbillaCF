@@ -1,0 +1,14 @@
+import React,{useState} from 'react';
+import {View,Text,Pressable} from 'react-native';
+import {auth} from './firebase';
+import NotificationsScreen from './NotificationsScreen';
+import PasswordSettings from './PasswordSettings';
+import SavedCopies from './SavedCopies';
+import {ManualUpdate} from './InternetUpdates';
+import ClubDirectory from './ClubDirectory';
+import AdminHub from './AdminHub';
+export default function SettingsHub({account,teamIds=[],playerIds=[]}){
+ const [page,sp]=useState(null);const trainer=account?.status==='admin'||account?.status==='approved'&&account.claim?.role!=='player',password=auth?.currentUser?.providerData?.some(p=>p.providerId==='password');
+ const options=[['notifications','Notificaciones'],...(password?[['password','Cambiar contraseña']]:[]),['reports','Actas guardadas en el móvil'],['updates','Actualizar app / APK'],...(trainer?[['players','Visualizador de jugadores'],['coaches','Buscar entrenadores']]:[]),...(account?.status==='admin'?[['admin','Administración']]:[])];
+ return <View style={{gap:16}}>{page&&<Pressable accessibilityRole="button" onPress={()=>sp(null)}><Text style={{color:'#91adff',padding:10}}>‹ Ajustes</Text></Pressable>}{!page?<><Text style={{fontSize:26,color:'#fff',fontWeight:'800'}}>Ajustes</Text>{options.map(([id,label])=><Pressable accessibilityRole="button" key={id} onPress={()=>sp(id)} style={{padding:16,backgroundColor:'#1b2e69',borderRadius:12}}><Text style={{color:'#fff'}}>{label}</Text></Pressable>)}</>:page==='notifications'?<NotificationsScreen teamIds={teamIds} playerIds={playerIds}/>:page==='password'&&password?<PasswordSettings/>:page==='reports'?<SavedCopies reportsOnly account={account}/>:page==='updates'?<ManualUpdate/>:page==='players'&&trainer?<ClubDirectory kind="players"/>:page==='coaches'&&trainer?<ClubDirectory kind="coaches"/>:page==='admin'&&account?.status==='admin'?<AdminHub account={account}/>:<Text style={{color:'#fff'}}>Esta opción no está disponible para tu cuenta.</Text>}</View>;
+}

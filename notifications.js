@@ -21,7 +21,7 @@ async function installationKey(){
  return key;
 }
 async function saveSubscription(value){
- await api('/api/push/subscription',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...value,installationKey:await installationKey()})});
+ await api('/api/push/subscription',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...value,teamIds:value.receiveTeams===false?[]:value.teamIds,playerIds:value.receivePlayers===false?[]:value.playerIds,installationKey:await installationKey()})});
 }
 function syncSavedPreferences(){
  const job=syncing.then(async()=>{
@@ -33,15 +33,15 @@ function syncSavedPreferences(){
 }
 export async function enableNotifications(teamIds,playerIds){
  const push=await registerPush();
- await saveNotificationPreferences({enabled:true,teamIds,playerIds,teamSelection:'custom',...push,consentedAt:new Date().toISOString(),pendingSync:true});
+ await saveNotificationPreferences({...(await notificationPreferences()),enabled:true,teamIds,playerIds,teamSelection:'custom',playerSelection:'custom',...push,consentedAt:new Date().toISOString(),pendingSync:true});
  await syncSavedPreferences();return notificationPreferences();
 }
 export async function updateNotificationTargets(teamIds,playerIds){
  const next=await changePreferences(value=>value?{...value,...resolveDeviceTargets(value,teamIds,playerIds),pendingSync:!!(value.enabled||value.pendingSync)}:value);
  if(next?.pendingSync)await syncSavedPreferences();
 }
-export async function saveNotificationTeams(teamIds,playerIds){
- const next=await changePreferences(previous=>({...previous,enabled:!!previous?.enabled,...resolveDeviceTargets({teamSelection:'custom',teamIds},teamIds,playerIds),teamSelection:'custom',pendingSync:!!(previous?.enabled||previous?.pendingSync)}));
+export async function saveNotificationTeams(teamIds,playerIds,choices={}){
+ const next=await changePreferences(previous=>({...previous,receiveTeams:choices.receiveTeams??previous?.receiveTeams??true,receivePlayers:choices.receivePlayers??previous?.receivePlayers??true,enabled:!!previous?.enabled,...resolveDeviceTargets({teamSelection:'custom',teamIds,playerSelection:'custom',playerIds},teamIds,playerIds),teamSelection:'custom',playerSelection:'custom',pendingSync:!!(previous?.enabled||previous?.pendingSync)}));
  if(next.pendingSync){try{await syncSavedPreferences()}catch{/* Retry with the saved selection when the app becomes active. */}}
  return notificationPreferences();
 }

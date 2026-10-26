@@ -130,8 +130,8 @@ export default function TrainerAccess({onSuccess,role='trainer',initialTeamId='6
         <Text style={{...text,color:'#91adff',fontWeight:'800'}}>ADMINISTRADOR DEL CLUB</Text>
         <Text style={text}>Aprueba las solicitudes después de comprobar la identidad y el equipo de cada entrenador.</Text>
         <Pressable style={button} disabled={busy} onPress={refreshRequests}><Text style={text}>{busy?'Actualizando…':'Actualizar solicitudes'}</Text></Pressable>
-        {!requests.length&&<Text style={text}>Todavía no hay solicitudes. Para aparecer aquí, cada entrenador debe entrar en esta app, elegir su equipo y su nombre, y pulsar «Solicitar acceso a este equipo». Si usa correo y contraseña, primero tiene que verificar el correo.</Text>}
-        {requests.map(r=><View key={r.id} style={{gap:10,padding:14,backgroundColor:'#0b121d',borderRadius:12}}>
+        {!requests.some(r=>r.status==='pending')&&<Text style={text}>Todavía no hay solicitudes. Para aparecer aquí, cada entrenador debe entrar en esta app, elegir su equipo y su nombre, y pulsar «Solicitar acceso a este equipo». Si usa correo y contraseña, primero tiene que verificar el correo.</Text>}
+        {requests.filter(r=>r.status==='pending').map(r=><View key={r.id} style={{gap:10,padding:14,backgroundColor:'#0b121d',borderRadius:12}}>
           <Text style={text}>{r.name} · {r.email}</Text><Text style={text}>{r.claim?.role==='player'?'Jugador':'Entrenador'} · {r.claim?.name||'Sin identidad seleccionada'} · {r.claim?.category||'Sin equipo'}</Text><Text style={text}>Estado: {labels[r.status]||r.status}</Text>
           {r.status==='pending'&&<><Pressable style={button} onPress={()=>action(r.id,'approve')}><Text style={text}>Aprobar acceso</Text></Pressable><Pressable style={button} onPress={()=>action(r.id,'reject')}><Text style={text}>Rechazar solicitud</Text></Pressable></>}
           {r.status==='approved'&&<Pressable style={button} onPress={()=>action(r.id,'revoke')}><Text style={text}>Retirar acceso</Text></Pressable>}

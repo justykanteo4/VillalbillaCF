@@ -1,3 +1,4 @@
+import {handleActivity} from './activity-service.mjs';
 import {handleVisits} from './visits-service.mjs';
 import {handleFreeNotifications,scheduledNotifications} from './free-notifications.mjs';
 import news from './server/news.cjs';
@@ -114,6 +115,7 @@ export default {
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
+    const activityResponse=await handleActivity(request,env);if(activityResponse)return activityResponse;
     const visitResponse=await handleVisits(request,env);
     if(visitResponse)return visitResponse;
     const notificationResponse=await handleFreeNotifications(request,env,ctx);

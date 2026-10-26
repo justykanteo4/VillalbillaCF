@@ -237,3 +237,14 @@ export function saveTeamWorkspace(teamId, data, base={}) {
    return merged;
   });
 }
+
+export async function adminSetProfileTeams(profile,teamIds,player=null){
+ if(!db||!auth?.currentUser)throw Error('Inicia sesión como administrador.');
+ const catalog=(await import('./teams.json')).default;
+ const selected=[...new Set(teamIds)].map(id=>catalog.find(t=>t.id===id));
+ if(!selected.length||selected.some(t=>!t))throw Error('Selecciona al menos un equipo válido o retira el acceso.');
+ const old=profile.claim||{},first=selected[0],isPlayer=old.role==='player';
+ if(isPlayer&&(selected.length!==1||!player?.id||String(player.teamId)!==first.id))throw Error('Selecciona la ficha oficial del jugador en su equipo.');
+ const claim=isPlayer?{teamId:first.id,playerId:String(player.id),name:player.name,category:first.category,teamName:first.name,role:'player'}:{...old,role:'trainer',teamId:first.id,teamIds:selected.map(t=>t.id),category:selected.map(t=>t.category).join(' · '),teamName:first.name,assignments:selected.map(t=>({teamId:t.id,teamName:t.name,category:t.category,name:old.assignments?.find(a=>a.teamId===t.id)?.name||old.name||profile.name}))};
+ await updateDoc(doc(db,'trainerProfiles',profile.id),{claim,updatedAt:Date.now()});
+}

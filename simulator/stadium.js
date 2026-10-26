@@ -2,34 +2,40 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 const mat=(color,roughness=.8)=>new THREE.MeshStandardMaterial({color,roughness});
 export function stadium(host,{half=false,onMove,onSelect,onError}){
- const scene=new THREE.Scene();scene.background=new THREE.Color('#a7c8dc');scene.fog=new THREE.Fog('#b5cedb',165,350);
+ const scene=new THREE.Scene();scene.background=new THREE.Color('#c5d9e3');scene.fog=new THREE.Fog('#c5d9e3',145,310);
  let renderer;try{renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'low-power'});}catch{onError('Este dispositivo no puede abrir el estadio 3D. Puedes seguir utilizando la pizarra.');return null}
- renderer.clippingPlanes=half?[new THREE.Plane(new THREE.Vector3(0,0,1),0)]:[];renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;host.append(renderer.domElement);
+ renderer.clippingPlanes=half?[new THREE.Plane(new THREE.Vector3(0,0,1),0)]:[];renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.95;host.append(renderer.domElement);
  const camera=new THREE.PerspectiveCamera(44,1,.1,500),controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.1;controls.minDistance=15;controls.maxDistance=180;controls.maxPolarAngle=Math.PI/2-.07;controls.target.set(0,0,half?26:0);
  function reset(){camera.position.set(half?52:78,half?60:83,half?90:111);controls.target.set(0,0,half?26:0);controls.update()}reset();
  scene.add(new THREE.HemisphereLight('#dceeff','#667d43',2));const sun=new THREE.DirectionalLight('#fff0d8',3.3);sun.position.set(-45,85,35);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-85,right:85,top:95,bottom:-95,near:1,far:220});sun.shadow.bias=-.0003;sun.shadow.normalBias=.04;scene.add(sun);
  const mesh=(geometry,material,x,y,z,parent=scene)=>{const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m};
  const box=(w,h,d,m,x,y,z,parent)=>mesh(new THREE.BoxGeometry(w,h,d),m,x,y,z,parent);
  const turf=document.createElement('canvas');turf.width=1024;turf.height=1536;const ctx=turf.getContext('2d');let random=12345;const rnd=()=>{random=(Math.imul(random,1664525)+1013904223)>>>0;return random/4294967296};
- for(let y=0;y<1536;y++){const stripe=Math.floor(y/128)%2;ctx.fillStyle=stripe?'#397d2e':'#448e34';ctx.fillRect(0,y,1024,1)}
- for(let i=0;i<150000;i++){ctx.fillStyle=rnd()>.5?'rgba(155,183,85,.18)':'rgba(11,65,20,.2)';ctx.fillRect(rnd()*1024,rnd()*1536,1+rnd()*2,2+rnd()*4)}
- const grass=new THREE.CanvasTexture(turf);grass.colorSpace=THREE.SRGBColorSpace;grass.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());const ground=mesh(new THREE.PlaneGeometry(96,135),new THREE.MeshStandardMaterial({map:grass,roughness:1}),0,-.025,0);ground.rotation.x=-Math.PI/2;ground.castShadow=false;
+ for(let y=0;y<1536;y++){const stripe=Math.floor(y/192)%2;ctx.fillStyle=stripe?'#285c32':'#306d38';ctx.fillRect(0,y,1024,1)}
+ for(let i=0;i<150000;i++){ctx.fillStyle=rnd()>.5?'rgba(126,155,84,.12)':'rgba(11,65,20,.2)';ctx.fillRect(rnd()*1024,rnd()*1536,1+rnd()*2,2+rnd()*4)}
+ const grass=new THREE.CanvasTexture(turf);grass.colorSpace=THREE.SRGBColorSpace;grass.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());const ground=mesh(new THREE.PlaneGeometry(80,119),new THREE.MeshStandardMaterial({map:grass,roughness:1}),0,-.025,0);ground.rotation.x=-Math.PI/2;ground.castShadow=false;
  const lineMat=new THREE.LineBasicMaterial({color:'#edf2df'});function line(points,parent=scene,material=lineMat){const g=new THREE.BufferGeometry().setFromPoints(points.map(p=>new THREE.Vector3(...p)));const l=new THREE.Line(g,material);parent.add(l);return l}
  function arc(x,z,r,from=0,to=Math.PI*2){const ps=[];for(let i=0;i<=80;i++){const a=from+(to-from)*i/80;ps.push([x+Math.cos(a)*r,.035,z+Math.sin(a)*r])}line(ps)}
  line([[-34,.035,-52.5],[34,.035,-52.5],[34,.035,52.5],[-34,.035,52.5],[-34,.035,-52.5]]);line([[-34,.035,0],[34,.035,0]]);arc(0,0,9.15);
- const white=mat('#f5f5e9'),steel=mat('#b8c2c6',.35),dark=mat('#263a47'),concrete=mat('#6d7a80'),blue=mat('#2a5774'),seat=mat('#668da3');
+ const white=mat('#f5f5e9'),blue=mat('#2a5774');
  function post(a,b,r=.065,parent=scene,material=white){const v1=new THREE.Vector3(...a),v2=new THREE.Vector3(...b),v=v2.clone().sub(v1);const m=mesh(new THREE.CylinderGeometry(r,r,v.length(),8),material,...v1.clone().add(v2).multiplyScalar(.5).toArray(),parent);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());return m}
  for(const sign of [-1,1]){const z=52.5*sign;line([[-20.16,.035,z],[-20.16,.035,z-16.5*sign],[20.16,.035,z-16.5*sign],[20.16,.035,z]]);line([[-9.16,.035,z],[-9.16,.035,z-5.5*sign],[9.16,.035,z-5.5*sign],[9.16,.035,z]]);arc(0,z-11*sign,.12);arc(0,z-11*sign,9.15,sign>0?Math.PI*1.2:Math.PI*.2,sign>0?Math.PI*1.8:Math.PI*.8);
  post([-3.66,0,z],[ -3.66,2.44,z]);post([3.66,0,z],[3.66,2.44,z]);post([-3.66,2.44,z],[3.66,2.44,z]);const back=z+2*sign;
  post([-3.66,0,back],[-3.66,2.44,back],.035);post([3.66,0,back],[3.66,2.44,back],.035);post([-3.66,2.44,back],[3.66,2.44,back],.035);
  const net=new THREE.LineBasicMaterial({color:'#f6f9f3',transparent:true,opacity:.52});for(let x=-3.66;x<=3.67;x+=.3){line([[x,0,back],[x,2.44,back],[x,2.44,z]],scene,net)}for(let y=0;y<=2.45;y+=.25)line([[-3.66,y,z],[-3.66,y,back],[3.66,y,back],[3.66,y,z]],scene,net);
  }
- // Tiered stands, individual instanced seats and steel roof supports.
- const seatGeo=new THREE.BoxGeometry(.65,.26,.7);const seats=new THREE.InstancedMesh(seatGeo,seat,4*8*90),dummy=new THREE.Object3D();let count=0;
- for(const side of [-1,1])for(let row=0;row<8;row++){const x=side*(43+row*1.35),y=.6+row*.75;box(1.5,.7,116,concrete,x,y-.45,0);for(let i=0;i<90;i++){dummy.position.set(x,y,-55+i*1.24);dummy.rotation.y=side*Math.PI/2;dummy.updateMatrix();seats.setMatrixAt(count++,dummy.matrix)}}
- for(const side of [-1,1])for(let row=0;row<8;row++){const z=side*(64+row*1.3),y=.6+row*.75;box(85,.7,1.4,concrete,0,y-.45,z);for(let i=0;i<90;i++){dummy.position.set(-40+i*.9,y,z);dummy.rotation.y=side<0?0:Math.PI;dummy.updateMatrix();seats.setMatrixAt(count++,dummy.matrix)}}seats.count=count;seats.receiveShadow=true;scene.add(seats);
- for(const side of [-1,1]){box(16,.35,122,dark,side*49,10,0);for(let z=-54;z<=54;z+=18){post([side*55,0,z],[side*55,14,z],.18,scene,steel);post([side*55,14,z],[side*41,10,z],.12,scene,steel)}box(78,.35,13,blue,0,9,side*69)}
- const sponsor=mat('#e8eded');for(const side of [-1,1])box(.12,1,109,sponsor,side*38,.5,0);
+ // Open training ground: low rails, benches, shelters and trees beyond the touchlines.
+ const path=mesh(new THREE.PlaneGeometry(100,139),mat('#85938c'),0,-.06,0);path.rotation.x=-Math.PI/2;path.castShadow=false;
+ const landscape=mesh(new THREE.PlaneGeometry(420,420),mat('#536d46'),0,-.10,0);landscape.rotation.x=-Math.PI/2;landscape.castShadow=false;
+ const rail=mat('#e1e8e3',.5),fence=mat('#44584f'),wood=mat('#735c43'),leaves=mat('#365c3e'),shelter=mat('#294b58',.5);
+ for(const side of [-1,1]){
+   const x=side*42;post([x,1.1,-61],[x,1.1,61],.045,scene,rail);for(let z=-60;z<=60;z+=6)post([x,0,z],[x,1.1,z],.055,scene,rail);
+   for(const z of [-22,22]){box(1.1,.2,9,wood,x+side*4,.55,z);for(const dz of [-3,3])box(.7,.6,.3,fence,x+side*4,.25,z+dz)}
+   // Small dugout outside the playing area, with an open front.
+   const dx=side*46;box(3,.18,12,shelter,dx,3,0);box(.12,2.8,12,shelter,dx+side*1.5,1.5,0);box(1.1,.2,10,blue,dx,.55,0);
+   for(const z of [-60,-35,35,60]){const tx=side*(55+rnd()*9);post([tx,0,z],[tx,5,z],.3,scene,wood);for(let j=0;j<3;j++){const crown=mesh(new THREE.SphereGeometry(3.1,12,10),leaves,tx+(j-1)*1.8,5.5+j*.6,z,scene);crown.scale.y=1.35}}
+ }
+ for(const side of [-1,1]){post([-42,1.1,side*61],[42,1.1,side*61],.045,scene,rail);for(let x=-42;x<=42;x+=6)post([x,0,side*61],[x,1.1,side*61],.055,scene,rail)}
  const playerRoot=new THREE.Group(),objectsRoot=new THREE.Group();scene.add(playerRoot,objectsRoot);let pickables=[],players=[],items=[],editing=false,drag=null;
  const red=mat('#ad171e',.88),clothWhite=mat('#e9e4da'),skin=[mat('#d0a17e'),mat('#a8704d'),mat('#6e4632')],hair=mat('#28221f'),black=mat('#171e22',.4);
  function sphere(rx,ry,rz,m,x,y,z,parent){const a=mesh(new THREE.SphereGeometry(1,16,12),m,x,y,z,parent);a.scale.set(rx,ry,rz);return a}

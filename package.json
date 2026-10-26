@@ -19,7 +19,8 @@
     "check:android-config": "node --env-file-if-exists=.env.local scripts/check-android-config.cjs",
     "prebuild:android": "pnpm run check:android-config && expo prebuild --platform android --no-install",
     "build:simulator": "node scripts/build-simulator.cjs",
-    "build:presentation": "node scripts/build-presentation.cjs"
+    "build:presentation": "node scripts/build-presentation.cjs",
+    "build:visuals": "npm run build:simulator && npm run build:presentation"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

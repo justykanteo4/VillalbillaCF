@@ -6,7 +6,7 @@ Jugadas usa una pizarra SVG de medio campo y permite previsualizar esa misma jug
 
 Las posiciones de jugada siguen en playPositions y los objetos en playItems dentro del plan de alineación. No cambia starters ni positions al editar una jugada. El vestuario existente guarda y sincroniza el plan por cuenta/equipo; objetos con id permiten fusión de cambios. El puente WebView valida coordenadas finitas, jugadores autorizados por el once, tipos, colores, radios, IDs únicos y máximo de 120 objetos. No se descargan scripts ni modelos desde CDN.
 
-SimulatorBoard usa iframe en web y el WebView nativo ya incluido en Android/iOS. Si WebGL no está disponible se ofrece la pizarra. Los controles antiguos que inclinaban una imagen plana se han retirado. La exportación PNG/vídeo previa conserva su representación de alineación; no se presenta como captura o grabación de la escena WebGL.
+SimulatorBoard usa iframe en web y el WebView nativo ya incluido en Android/iOS. Si WebGL no está disponible se ofrece la pizarra. Los controles antiguos que inclinaban una imagen plana se han retirado. La exportación de imagen conserva su representación anterior. La presentación dorada genera ahora su propio fondo WebGL 3D con cámara fija y coloca los jugadores en él; no graba los movimientos de la cámara interactiva.
 
 Fuente del motor: simulator/board.js y stadium.js. Ejecutar npm run build:simulator tras cambiarlas y versionar simulator-bundle.cjs, que permite abrir sin red. Three.js 0.160.1, licencia MIT en simulator/THREE-LICENSE.txt. Es JavaScript dentro del WebView existente, no incorpora un módulo nativo nuevo.
 

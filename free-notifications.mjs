@@ -1,4 +1,5 @@
 import {createRemoteJWKSet,jwtVerify} from 'jose';
+import verification from './account-verification.cjs';
 import webpush from 'web-push';
 
 const googleKeys=createRemoteJWKSet(new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'));
@@ -24,7 +25,7 @@ export async function verifyAdmin(request,env){
  const token=request.headers.get('Authorization')?.match(/^Bearer (.+)$/)?.[1];
  if(!token)throw error('Inicia sesión como administrador.',401);
  let payload;try{({payload}=await jwtVerify(token,googleKeys,{issuer:'https://securetoken.google.com/villalbillacf',audience:'villalbillacf',algorithms:['RS256']}))}catch{throw error('La sesión no es válida. Vuelve a iniciar sesión.',401)}
- if(!payload.email_verified||!payload.email)throw error('Necesitas una cuenta verificada.',403);
+ if(!verification.verifiedClaims(payload)||!payload.email)throw error('Necesitas una cuenta verificada.',403);
  if(!ADMIN_EMAILS.includes(payload.email.toLowerCase())){
   // Firestore applies the existing clubAdmins rules to this user's ID token.
   const r=await fetch('https://firestore.googleapis.com/v1/projects/villalbillacf/databases/(default)/documents/clubAdmins/'+encodeURIComponent(payload.email.toLowerCase()),{headers:{Authorization:'Bearer '+token}});

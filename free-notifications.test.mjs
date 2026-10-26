@@ -39,7 +39,7 @@ test('origen ajeno y administrador no autenticado no pueden publicar',async()=>{
 });
 test('JWT verificado publica solo para destinatarios, cifra Web Push y no reenvía aceptados',async()=>{
  const env=makeEnv(),pair=await generateKeyPair('RS256'),jwk=await exportJWK(pair.publicKey);jwk.kid='test';
- const token=await new SignJWT({email:'albaresfernandez@gmail.com',email_verified:true}).setProtectedHeader({alg:'RS256',kid:'test'}).setIssuer('https://securetoken.google.com/villalbillacf').setAudience('villalbillacf').setSubject('admin').setExpirationTime('5m').sign(pair.privateKey);
+ const token=await new SignJWT({email:'albaresfernandez@gmail.com',email_verified:false,firebase:{sign_in_provider:'google.com'}}).setProtectedHeader({alg:'RS256',kid:'test'}).setIssuer('https://securetoken.google.com/villalbillacf').setAudience('villalbillacf').setSubject('admin').setExpirationTime('5m').sign(pair.privateKey);
  const original=globalThis.fetch;let pushes=0;
  globalThis.fetch=async(url,options)=>{
   if(String(url).includes('googleapis.com/service_accounts'))return Response.json({keys:[jwk]});

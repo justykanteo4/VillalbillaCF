@@ -13,7 +13,8 @@
       "buildNumber": "2",
       "associatedDomains": [
         "applinks:villalbillacf.firebaseapp.com"
-      ]
+      ],
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.villalbilla.cf",
@@ -60,7 +61,8 @@
           "iosUrlScheme": "com.googleusercontent.apps.758134560563-j98or1f7n4jrfanklgo1pg85davlvt9p"
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-apple-authentication"
     ],
     "extra": {
       "eas": {

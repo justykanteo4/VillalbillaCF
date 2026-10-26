@@ -8,6 +8,7 @@ import {
   createUserWithEmailAndPassword, reload,
   getIdToken, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut,
 } from 'firebase/auth';
+import AppleSignIn from './AppleSignIn';
 import GoogleSignIn from './GoogleSignIn';
 
 const text={color:'#dce6f2',lineHeight:22},input={padding:14,borderRadius:10,color:'#fff',backgroundColor:'#0b121d',borderWidth:1,borderColor:'#34475e',minHeight:50},button={padding:14,borderRadius:10,backgroundColor:'#25364c',alignItems:'center'};
@@ -89,6 +90,7 @@ export default function AccessMethods({onSuccess}){
       <Pressable accessibilityRole="button" disabled={busy||!email||password.length<(register?12:1)} style={[button,{backgroundColor:'#b42122',opacity:(busy||!email||password.length<(register?12:1)) ? 0.65 : 1}]} onPress={submitPassword}><Text style={text}>{busy?'Procesando…':register?'Crear cuenta':'Iniciar sesión'}</Text></Pressable>
       <View style={{height:1,backgroundColor:'#34475e',marginVertical:2}}/>
       <GoogleSignIn onSuccess={onSuccess}/>
+      <AppleSignIn onSuccess={onSuccess}/>
     {!!message&&<Text style={{color:'#ffc1c9',lineHeight:22}}>{message}</Text>}
   </View>;
 }

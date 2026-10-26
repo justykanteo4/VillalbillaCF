@@ -91,8 +91,10 @@ test('guarda la selección, reintenta cambios sin red y conserva los equipos al 
   saveCopy:async()=>{},readCopy:async()=>null,resolveDeviceTargets,
  };
  t.after(()=>delete global.__notificationTest);
+ global.__notificationTest.verifiedAccount=require('./account-verification.cjs').verifiedAccount;
  let source=fs.readFileSync('./notifications.js','utf8');
  const imports={
+  "import {verifiedAccount} from './account-verification.cjs';":"const {verifiedAccount}=globalThis.__notificationTest;",
   "import AsyncStorage from '@react-native-async-storage/async-storage';":"const AsyncStorage=globalThis.__notificationTest.storage;",
   "import {getRandomBytesAsync} from 'expo-crypto';":"const {getRandomBytesAsync}=globalThis.__notificationTest;",
   "import {AppState} from 'react-native';":"const {AppState}=globalThis.__notificationTest;",

@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getRandomBytesAsync} from 'expo-crypto';
 import {AppState} from 'react-native';
+import {verifiedAccount} from './account-verification.cjs';
 import {auth} from './firebase';
 import {api} from './api';
 import {registerPush} from './push';
@@ -63,7 +64,7 @@ export function watchNotifications(callback,onError){
 }
 async function adminRequest(path,value={}){
  if(!auth?.currentUser)throw Error('Inicia sesión como administrador.');
- if(auth.currentUser.emailVerified!==true)throw Error('Verifica tu cuenta antes de enviar notificaciones.');
+ if(!await verifiedAccount(auth.currentUser))throw Error('Verifica tu cuenta antes de enviar notificaciones.');
  const token=await auth.currentUser.getIdToken(true);
  return api(path,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(value)});
 }

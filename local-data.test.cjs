@@ -125,3 +125,7 @@ test('un acta histórica cerrada se consulta desde el dispositivo sin red; actua
  assert.equal((await api(path,{cache:'archive'})).goals[0].name,'Guardado');assert.equal(calls,0);
  assert.equal((await api(path,{cache:'reload'})).goals[0].name,'Nuevo');assert.equal(calls,1);
 });
+
+test('actualizar un acta también corrige el archivo que se abrirá sin conexión',async t=>{
+ const path='/api/match?team=a&match=old';const {api}=await client(t,async()=>response({closed:true,goals:[{name:'Corregido'}]}),[[path,stale({closed:true,goals:[]})]]);await api(path+'&refresh=1',{cache:'no-store'});assert.equal((await api(path,{cache:'archive'})).goals[0].name,'Corregido');
+});

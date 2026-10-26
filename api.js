@@ -45,7 +45,7 @@ export async function api(path,options={}){
    const latest=await readCopy(path).catch(()=>null);
    return latest?{...limitData(path,latest.data),fromCache:true,savedAt:latest.savedAt}:d;
   }
-  if(cacheable&&!d.error)await saveCopy(path,d).catch(()=>{});
+  if(cacheable&&!d.error){await saveCopy(path,d).catch(()=>{});if(path.startsWith('/api/match?')&&path.includes('&refresh=1'))await saveCopy(path.replace('&refresh=1',''),d).catch(()=>{})}
   return d;
  }catch(error){
   if(cacheable&&version!==versions.get(path)&&!options.signal?.aborted){

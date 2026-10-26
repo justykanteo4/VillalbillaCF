@@ -1,3 +1,4 @@
+import {startupArea} from './startup-route.cjs';
 import CoachAvatar from './CoachAvatar';
 import {setPlayerDetail} from './player-details.cjs';
 import AccessLifecycle from './AccessLifecycle';
@@ -86,25 +87,27 @@ useEffect(()=>{notificationPreferences().then(value=>setNotificationReady(value!
 
 const [splashDataReady,setSplashDataReady]=useState(false),[onboardingComplete,setOnboardingComplete]=useState(false),[favoriteTeamIds,setFavoriteTeamIds]=useState([]),[showOnlyFavorites,setShowOnlyFavorites]=useState(true);
 const [favoritePlayerIds,setFavoritePlayerIds]=useState([]);
-const [entryRole,setEntryRole]=useState(null),[entryReady,setEntryReady]=useState(false);
-useEffect(()=>{AsyncStorage.getItem('villalbilla.entry-role.v1').then(value=>{if(['trainer','player','fan'].includes(value)){setEntryRole(value);if(value==='fan')setArea('Noticias');else setLoginRole(value)}}).catch(()=>{}).finally(()=>setEntryReady(true))},[]);
+const [entryRole,setEntryRole]=useState(null),[entryReady,setEntryReady]=useState(false),[launchReady,setLaunchReady]=useState(false);
+const launchRouted=useRef(false);
+useEffect(()=>{if(launchRouted.current||!entryReady||!authReady)return;launchRouted.current=true;setArea(startupArea(account,entryRole,Platform.OS==='web'&&globalThis.location?.search?.includes('avisos=1')));setLaunchReady(true)},[entryReady,authReady,account,entryRole]);
+useEffect(()=>{AsyncStorage.getItem('villalbilla.entry-role.v1').then(value=>{if(['trainer','player','fan'].includes(value)){setEntryRole(value);if(value!=='fan')setLoginRole(value)}}).catch(()=>{}).finally(()=>setEntryReady(true))},[]);
 const chooseEntry=role=>{setEntryRole(role);AsyncStorage.setItem('villalbilla.entry-role.v1',role).catch(()=>{});if(role==='fan'){setArea('Noticias')}else{setLoginRole(role);setArea('Usuario')}};
  useEffect(()=>{let active=true;AsyncStorage.getItem(PREFERENCES_KEY).then(raw=>{if(!active)return;if(raw){const value=JSON.parse(raw);setFavoriteTeamIds(Array.isArray(value.favoriteTeamIds)?value.favoriteTeamIds.filter(id=>teams.some(team=>team.id===id)):[]);setFavoritePlayerIds(Array.isArray(value.favoritePlayerIds)?value.favoritePlayerIds.map(String).filter(id=>favoritePlayerIdsAvailable.has(id)):[]);setShowOnlyFavorites(value.preferencesVersion>=2?!!value.showOnlyFavorites:true);setOnboardingComplete(!!value.onboardingComplete);}}).catch(()=>{}).finally(()=>{if(active)setSplashDataReady(true)});return()=>{active=false}},[]);
  const favoritesOnlyActive=false;
  useEffect(()=>{
  if(!auth){setAuthReady(true);return}
- let active=true,stopProfile=()=>{},lastStatus=null;
+ let active=true,generation=0,stopProfile=()=>{},lastStatus=null;
  const apply=profile=>{if(!active)return;setAccount(profile);setAuthReady(true);if(['admin','approved'].includes(profile.status)&&lastStatus!==profile.status)setArea(current=>current==='Notificaciones'?current:profile.claim?.role==='player'?'jugador':'privado');else if(!['admin','approved'].includes(profile.status))setArea(current=>['privado','jugador','admin-approvals','Administración'].includes(current)?'Usuario':current);lastStatus=profile.status};
- const stopAuth=onAuthStateChanged(auth,async user=>{stopProfile();lastStatus=null;if(!user||user.isAnonymous){setAccount(null);setAuthReady(true);return}try{apply(await getProfile(user));if(active)stopProfile=watchProfile(user,apply,()=>setAuthReady(true))}catch{if(active){setAccount(null);setAuthReady(true)}}});
+ const stopAuth=onAuthStateChanged(auth,async user=>{const turn=++generation;stopProfile();lastStatus=null;if(!user||user.isAnonymous){setAccount(null);setAuthReady(true);return}try{const profile=await getProfile(user);if(!active||turn!==generation)return;apply(profile);stopProfile=watchProfile(user,p=>{if(turn===generation)apply(p)},()=>{if(turn===generation)setAuthReady(true)})}catch{if(active&&turn===generation){setAccount(null);setAuthReady(true)}}});
  return()=>{active=false;stopProfile();stopAuth()};
  },[]);
  useEffect(()=>{const sync=()=>{if(splashDataReady&&notificationReady)updateNotificationTargets(favoriteTeamIds,favoritePlayerIds).catch(()=>{})};sync();const sub=AppState.addEventListener('change',state=>{if(state==='active')sync()});return()=>sub.remove()},[splashDataReady,notificationReady,favoriteTeamIds.join(','),favoritePlayerIds.join(','),account?.id]);
  useActivity(account&&['admin','approved'].includes(account.status)?account.claim?.role==='player'?'player':'trainer':entryRole==='fan'?'fan':null);
  const logout=async()=>{try{await signOut(auth)}catch{}setAccount(null);setEntryRole(null);await AsyncStorage.removeItem('villalbilla.entry-role.v1');setArea('Usuario')};
- if(!entryReady||!splashDataReady||!authReady)return <SafeAreaView style={s.loading}><Text style={s.muted}>Preparando tu sesión…</Text></SafeAreaView>;
+ if(!launchReady||!entryReady||!splashDataReady||!authReady)return <SafeAreaView style={s.loading}><Text style={s.muted}>Preparando tu sesión…</Text></SafeAreaView>;
  if(!account&&!entryRole)return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.content}><UserRoleChoice onSelect={chooseEntry}/></ScrollView></SafeAreaView>;
  if(!account&&entryRole!=='fan'&&area==='Usuario')return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.content}><Button onPress={()=>{setEntryRole(null);setLoginRole(null)}}>Cambiar tipo de acceso</Button><TrainerAccess onSettings={()=>setArea('Ajustes')} role={loginRole||entryRole} initialTeamId={loginTeam||teams[0].id} onSuccess={profile=>{setAccount(profile);setArea(profile.claim?.role==='player'?'jugador':'privado')}}/></ScrollView></SafeAreaView>;
-if(!notificationReady)return <SafeAreaView style={s.safe}><NotificationConsent teamIds={favoriteTeamIds} playerIds={favoritePlayerIds} onDone={()=>setNotificationReady(true)}/></SafeAreaView>;
+if(!notificationReady&&!['approved','admin'].includes(account?.status))return <SafeAreaView style={s.safe}><NotificationConsent teamIds={favoriteTeamIds} playerIds={favoritePlayerIds} onDone={()=>setNotificationReady(true)}/></SafeAreaView>;
  if(!authReady&&area==='Usuario')return <SafeAreaView style={s.loading}><Text style={s.muted}>Comprobando la sesión…</Text></SafeAreaView>;
 if(['Ajustes','Administración','Notificaciones','Copias guardadas','admin-approvals'].includes(area))return <SafeAreaView style={s.safe}><StatusBar style="light"/><View style={s.header}><Text style={s.brand}>{area==='admin-approvals'?'Administración':area}</Text><Pressable onPress={()=>setArea(account&&['approved','admin'].includes(account.status)?account.claim?.role==='player'?'jugador':'privado':'Noticias')}><Text style={s.headerLink}>Volver</Text></Pressable></View><ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">{area==='Ajustes'?<SettingsHub onLogout={logout} account={account} teamIds={favoriteTeamIds} playerIds={favoritePlayerIds}/>:area==='Notificaciones'?<NotificationsScreen teamIds={favoriteTeamIds} playerIds={favoritePlayerIds} admin={account?.status==='admin'}/>:area==='Copias guardadas'?<SavedCopies account={account}/>:account?.status==='admin'?<AdminHub account={account}/>:<Text style={s.muted}>Acceso reservado a administradores.</Text>}</ScrollView></SafeAreaView>;
 if(area==='privado'&&account&&['admin','approved'].includes(account.status))return <Club key={account.id+':'+(account.claim?.teamId||'admin')} account={account} onPublic={()=>setArea('Noticias')} onSettings={()=>setArea('Ajustes')} onAdmin={()=>setArea('Administración')} onNotifications={()=>setArea('Notificaciones')} onLogout={logout}/>;

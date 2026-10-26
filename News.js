@@ -11,7 +11,8 @@ import ClubNewsSummary from './ClubNewsSummary';
 import CachedImage from './CachedImage';
 import {instagramPostUrl} from './instagram-post.cjs';
 import MatchEvents from './MatchEvents';
-import {fixturesForResults,resultsRound} from './result-fixtures.cjs';
+import {datePeriod,periodEnd,resultDateOptions,matchesByDate,toggleResultTeam} from './result-dates.cjs';
+import ResultTeamSelector from './ResultTeamSelector';
 import TeamSelector from './TeamSelector';
 import {VisitCounter} from './AppVisits';
 
@@ -22,7 +23,7 @@ function UpcomingMatchCard({match}){
 }
 
 export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[],favoritesOnly=false}){
-  const [news,setNews]=useState(seed),[ig,setIg]=useState({connected:false,posts:[]}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[team,st]=useState('Todos'),[roundSelection,setRoundSelection]=useState('auto');
+  const [news,setNews]=useState(seed),[ig,setIg]=useState({connected:false,posts:[]}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[teamIds,setTeamIds]=useState([]),[dateSelection,setDateSelection]=useState('auto');
   const alive=useRef(true),newsUpdated=useRef(false),inFlight=useRef(false);
   async function refresh(force=false){
     if(inFlight.current)return;
@@ -47,11 +48,12 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
 
   const favoriteSet=new Set(favoriteTeamIds),orderedTeams=[...news.teams].sort((a,b)=>Number(favoriteSet.has(b.id))-Number(favoriteSet.has(a.id))||a.category.localeCompare(b.category,'es'));
   const availableTeams=mode!=='results'&&favoritesOnly?orderedTeams.filter(item=>favoriteSet.has(item.id)):orderedTeams;
-  const activeTeam=team==='Todos'?'Todos':availableTeams.some(item=>item.id===team)?team:'Todos',selected=availableTeams.filter(item=>activeTeam==='Todos'||item.id===activeTeam);
+  const activeIds=teamIds.filter(id=>availableTeams.some(item=>item.id===id)),selected=availableTeams.filter(item=>!activeIds.length||activeIds.includes(item.id));
   const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
 
-  const rounds=[...new Set(selected.flatMap(t=>(t.fixtures||[]).map(m=>m.round)).filter(Number.isInteger))].sort((a,b)=>a-b),activeRound=roundSelection==='auto'?resultsRound(selected[0]||{},today):Number(roundSelection),roundIndex=rounds.indexOf(activeRound);
-  const results=(<><Pressable accessibilityRole="button" disabled={busy} onPress={()=>refresh(true)} style={s.chip}><Text style={s.white}>{busy?'Actualizando…':'Actualizar resultados'}</Text></Pressable><TeamSelector value={activeTeam} onChange={id=>{st(id);setRoundSelection('auto')}} options={[{id:'Todos',category:'Todos',name:'Equipos del club'},...availableTeams]}/><View style={s.row}><Pressable accessibilityRole="button" accessibilityLabel="Jornada anterior" disabled={roundIndex<=0} onPress={()=>setRoundSelection(String(rounds[roundIndex-1]))} style={s.chip}><Text style={s.white}>←</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Jornada siguiente" disabled={roundIndex<0||roundIndex>=rounds.length-1} onPress={()=>setRoundSelection(String(rounds[roundIndex+1]))} style={s.chip}><Text style={s.white}>→</Text></Pressable></View><TeamSelector label="Jornada" value={roundSelection} onChange={setRoundSelection} options={[{id:'auto',category:'Jornada actual',name:'Por equipo'},...rounds.map(round=>({id:String(round),category:'Jornada '+round,name:'Ver partidos'}))]}/><Text style={s.muted}>Los resultados del fin de semana se mantienen hasta el lunes. Desde el martes aparece la siguiente jornada.</Text>{!!error&&<Text style={s.warning}>{error}</Text>}{selected.flatMap(item=>fixturesForResults(item,today,roundSelection).map(match=><UpcomingMatchCard key={item.id+':'+match.id} match={{...match,team:item}}/>))}{!selected.some(item=>fixturesForResults(item,today,roundSelection).length)&&<Text style={s.muted}>No hay partidos publicados para esta jornada.</Text>}</>);
+  const dates=resultDateOptions(selected,today),activeDate=dateSelection==='auto'||!dates.includes(dateSelection)?datePeriod(today):dateSelection,dateIndex=dates.indexOf(activeDate),matches=matchesByDate(selected,activeDate);
+  const dateLabel=value=>value==='undated'?'Fecha por confirmar':value.split('-').reverse().join('/')+' — '+periodEnd(value).split('-').reverse().join('/');
+  const results=(<><Pressable accessibilityRole="button" disabled={busy} onPress={()=>refresh(true)} style={s.chip}><Text style={s.white}>{busy?'Actualizando…':'Actualizar resultados'}</Text></Pressable><ResultTeamSelector selected={activeIds} onChange={id=>setTeamIds(toggleResultTeam(activeIds,id,availableTeams.map(t=>t.id)))} options={availableTeams}/><View style={s.dateNavigation}><Pressable accessibilityRole="button" accessibilityLabel="Fechas anteriores" disabled={dateIndex<=0} onPress={()=>setDateSelection(dates[dateIndex-1])} style={[s.chip,dateIndex<=0&&s.disabled]}><Text style={s.white}>←</Text></Pressable><View style={{flex:1,minWidth:0}}><TeamSelector label="Fechas" value={activeDate} onChange={setDateSelection} options={dates.map(date=>({id:date,category:dateLabel(date),name:date===datePeriod(today)?'Actual':'Partidos'}))}/></View><Pressable accessibilityRole="button" accessibilityLabel="Fechas siguientes" disabled={dateIndex<0||dateIndex>=dates.length-1} onPress={()=>setDateSelection(dates[dateIndex+1])} style={[s.chip,(dateIndex<0||dateIndex>=dates.length-1)&&s.disabled]}><Text style={s.white}>→</Text></Pressable></View><Text style={s.muted}>Los resultados del fin de semana se mantienen hasta el lunes. Desde el martes aparece el siguiente intervalo de fechas.</Text>{!!error&&<Text style={s.warning}>{error}</Text>}{matches.map((match,index)=><View key={match.team.id+':'+match.id} style={{gap:10}}>{(index===0||matches[index-1].date!==match.date)&&<Text style={s.upcomingDate}>{match.date?match.date.split('-').reverse().join('/'):'Fecha por confirmar'}</Text>}<UpcomingMatchCard match={match}/></View>)}{!matches.length&&<Text style={s.muted}>No hay partidos publicados para estas fechas.</Text>}</>);
 
   const instagram=(<>
     {!ig.posts.length&&<Text style={s.muted}>{ig.error?'No se pudieron actualizar las fotos.':'Todavía no hay fotos disponibles.'}</Text>}
@@ -72,6 +74,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
 }
 
 const s=StyleSheet.create({
+  dateNavigation:{flexDirection:'row',alignItems:'center',gap:8},disabled:{opacity:0.35},
   photo:{borderRadius:16,overflow:'hidden',backgroundColor:'#0b121d'},
   title:{fontSize:32,lineHeight:38,fontWeight:'900',color:'#fff'},kicker:{fontSize:11,letterSpacing:1,color:'#91adff',fontWeight:'800'},muted:{fontSize:13,lineHeight:21,color:'#aab8cb'},row:{flexDirection:'row',alignItems:'center',gap:9,flexWrap:'wrap'},chip:{backgroundColor:'#25364c',borderRadius:10,padding:12},active:{backgroundColor:'#b42122'},white:{color:'#fff',fontWeight:'700'},link:{color:'#91adff',fontWeight:'700',paddingVertical:8},card:{padding:20,borderRadius:20,backgroundColor:'#151f2d',borderWidth:1,borderColor:'#2d3e52',gap:13},heading:{color:'#fff',fontSize:18,fontWeight:'800'},warning:{color:'#ffc1c9',lineHeight:21},filter:{color:'#dce6f2',fontSize:10},team:{color:'#eaf0fa',fontSize:15,lineHeight:23,fontWeight:'600'},score:{color:'#91adff',fontWeight:'900',fontSize:25},match:{borderTopWidth:1,borderColor:'#2d3e52',paddingTop:13,gap:10},upcomingCard:{backgroundColor:'#0b121d',padding:15,borderRadius:15,borderWidth:1,borderColor:'#2d3e52',gap:10},upcomingDate:{color:'#91adff',fontSize:13,fontWeight:'700'},vs:{fontSize:11,color:'#ff9995',fontWeight:'900'},expandIcon:{fontSize:18,color:'#91adff'},venueDetails:{borderTopWidth:1,borderColor:'#2d3e52',paddingTop:13},
 });

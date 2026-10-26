@@ -1,6 +1,6 @@
 # Resultados, fichas y actualizaciones
 
-Resultados conserva la jornada del fin de semana hasta el lunes incluido. Desde el martes muestra la jornada siguiente. El selector y las flechas permiten consultar otras jornadas, también con Todos los equipos.
+Resultados agrupa por fechas reales, en intervalos de martes a lunes, y ordena por día y hora sin depender del número de jornada. Conserva el fin de semana hasta el lunes incluido; desde el martes muestra el siguiente intervalo. El selector de fechas tiene una flecha a cada lado y permite consultar el historial. El filtro permite uno, varios o Todos los equipos; los partidos sin fecha están en Fecha por confirmar. Se mantienen las tarjetas desplegables, detalles y actualización de resultados.
 
 Goleadores del Club sustituye a Goleadores. La clasificación de goleadores incluye retratos de jugadores del club. El calendario de entrenadores separa la jornada actual del resto con una barra.
 

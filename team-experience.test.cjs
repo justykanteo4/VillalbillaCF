@@ -20,3 +20,4 @@ test('calendario incremental guarda la temporada una vez, actualiza solo jornada
  assert.equal((await loadTeamCalendar('a')).fixtures.length,2);assert(!calls[0].includes('current=1'));const second=await loadTeamCalendar('a');assert(calls[1].includes('current=1'));assert.equal(second.fixtures[0].id,'1');assert.equal(second.fixtures[1].time,'19:00');offline=true;const fallback=await loadTeamCalendar('a');assert.equal(fallback.error,true);assert.equal(fallback.fixtures.length,2);assert.equal(fallback.fixtures[1].time,'19:00');
  }finally{delete global.__calendarTest}
 });
+test('un administrador no recibe automáticamente todos los equipos como equipos de trabajo',()=>{assert.deepEqual(trainerTeams({status:'admin',claim:null}),[]);assert.deepEqual(trainerTeams({status:'admin',claim:{role:'trainer',teamId:'a',teamIds:['a','b']}}),['a','b'])});

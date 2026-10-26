@@ -49,7 +49,7 @@ module.exports={parseTeam,pageData,refreshNews,instagram,groupFixtures};
 async function teamCalendar(id,current=false){
  const team=teams.find(t=>t.id===String(id));if(!team)return null;
  try{let fixtures=(await groupFixtures(team.id)).filter(m=>m.homeId===team.id||m.awayId===team.id);
- if(current){const {currentRound}=require('../team-experience.cjs');const round=currentRound(fixtures,new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}));fixtures=fixtures.filter(m=>m.round===round)}
+ if(current){const {currentRound}=require('../team-experience.cjs');const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}),round=currentRound(fixtures,today),last=fixtures.filter(m=>m.date&&m.date<=today&&Number.isInteger(m.homeScore)&&Number.isInteger(m.awayScore)).sort((a,b)=>b.date.localeCompare(a.date)||b.round-a.round)[0];fixtures=fixtures.filter(m=>m.round===round||m.id===last?.id)}
  return {...team,fixtures,updatedAt:new Date().toISOString(),error:false};
  }catch{return {...team,fixtures:[],error:true}}
 }

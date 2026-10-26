@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const base='http://127.0.0.1:8185/v1/projects/demo-villalbilla/databases/(default)/documents/';
 const field=v=>v===null?{nullValue:null}:Array.isArray(v)?{arrayValue:{values:v.map(field)}}:typeof v==='object'?{mapValue:{fields:Object.fromEntries(Object.entries(v).map(([k,v])=>[k,field(v)]))}}:typeof v==='number'?{integerValue:String(v)}:typeof v==='boolean'?{booleanValue:v}:{stringValue:v};
-const jwt=uid=>{const enc=v=>Buffer.from(JSON.stringify(v)).toString('base64url');return enc({alg:'none',typ:'JWT'})+'.'+enc({sub:uid,user_id:uid,aud:'demo-villalbilla',iss:'https://securetoken.google.com/demo-villalbilla',email:uid+'@example.com',email_verified:true,iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+3600,firebase:{sign_in_provider:'password'}})+'.'};
+const jwt=(uid,email=uid+'@example.com')=>{const enc=v=>Buffer.from(JSON.stringify(v)).toString('base64url');return enc({alg:'none',typ:'JWT'})+'.'+enc({sub:uid,user_id:uid,aud:'demo-villalbilla',iss:'https://securetoken.google.com/demo-villalbilla',email,email_verified:true,iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+3600,firebase:{sign_in_provider:'password'}})+'.'};
 async function req(path,token,body){const r=await fetch(base+path,{method:body?'PATCH':'GET',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify({fields:field(body).mapValue.fields})}:{})});return {status:r.status,body:await r.json()}}
 (async()=>{
 const claim={teamId:'a',teamIds:['a','b'],name:'Entrenador',category:'Infantil',teamName:'Club',role:'trainer'};
@@ -12,5 +12,11 @@ for(const uid of ['pending','revoked','player'])assert.equal((await req('teamWor
 assert.equal((await req('teamWorkspaces/c',jwt('coach'),{data:{}})).status,403);
 assert.equal((await req('teamWorkspaces/a',jwt('legacy'))).status,200);assert.equal((await req('teamWorkspaces/b',jwt('legacy'))).status,403);
 assert.equal((await req('trainerProfiles/coach',jwt('coach'),{uid:'coach',email:'coach@example.com',status:'approved',claim:{...claim,teamIds:['a','b','c']}})).status,403);
+const notice={id:'notice-1',title:'Acceso aceptado',body:'Ya puedes acceder',queued:false};
+assert.equal((await req('trainerProfiles/pending',jwt('pending'),{uid:'pending',email:'pending@example.com',status:'approved',claim,accessNotice:notice})).status,403);
+assert.equal((await req('trainerProfiles/pending',jwt('admin','appvillalbilla@gmail.com'),{uid:'pending',email:'pending@example.com',status:'approved',claim,accessNotice:notice})).status,200);
+const approved=await req('trainerProfiles/pending',jwt('pending'));assert.equal(approved.status,200);assert.equal(approved.body.fields.accessNotice.mapValue.fields.id.stringValue,'notice-1');
+assert.equal((await req('trainerProfiles/pending',jwt('other'))).status,403);
+assert.equal((await req('trainerProfiles/new-self',jwt('new-self'),{uid:'new-self',email:'new-self@example.com',status:'unassigned',claim:null,accessNotice:notice})).status,403);
 console.log('Firestore emulator: multi-equipo, datos compartidos, aislamiento, jugador, pendiente, revocado y perfil antiguo correctos.');
 })().catch(e=>{console.error(e);process.exit(1)});

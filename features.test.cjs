@@ -77,3 +77,9 @@ test('acumulación: avisa desde cuatro amarillas solo con todas las actas dispon
  const reports=new Map(fixtures.map(m=>[m.id,{cardsAvailable:true,cards:[{name:'Jugador',playerId:'p',team:'Club',color:'yellow',type:'Amarilla'}]}]));
  const complete=currentSuspensions(fixtures,reports,'a');assert.equal(complete.yellowWarnings[0].yellowCards,4);assert.equal(complete.sanctions.length,0);reports.delete('0');assert.equal(currentSuspensions(fixtures,reports,'a').yellowWarnings.length,0);
 });
+test('alias y posición del mismo jugador editados por dos entrenadores se combinan aunque la ficha compartida no existiera',()=>{
+ const {setPlayerDetail}=require('./player-details.cjs');const base={playerDetails:{},attendance:{},materials:[]};const coachA=setPlayerDetail(base,'p','alias','Pepe'),coachB=setPlayerDetail(base,'p','position','Defensa');const shared=mergeChanges(base,coachA,coachB);assert.deepEqual(shared.playerDetails.p,{alias:'Pepe',position:'Defensa'});assert.deepEqual(mergeChanges(coachA,setPlayerDetail(coachA,'p','alias',''),shared).playerDetails.p,{alias:'',position:'Defensa'});
+});
+test('migrar alias y posiciones antiguos no pisa datos compartidos, alias borrados ni jugadores de otros equipos',()=>{
+ const {mergeLegacyDetails}=require('./player-details.cjs');const existing={p:{alias:'',position:'Portero'}};assert.equal(mergeLegacyDetails(existing,[{id:'p'}],{p:'Viejo',q:'Otro'},{p:'Defensa'}),existing);assert.deepEqual(mergeLegacyDetails({},[{id:'local',federationId:'p'}],{p:'Pepe',q:'Otro'},{p:'Defensa'}),{p:{alias:'Pepe',position:'Defensa'}});
+});

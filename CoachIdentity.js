@@ -13,8 +13,9 @@ export default function CoachIdentity({account,teamId}){
   let alive=true;setPlayer(null);
   const key='villalbilla.dual-role.v1.'+account.id+'.'+name;
   async function load(){
-   let match=null,stored;try{stored=JSON.parse(await AsyncStorage.getItem(key)||'null')}catch{}
-   if(stored&&Date.now()-stored.savedAt<7*86400000)match=stored.player;
+   let match=account.claim?.isPlayer&&account.claim?.playerTeams?.[0]?{id:account.claim.playerTeams[0].playerId,name:account.claim.name,teamId:account.claim.playerTeams[0].teamId}:null,stored;try{stored=JSON.parse(await AsyncStorage.getItem(key)||'null')}catch{}
+   if(match){}
+   else if(stored&&Date.now()-stored.savedAt<7*86400000)match=stored.player;
    else{
     let complete=true;let rows=seed.teams.flatMap(t=>t.players.map(p=>({...p,teamId:t.id})));
     // Official rosters identify a player; this never grants trainer permissions.
@@ -27,5 +28,5 @@ export default function CoachIdentity({account,teamId}){
   load().catch(()=>{});return()=>{alive=false};
  },[account.id,name]);
  const text={color:'#aab8cb',lineHeight:22};
- return <View style={{padding:16,gap:8,borderRadius:16,backgroundColor:'#151f2d'}}><Text style={{color:'#fff',fontSize:20,fontWeight:'800'}}>{name}</Text><Text style={text}>Entrenador · {teams.find(t=>t.id===teamId)?.category}</Text><Text style={text}>Temporada del equipo · {[['PG','won'],['PE','drawn'],['PP','lost'],['GF','gf'],['GC','ga']].map(([label,key])=>label+' '+(standing?.[key]??'—')).join('   ')}</Text>{player&&<><Text style={{color:'#91adff',fontWeight:'800'}}>También jugador · {teams.find(t=>t.id===player.teamId)?.category}</Text><Text style={text}>{[['Partidos','played'],['Goles','goals'],['Amarillas','yellow'],['Rojas','red']].map(([label,key])=>label+' '+(player[key]??'—')).join(' · ')}</Text></>}</View>;
+ return <View style={{padding:16,gap:8,borderRadius:16,backgroundColor:'#151f2d'}}><Text style={text}>Entrenador · {teams.find(t=>t.id===teamId)?.category}</Text><Text style={text}>Temporada del equipo · {[['PG','won'],['PE','drawn'],['PP','lost'],['GF','gf'],['GC','ga']].map(([label,key])=>label+' '+(standing?.[key]??'—')).join('   ')}</Text>{player&&<><Text style={{color:'#91adff',fontWeight:'800'}}>También jugador · {teams.find(t=>t.id===player.teamId)?.category}</Text><Text style={text}>{[['Partidos','played'],['Goles','goals'],['Amarillas','yellow'],['Rojas','red']].map(([label,key])=>label+' '+(player[key]??'—')).join(' · ')}</Text></>}</View>;
 }

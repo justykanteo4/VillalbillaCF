@@ -11,7 +11,8 @@ function mergeChanges(base,local,remote){
   for(const id of old.keys())if(!next.has(id))result.delete(id);
   return [...result.values()];
  }
- if(object(local)&&object(base)){
+ if(object(local)&&(base===undefined||object(base))){
+  base=base||{};
   const result={...(object(remote)?remote:{})};
   for(const key of new Set([...Object.keys(base),...Object.keys(local)])){
    if(equal(base[key],local[key]))continue;

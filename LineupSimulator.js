@@ -91,7 +91,7 @@ function DraggablePlayer({player,photo,onDrop,onPress,children,style,compact=fal
   return <Animated.View {...pan.panHandlers} style={[style,{transform:[{translateX:drag.x},{translateY:drag.y}]}]}>{onPress?<Pressable accessibilityRole="button" accessibilityLabel={'Elegir jugador para cambiar '+player.name} onPress={onPress}>{children||<PlayerBadge player={player} photo={photo} compact={compact}/>}</Pressable>:children||<PlayerBadge player={player} photo={photo} compact={compact}/>}</Animated.View>;
 }
 
-export default function LineupSimulator({teamId,players=[],lineups=[],onChange}){
+export default function LineupSimulator({teamId,players=[],lineups=[],onChange,sharedDetails=null}){
   const isSeven=String(teams.find(team=>team.id===teamId)?.gameType)==='2',formations=formationMap(isSeven),maxPlayers=isSeven?7:11;
   const seeded=seed.teams.find(team=>team.id===teamId)?.players||[];
   const roster=useMemo(()=>{
@@ -99,7 +99,9 @@ export default function LineupSimulator({teamId,players=[],lineups=[],onChange})
     for(const p of players){const key=String(p.federationId||p.id);if(!merged.some(item=>item.id===key||normalized(item.name)===normalized(p.name)))merged.push({...p,id:key,number:p.number??null})}
     return merged;
   },[teamId,players]);
-  const [photos,setPhotos]=useState({}),[manualPositions,setManualPositions]=useState({}),[aliases,setAliases]=useState({}),[activeId,setActiveId]=useState(lineups[0]?.id||'plan-default'),[error,setError]=useState(''),[planPicker,setPlanPicker]=useState(false),[slotPicker,setSlotPicker]=useState(null),[fullScreen,setFullScreen]=useState(false),[camera,setCamera]=useState({rotate:0,tilt:56,x:0,y:0}),[presenting,setPresenting]=useState(false),[presentationCount,setPresentationCount]=useState(0),[fullFieldSize,setFullFieldSize]=useState({width:0,height:0}),[videoHtml,setVideoHtml]=useState(''),[videoBusy,setVideoBusy]=useState(false);
+  const [photos,setPhotos]=useState({}),[localPositions,setManualPositions]=useState({}),[localAliases,setAliases]=useState({}),[activeId,setActiveId]=useState(lineups[0]?.id||'plan-default'),[error,setError]=useState(''),[planPicker,setPlanPicker]=useState(false),[slotPicker,setSlotPicker]=useState(null),[fullScreen,setFullScreen]=useState(false),[camera,setCamera]=useState({rotate:0,tilt:56,x:0,y:0}),[presenting,setPresenting]=useState(false),[presentationCount,setPresentationCount]=useState(0),[fullFieldSize,setFullFieldSize]=useState({width:0,height:0}),[videoHtml,setVideoHtml]=useState(''),[videoBusy,setVideoBusy]=useState(false);
+  const manualPositions=sharedDetails===null?localPositions:Object.fromEntries(Object.entries(sharedDetails).map(([id,p])=>[id,p.position||'']));
+  const aliases=sharedDetails===null?localAliases:Object.fromEntries(Object.entries(sharedDetails).map(([id,p])=>[id,p.alias||'']));
   const normalField=useRef(null),fullField=useRef(null),fieldRect=useRef(null);
   const [tacticalMode,setTacticalMode]=useState(false);
   const plans=lineups.length?lineups:[emptyPlan(teamId)],activePlan=plans.find(item=>item.id===activeId)||plans[0],slots=formations[activePlan.formation]||Object.values(formations)[0],starters=activePlan.starters||[],placed=new Set(starters);

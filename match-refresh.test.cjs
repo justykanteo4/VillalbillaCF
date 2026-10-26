@@ -32,3 +32,8 @@ test('las actas cerradas antiguas persisten en D1 y se reutilizan sin volver a l
  global.fetch=async()=>{calls++;return {ok:true,text:async()=>html('999999999993',3)}};
  try{const fixture={id:'999999999993',date:'2025-10-01',homeId:team.id,awayId:'other'};await matches.matchFixtureDetails(team.id,fixture,team.id,{db});assert.equal(calls,1);assert.equal(rows.size,1);const data=await matches.matchFixtureDetails(team.id,fixture,team.id,{db});assert.equal(data.goals.length,3);assert.equal(calls,1);await matches.matchFixtureDetails(team.id,fixture,team.id,{db,refresh:true});assert.equal(calls,2)}finally{global.fetch=original}
 });
+test('plantilla conserva el partido jugado hasta un acta real del siguiente, también sin red',()=>{
+ const {featuredMatch}=require('./featured-match.cjs');const fixtures=[{id:'old',date:'2026-10-25',round:7,homeScore:2,awayScore:1},{id:'next',date:'2026-11-01',round:8,homeScore:null,awayScore:null}];
+ for(const report of [null,{id:'next',published:false,closed:false,referees:[{name:'Designado'}]},{id:'next',error:true}])assert.equal(featuredMatch(fixtures,'2026-10-26',report,true).match.id,'old');
+ assert.equal(featuredMatch(fixtures,'2026-10-26',{id:'next',published:true},true).match.id,'next');assert.equal(featuredMatch(fixtures,'2026-10-26',{id:'next',closed:true,offline:true},true).match.id,'next');assert.equal(featuredMatch(fixtures,'2026-10-26',{id:'other',published:true},true).match.id,'old');assert.equal(featuredMatch(fixtures,'2026-10-26',null,false).match.id,'next');
+});

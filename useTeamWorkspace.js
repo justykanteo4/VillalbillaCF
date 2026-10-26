@@ -18,6 +18,7 @@ export default function useTeamWorkspace(teamId,storageKey,initial){
  useEffect(()=>{
   let alive=true,writing=false,hydrated=false,stop=()=>{};
   state.current={base:initial,data:initial,dirty:false};setData(initial);setReady(false);setSaved(false);setError('');
+  if(!teamId)return;
   const flush=async()=>{
    if(!alive||!hydrated||writing||!state.current.dirty)return;
    writing=true;

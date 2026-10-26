@@ -1,3 +1,6 @@
+import {api} from './api';
+import {identityClaim} from './access-identity.cjs';
+import teamCatalog from './teams.json';
 import {mergeChanges} from './workspace-sync.cjs';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -209,10 +212,29 @@ export async function claimPlayer(user, team, player) {
   }
 }
 
-export async function decideRequest(id, action) {
-  if (!db || !['approve', 'reject', 'revoke'].includes(action)) throw Error('Solicitud inválida.');
-  const status = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'revoked';
-  await updateDoc(doc(db, 'trainerProfiles', id), { status, updatedAt: Date.now() });
+export async function decideRequest(id,action){
+ if(!db||!['approve','reject','revoke'].includes(action))throw Error('Solicitud inválida.');
+ const ref=doc(db,'trainerProfiles',id);
+ await runTransaction(db,async transaction=>{
+  const snap=await transaction.get(ref);if(!snap.exists())throw Error('La solicitud ya no existe.');
+  const old=snap.data();if(action!=='revoke'&&old.status!=='pending')return;
+  const updatedAt=Date.now(),status=action==='approve'?'approved':action==='reject'?'rejected':'revoked';
+  transaction.update(ref,{status,updatedAt,...(action==='approve'?{accessNotice:{id:String(updatedAt),createdAt:updatedAt,title:'Acceso aceptado',body:'El administrador ha aceptado tu solicitud. Ya puedes acceder a tu espacio del club.',queued:false}}:{})});
+ });
+ if(action==='approve'){try{await queueAccessApproval(id)}catch{/* Admin lifecycle retries durable unqueued approvals. */}}
+}
+export async function queueAccessApproval(uid){
+ if(!auth?.currentUser)throw Error('Inicia sesión como administrador.');
+ const token=await auth.currentUser.getIdToken();
+ const result=await api('/api/access/notify',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({uid})});
+ await runTransaction(db,async transaction=>{const ref=doc(db,'trainerProfiles',uid),snap=await transaction.get(ref);if(snap.exists()&&snap.data().accessNotice?.id===result.noticeId)transaction.update(ref,{'accessNotice.queued':true})});
+ return result;
+}
+export async function claimOfficialIdentity(user,identity){
+ if(!db||!user)throw Error('Inicia sesión antes de seleccionar tu ficha.');
+ const claim=identityClaim(identity,teamCatalog),ref=doc(db,'trainerProfiles',user.uid);
+ await runTransaction(db,async transaction=>{const snap=await transaction.get(ref);if(!snap.exists())throw Error('No se encontró tu cuenta. Vuelve a iniciar sesión.');if(['approved','admin','pending'].includes(snap.data().status))throw Error('Tu cuenta ya tiene acceso o una solicitud pendiente.');transaction.update(ref,{claim,status:'pending',updatedAt:Date.now()})});
+ const saved=await getDoc(ref);return {id:user.uid,...saved.data()};
 }
 
 export async function getTeamWorkspace(teamId) {
@@ -238,6 +260,12 @@ export function saveTeamWorkspace(teamId, data, base={}) {
   });
 }
 
+export async function migratePlayerDetails(teamId,players,aliases,positions){
+ if(!db||!teamId)return;
+ const {mergeLegacyDetails}=await import('./player-details.cjs');
+ return runTransaction(db,async transaction=>{const ref=doc(db,'teamWorkspaces',teamId),snap=await transaction.get(ref);if(!snap.exists())return false;const data=snap.data().data;const old=data.playerDetails||{},details=mergeLegacyDetails(old,players,aliases,positions);if(details!==old)transaction.set(ref,{data:{...data,playerDetails:details},updatedAt:serverTimestamp()});return true});
+}
+
 export async function adminSetProfileTeams(profile,teamIds,player=null){
  if(!db||!auth?.currentUser)throw Error('Inicia sesión como administrador.');
  const catalog=(await import('./teams.json')).default;
@@ -245,6 +273,6 @@ export async function adminSetProfileTeams(profile,teamIds,player=null){
  if(!selected.length||selected.some(t=>!t))throw Error('Selecciona al menos un equipo válido o retira el acceso.');
  const old=profile.claim||{},first=selected[0],isPlayer=old.role==='player';
  if(isPlayer&&(selected.length!==1||!player?.id||String(player.teamId)!==first.id))throw Error('Selecciona la ficha oficial del jugador en su equipo.');
- const claim=isPlayer?{teamId:first.id,playerId:String(player.id),name:player.name,category:first.category,teamName:first.name,role:'player'}:{...old,role:'trainer',teamId:first.id,teamIds:selected.map(t=>t.id),category:selected.map(t=>t.category).join(' · '),teamName:first.name,assignments:selected.map(t=>({teamId:t.id,teamName:t.name,category:t.category,name:old.assignments?.find(a=>a.teamId===t.id)?.name||old.name||profile.name}))};
+ const claim=isPlayer?{teamId:first.id,playerId:String(player.id),name:player.name,category:first.category,teamName:first.name,role:'player'}:{...old,name:old.name||profile.name,role:'trainer',teamId:first.id,teamIds:selected.map(t=>t.id),category:selected.map(t=>t.category).join(' · '),teamName:first.name,assignments:selected.map(t=>({teamId:t.id,teamName:t.name,category:t.category,name:old.assignments?.find(a=>a.teamId===t.id)?.name||old.name||profile.name}))};
  await updateDoc(doc(db,'trainerProfiles',profile.id),{claim,updatedAt:Date.now()});
 }

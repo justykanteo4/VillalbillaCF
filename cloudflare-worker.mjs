@@ -1,3 +1,4 @@
+import {handleAccess,dispatchAccessNotifications} from './access-service.mjs';
 import {handleActivity} from './activity-service.mjs';
 import {handleVisits} from './visits-service.mjs';
 import {handleFreeNotifications,scheduledNotifications} from './free-notifications.mjs';
@@ -106,7 +107,7 @@ async function data(request, env) {
 }
 
 export default {
-  async scheduled(event,env,ctx){ctx.waitUntil(scheduledNotifications(env))},
+  async scheduled(event,env,ctx){ctx.waitUntil(Promise.all([scheduledNotifications(env),dispatchAccessNotifications(env)]))},
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '*';
@@ -115,6 +116,7 @@ export default {
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
+    const accessResponse=await handleAccess(request,env,ctx);if(accessResponse)return accessResponse;
     const activityResponse=await handleActivity(request,env);if(activityResponse)return activityResponse;
     const visitResponse=await handleVisits(request,env);
     if(visitResponse)return visitResponse;

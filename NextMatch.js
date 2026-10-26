@@ -7,12 +7,14 @@ import standingsSeed from './standings-seed.json';
 import VenueDirections from './VenueDirections';
 import MatchWeather from './MatchWeather';
 import Sanctions from './Sanctions';
+import MatchEvents from './MatchEvents';
+import {featuredMatch} from './featured-match.cjs';
 import {upcoming} from './upcoming.cjs';
 import {isHome,opponent as rivalName} from './team-identity.cjs';
 
-export default function NextMatch({teamId='680163',showFollowing=true,showWeather=true,showOpponentSanctions=false,showTeamSanctions=false}){
+export default function NextMatch({teamId='680163',showFollowing=true,showWeather=true,showOpponentSanctions=false,showTeamSanctions=false,retainPlayedUntilNextReport=false}){
   const [team,setTeam]=useState(seed.teams.find(t=>t.id===teamId));
-  const [acta,setActa]=useState(null);
+  const [acta,setActa]=useState(null),[candidateReport,setCandidateReport]=useState(null);
   const [standings,setStandings]=useState(standingsSeed[teamId]||null);
   const [expanded,setExpanded]=useState(false);
   const [rivalExpanded,setRivalExpanded]=useState(null);
@@ -38,15 +40,17 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
     return()=>{active=false;clearInterval(timer)};
   },[teamId]);
 
-  const matches=upcoming(team?.fixtures||[],new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}));
-  const next=matches[0];
+  const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}),matches=upcoming(team?.fixtures||[],today);
+  const candidate=matches[0];
 
   useEffect(()=>{
-    let active=true;setActa(null);if(!next)return;
-    async function fetchActa(){try{const data=await api('/api/match?team='+encodeURIComponent(teamId)+'&match='+encodeURIComponent(next.id)+'&refresh=1',{onUpdate:value=>{if(active)setActa(value)}});if(active)setActa(data)}catch{if(active)setActa({error:true})}}
+    let active=true;setCandidateReport(null);if(!candidate)return;
+    async function fetchActa(){try{const data=await api('/api/match?team='+encodeURIComponent(teamId)+'&match='+encodeURIComponent(candidate.id)+'&refresh=1',{onUpdate:value=>{if(active)setCandidateReport(value)}});if(active)setCandidateReport(data)}catch{if(active)setCandidateReport(old=>({...old,error:true}))}}
     fetchActa();const timer=setInterval(fetchActa,60000);
     return()=>{active=false;clearInterval(timer)};
-  },[teamId,next?.id]);
+  },[teamId,candidate?.id]);
+  const featured=featuredMatch(team?.fixtures||[],today,candidateReport,retainPlayedUntilNextReport),next=featured.match,retained=featured.retained;
+  useEffect(()=>{let active=true;if(!next){setActa(null);return}if(next.id===candidate?.id){setActa(candidateReport);return}setActa(null);api('/api/match?team='+teamId+'&match='+next.id,{cache:'archive',onUpdate:value=>{if(active)setActa(value)}}).then(value=>{if(active)setActa(value)}).catch(()=>{if(active)setActa({error:true})});return()=>{active=false}},[teamId,next?.id,candidate?.id,candidateReport]);
 
   const opponent=match=>rivalName(match,team);
   const positionFor=match=>{
@@ -60,17 +64,17 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
     {showTeamSanctions&&<Sanctions key={'team-sanctions-'+teamId} teamId={teamId} compact teamAlertsOnly/>}
     <View style={s.card}>
       <Pressable accessibilityRole="button" accessibilityState={{expanded}} onPress={()=>setExpanded(value=>!value)} style={{gap:10}}>
-        <View style={s.top}><Text style={s.kicker}>SIGUIENTE PARTIDO</Text><Text style={s.arrow}>{expanded?'−':'+'}</Text></View>
+        <View style={s.top}><Text style={s.kicker}>{retained?'PARTIDO JUGADO':'SIGUIENTE PARTIDO'}</Text><Text style={s.arrow}>{expanded?'−':'+'}</Text></View>
         <Text style={s.heading}>{team?.category||'Tu equipo'}</Text>
         {next?<>
           <Text style={s.opponent}>{isHome(next,team)?team?.name:opponent(next)}</Text>
-          <Text style={s.vs}>VS</Text>
+          <Text style={s.vs}>{retained?next.homeScore+' — '+next.awayScore:'VS'}</Text>
           <Text style={s.opponent}>{isHome(next,team)?opponent(next):team?.name}</Text>
           <Text style={s.date}>{next.date.split('-').reverse().join('/')} · {next.time||'Hora por confirmar'}</Text>
           <Text style={s.muted}>Jornada {next.round} · {isHome(next,team)?'En casa':'Fuera'} · Pulsa para ver los detalles</Text>
         </>:<Text style={s.muted}>No hay próximos partidos publicados para este equipo.</Text>}
       </Pressable>
-      {showOpponentSanctions&&expanded&&next&&<Sanctions key={`rival-sanctions-${teamId}`} teamId={teamId} compact rivalOnly/>}
+      {retained&&<Text style={s.muted}>Este partido se mantiene hasta que se publique el acta del siguiente.</Text>}
       {expanded&&next&&<View style={s.details}>
         <Text style={s.kicker}>DETALLES DEL ENCUENTRO</Text>
         <Text style={s.muted}>{isHome(next,team)?'Local':'Visitante'} · {next.date.split('-').reverse().join('/')} · {next.time||'Hora por confirmar'} · Jornada {next.round}</Text>
@@ -81,11 +85,13 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
           {!acta?<Text style={s.muted}>Consultando designación…</Text>:acta.error?<Text style={s.muted}>No se ha podido consultar la designación arbitral.</Text>:acta.referees?.length?acta.referees.map((referee,index)=><View key={index} style={{gap:4}}><Text style={s.muted}>{referee.role}</Text><Text style={s.name}>{referee.name}</Text></View>):<Text style={s.muted}>Árbitro pendiente de designación o no publicado por la RFFM.</Text>}
         </View>
       </View>}
+      {retained&&expanded&&next&&<MatchEvents match={{...next,team}} onVenue={()=>{}}/>}
+      {showOpponentSanctions&&!retained&&expanded&&next&&<Sanctions key={`rival-sanctions-${teamId}`} teamId={teamId} compact rivalOnly/>}
       {(error||team?.error)&&<Text style={s.muted}>No se ha podido actualizar el calendario. Mostramos la última información disponible.</Text>}
     </View>
-    {showFollowing&&matches.length>1&&<View style={s.card}>
+    {showFollowing&&(retained?matches.length>0:matches.length>1)&&<View style={s.card}>
       <Text style={s.heading}>Los tres próximos rivales</Text>
-      {matches.slice(1,4).map((match,index)=><View key={match.id}><Pressable accessibilityRole="button" accessibilityState={{expanded:rivalExpanded===match.id}} onPress={()=>setRivalExpanded(rivalExpanded===match.id?null:match.id)} style={s.rival}>
+      {(retained?matches.slice(0,3):matches.slice(1,4)).map((match,index)=><View key={match.id}><Pressable accessibilityRole="button" accessibilityState={{expanded:rivalExpanded===match.id}} onPress={()=>setRivalExpanded(rivalExpanded===match.id?null:match.id)} style={s.rival}>
         <View style={s.number}><Text style={s.numberText}>{index+1}</Text></View>
         <View style={{flex:1,gap:3}}><Text style={s.rivalName}>{opponent(match)}</Text><Text style={s.muted}>Jornada {match.round} · {match.date.split('-').reverse().join('/')}</Text></View>
         <View style={s.position}><Text style={s.positionValue}>{positionFor(match)?.position??'—'}</Text><Text style={s.positionLabel}>puesto</Text></View>

@@ -44,6 +44,7 @@ service cloud.firestore {
     match /trainerProfiles/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if signedIn() && request.auth.uid == uid
+        && !('accessNotice' in request.resource.data)
         && request.resource.data.uid == uid
         && request.resource.data.email == request.auth.token.email
         && ((request.resource.data.status == 'unassigned'

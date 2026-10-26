@@ -1,3 +1,4 @@
+import reportMembership from './server/report-membership.cjs';
 import {handleAccess,dispatchAccessNotifications} from './access-service.mjs';
 import {handleActivity} from './activity-service.mjs';
 import {handleVisits} from './visits-service.mjs';
@@ -35,6 +36,7 @@ async function data(request, env) {
     const result=await clubStats.clubStats(p.get('team'),offset);
     return result?[result,200,result.error?0:300]:[{error:'Equipo no encontrado.'},404,0];
   }
+  if(url.pathname==='/api/report-membership'){const value=await reportMembership.reportMembership(p.get('team'),p.get('name'),Number(p.get('offset')||0),env.VISITS_DB);return value?[value,200,value.error?0:300]:[{error:'Consulta no válida.'},400,0]}
   if (url.pathname === '/api/team-calendar') {const result=await news.teamCalendar(p.get('team'),p.get('current')==='1');return result?[result,200,result.error?0:60]:[{error:'Equipo no encontrado.'},404,0] }
   if (url.pathname === '/api/news') return [await news.refreshNews({ persistComments: false }), 200, 60];
   if (url.pathname === '/api/instagram') return [await news.instagram(env.INSTAGRAM_ACCESS_TOKEN, env.INSTAGRAM_FACEBOOK_ACCESS_TOKEN), 200, 60];

@@ -1,3 +1,4 @@
+import {useBackAction} from './useBackNavigation';
 import React,{useEffect,useState} from 'react';
 import {View,Text,Pressable,ScrollView} from 'react-native';
 import {listCopies} from './offline';
@@ -20,6 +21,7 @@ function Preview({data}){
 }
 export default function SavedCopies({account,reportsOnly=false}){
  const [copies,setCopies]=useState([]),[selected,setSelected]=useState(null),[error,setError]=useState('');
+ useBackAction(()=>{setSelected(null);return true},40,!!selected);
  const refresh=()=>listCopies().then(rows=>setCopies(rows.filter(copy=>(!reportsOnly||copy.key.startsWith('/api/match?'))&&(!copy.key.startsWith('Vestuario ')||account?.status==='admin'||(account?.status==='approved'&&account?.claim?.role!=='player'&&copy.key==='Vestuario '+account.claim.teamId))))).catch(()=>setError('No se pudieron leer las copias de este dispositivo.'));
  useEffect(()=>{refresh()},[]);
  return <View style={{gap:16}}><Text style={{color:'#fff',fontSize:26,fontWeight:'800'}}>{reportsOnly?'Actas guardadas en este móvil':'Copias guardadas'}</Text><Text style={{color:'#aab8cb'}}>Última consulta de cada sección en este dispositivo. Puedes abrirla sin conexión.</Text><Pressable onPress={refresh}><Text style={{color:'#91adff'}}>Actualizar lista</Text></Pressable>{!!error&&<Text style={{color:'#ffc1c9'}}>{error}</Text>}{!copies.length&&<Text style={{color:'#aab8cb'}}>Todavía no hay copias. Se guardarán al consultar datos.</Text>}{copies.map(copy=><Pressable key={copy.key} accessibilityRole="button" accessibilityState={{expanded:selected?.key===copy.key}} onPress={()=>setSelected(selected?.key===copy.key?null:copy)} style={{padding:16,backgroundColor:'#151f2d',borderRadius:12,gap:6}}><Text style={{color:'#fff'}}>{label(copy.key)}{reportsOnly?' · Acta '+copy.data.id:''}</Text><Text style={{color:'#aab8cb'}}>{new Date(copy.savedAt).toLocaleString('es-ES')}</Text></Pressable>)}{selected&&<ScrollView style={{maxHeight:480}} nestedScrollEnabled><Preview data={selected.data}/></ScrollView>}</View>;

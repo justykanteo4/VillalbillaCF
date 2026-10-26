@@ -1,3 +1,4 @@
+import {useBackAction} from './useBackNavigation';
 import React,{useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,StyleSheet,AppState,Linking} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,6 +17,7 @@ import {VisitCounter} from './AppVisits';
 
 function UpcomingMatchCard({match}){
   const [expanded,setExpanded]=useState(false);
+  useBackAction(()=>{setExpanded(false);return true},20,expanded);
   return <View style={s.upcomingCard}><Pressable accessibilityRole="button" accessibilityState={{expanded}} accessibilityLabel={'Detalles: '+match.home+' vs '+match.away} onPress={()=>setExpanded(v=>!v)}><Text style={s.team}>{match.home} vs {match.away} {expanded?'−':'+'}</Text></Pressable>{expanded&&<View style={{gap:12}}><Text style={s.kicker}>{match.team.category} · Jornada {match.round}</Text><Text style={s.muted}>{match.date?match.date.split('-').reverse().join('/'):'Fecha por confirmar'} · {match.time||'Hora por confirmar'}</Text><VenueDirections fieldId={match.venueId} venue={match.venue}/><MatchWeather fieldId={match.venueId} date={match.date} time={match.time}/><MatchEvents match={match} onVenue={()=>{}}/></View>}</View>;
 }
 

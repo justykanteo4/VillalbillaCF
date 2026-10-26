@@ -1,7 +1,7 @@
 import {readCopy,saveCopy} from './offline';
 import {Platform} from 'react-native';
 export const apiBase=Platform.OS==='web'?'':(process.env.EXPO_PUBLIC_API_URL||'');
-const PUBLIC_DATA=/^\/api\/(?:news|team-calendar|club-stats|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather|notifications)(?:\?|$)/;
+const PUBLIC_DATA=/^\/api\/(?:news|report-membership|team-calendar|club-stats|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather|notifications)(?:\?|$)/;
 const refreshing=new Map(),versions=new Map(),MAX_AGE=60000;
 const limitData=(path,data)=>path.split('?')[0]==='/api/instagram'?{...data,posts:(Array.isArray(data.posts)?data.posts:[]).slice(0,8)}:data;
 export async function api(path,options={}){

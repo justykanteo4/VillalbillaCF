@@ -1,123 +1,36 @@
-import React,{useState,useEffect} from 'react';
-import {View,Text,StyleSheet,Pressable} from 'react-native';
+import React,{useState,useEffect,useRef} from 'react';
+import {View,Text,StyleSheet,Pressable,AppState} from 'react-native';
 import {api} from './api';
-import {loadTeamCalendar} from './team-calendar';
+import {loadTeamCalendar,applyTeamReport} from './team-calendar';
 import seed from './news-seed.json';
 import standingsSeed from './standings-seed.json';
 import VenueDirections from './VenueDirections';
 import MatchWeather from './MatchWeather';
-import Sanctions from './Sanctions';
 import MatchEvents from './MatchEvents';
-import {featuredMatch} from './featured-match.cjs';
+import Sanctions from './Sanctions';
 import {upcoming} from './upcoming.cjs';
+import {featuredSchedule} from './featured-match.cjs';
+import {matchWithReport} from './match-report.cjs';
 import {isHome,opponent as rivalName} from './team-identity.cjs';
-
-export default function NextMatch({teamId='680163',showFollowing=true,showWeather=true,showOpponentSanctions=false,showTeamSanctions=false,retainPlayedUntilNextReport=false}){
-  const [team,setTeam]=useState(seed.teams.find(t=>t.id===teamId));
-  const [acta,setActa]=useState(null),[candidateReport,setCandidateReport]=useState(null);
-  const [standings,setStandings]=useState(standingsSeed[teamId]||null);
-  const [expanded,setExpanded]=useState(false);
-  const [rivalExpanded,setRivalExpanded]=useState(null);
-  const [error,setError]=useState(false);
-
-  useEffect(()=>{
-    let active=true;
-    setTeam(seed.teams.find(t=>t.id===teamId));
-    setExpanded(false);
-    async function refresh(){
-      try{const data=await loadTeamCalendar(teamId,{onUpdate:value=>{if(active){setTeam(value);setError(!!value.error)}}});if(active){setTeam(data);setError(!!data.error)}}
-      catch{if(active)setError(true)}
-    }
-    refresh();const timer=setInterval(refresh,300000);
-    return()=>{active=false;clearInterval(timer)};
-  },[teamId]);
-
-  useEffect(()=>{
-    let active=true;
-    setStandings(standingsSeed[teamId]||null);
-    async function refresh(){try{const data=await api('/api/standings?team='+encodeURIComponent(teamId),{onUpdate:value=>{if(active&&Array.isArray(value?.rows))setStandings(value)}});if(active&&Array.isArray(data?.rows))setStandings(data)}catch{}}
-    refresh();const timer=setInterval(refresh,300000);
-    return()=>{active=false;clearInterval(timer)};
-  },[teamId]);
-
-  const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}),matches=upcoming(team?.fixtures||[],today);
-  const candidate=matches[0];
-
-  useEffect(()=>{
-    let active=true;setCandidateReport(null);if(!candidate)return;
-    async function fetchActa(){try{const data=await api('/api/match?team='+encodeURIComponent(teamId)+'&match='+encodeURIComponent(candidate.id)+'&refresh=1',{onUpdate:value=>{if(active)setCandidateReport(value)}});if(active)setCandidateReport(data)}catch{if(active)setCandidateReport(old=>({...old,error:true}))}}
-    fetchActa();const timer=setInterval(fetchActa,60000);
-    return()=>{active=false;clearInterval(timer)};
-  },[teamId,candidate?.id]);
-  const featured=featuredMatch(team?.fixtures||[],today,candidateReport,retainPlayedUntilNextReport),next=featured.match,retained=featured.retained;
-  useEffect(()=>{let active=true;if(!next){setActa(null);return}if(next.id===candidate?.id){setActa(candidateReport);return}setActa(null);api('/api/match?team='+teamId+'&match='+next.id,{cache:'archive',onUpdate:value=>{if(active)setActa(value)}}).then(value=>{if(active)setActa(value)}).catch(()=>{if(active)setActa({error:true})});return()=>{active=false}},[teamId,next?.id,candidate?.id,candidateReport]);
-
-  const opponent=match=>rivalName(match,team);
-  const positionFor=match=>{
-    const rivalId=isHome(match,team)?match.awayId:match.homeId;
-    const clean=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[’']/g,'').replace(/[^a-z0-9]+/gi,' ').trim().toLowerCase();
-    const row=standings?.rows?.find(item=>rivalId&&String(item.id)===String(rivalId))||standings?.rows?.find(item=>clean(item.name)===clean(opponent(match)));
-    return row;
-  };
-
-  return <View style={{gap:16}}>
-    {showTeamSanctions&&<Sanctions key={'team-sanctions-'+teamId} teamId={teamId} compact teamAlertsOnly/>}
-    <View style={s.card}>
-      <Pressable accessibilityRole="button" accessibilityState={{expanded}} onPress={()=>setExpanded(value=>!value)} style={{gap:10}}>
-        <View style={s.top}><Text style={s.kicker}>{retained?'PARTIDO JUGADO':'SIGUIENTE PARTIDO'}</Text><Text style={s.arrow}>{expanded?'−':'+'}</Text></View>
-        <Text style={s.heading}>{team?.category||'Tu equipo'}</Text>
-        {next?<>
-          <Text style={s.opponent}>{isHome(next,team)?team?.name:opponent(next)}</Text>
-          <Text style={s.vs}>{retained?next.homeScore+' — '+next.awayScore:'VS'}</Text>
-          <Text style={s.opponent}>{isHome(next,team)?opponent(next):team?.name}</Text>
-          <Text style={s.date}>{next.date.split('-').reverse().join('/')} · {next.time||'Hora por confirmar'}</Text>
-          <Text style={s.muted}>Jornada {next.round} · {isHome(next,team)?'En casa':'Fuera'} · Pulsa para ver los detalles</Text>
-        </>:<Text style={s.muted}>No hay próximos partidos publicados para este equipo.</Text>}
-      </Pressable>
-      {retained&&<Text style={s.muted}>Este partido se mantiene hasta que se publique el acta del siguiente.</Text>}
-      {expanded&&next&&<View style={s.details}>
-        <Text style={s.kicker}>DETALLES DEL ENCUENTRO</Text>
-        <Text style={s.muted}>{isHome(next,team)?'Local':'Visitante'} · {next.date.split('-').reverse().join('/')} · {next.time||'Hora por confirmar'} · Jornada {next.round}</Text>
-        <VenueDirections fieldId={acta?.venueId||next.venueId} venue={acta?.venue||next.venue}/>
-        {showWeather&&<MatchWeather fieldId={acta?.venueId||next.venueId} date={next.date} time={next.time}/>}
-        <View style={s.referee}>
-          <Text style={s.kicker}>EQUIPO ARBITRAL</Text>
-          {!acta?<Text style={s.muted}>Consultando designación…</Text>:acta.error?<Text style={s.muted}>No se ha podido consultar la designación arbitral.</Text>:acta.referees?.length?acta.referees.map((referee,index)=><View key={index} style={{gap:4}}><Text style={s.muted}>{referee.role}</Text><Text style={s.name}>{referee.name}</Text></View>):<Text style={s.muted}>Árbitro pendiente de designación o no publicado por la RFFM.</Text>}
-        </View>
-      </View>}
-      {retained&&expanded&&next&&<MatchEvents match={{...next,team}} onVenue={()=>{}}/>}
-      {showOpponentSanctions&&!retained&&expanded&&next&&<Sanctions key={`rival-sanctions-${teamId}`} teamId={teamId} compact rivalOnly/>}
-      {(error||team?.error)&&<Text style={s.muted}>No se ha podido actualizar el calendario. Mostramos la última información disponible.</Text>}
-    </View>
-    {showFollowing&&(retained?matches.length>0:matches.length>1)&&<View style={s.card}>
-      <Text style={s.heading}>Los tres próximos rivales</Text>
-      {(retained?matches.slice(0,3):matches.slice(1,4)).map((match,index)=><View key={match.id}><Pressable accessibilityRole="button" accessibilityState={{expanded:rivalExpanded===match.id}} onPress={()=>setRivalExpanded(rivalExpanded===match.id?null:match.id)} style={s.rival}>
-        <View style={s.number}><Text style={s.numberText}>{index+1}</Text></View>
-        <View style={{flex:1,gap:3}}><Text style={s.rivalName}>{opponent(match)}</Text><Text style={s.muted}>Jornada {match.round} · {match.date.split('-').reverse().join('/')}</Text></View>
-        <View style={s.position}><Text style={s.positionValue}>{positionFor(match)?.position??'—'}</Text><Text style={s.positionLabel}>puesto</Text></View>
-      </Pressable>{rivalExpanded===match.id&&<Text style={s.muted}>{[['PG','won'],['PE','drawn'],['PP','lost'],['GF','gf'],['GC','ga']].map(([label,key])=>label+' '+(positionFor(match)?.[key]??'—')).join('   ')}</Text>}</View>)}
-    </View>}
-  </View>;
+import {useBackAction} from './useBackNavigation';
+function MatchCard({match,team,report,played=false,showWeather,showOpponentSanctions,onReport}){
+ const [expanded,se]=useState(false),[acta,sa]=useState(report||null);
+ useEffect(()=>{sa(report||null)},[report,match.id]);useBackAction(()=>{se(false);return true},20,expanded);
+ useEffect(()=>{if(!played)return;let alive=true;api('/api/match?team='+team.id+'&match='+match.id,{cache:'archive',onUpdate:value=>{if(alive)sa(value)}}).then(v=>{if(alive)sa(v)}).catch(()=>{});return()=>{alive=false}},[team.id,match.id,played]);
+ return <View style={s.card}><Pressable accessibilityRole="button" accessibilityLabel={(played?'Partido jugado: ':'Siguiente partido: ')+match.home+' vs '+match.away} accessibilityState={{expanded}} onPress={()=>se(!expanded)} style={{gap:10}}><View style={s.top}><Text style={s.kicker}>{played?'PARTIDO JUGADO':'SIGUIENTE PARTIDO'}</Text><Text style={s.arrow}>{expanded?'−':'+'}</Text></View><Text style={s.heading}>{team.category}</Text><Text style={s.opponent}>{match.home}</Text><Text style={s.vs}>{played?match.homeScore+' — '+match.awayScore:'VS'}</Text><Text style={s.opponent}>{match.away}</Text><Text style={s.date}>{match.date?.split('-').reverse().join('/')||'Fecha por confirmar'} · {match.time||'Hora por confirmar'}</Text><Text style={s.muted}>Jornada {match.round} · {isHome(match,team)?'En casa':'Fuera'} · Pulsa para ver los detalles</Text></Pressable>{expanded&&<View style={s.details}><Text style={s.kicker}>DETALLES DEL ENCUENTRO</Text><VenueDirections fieldId={acta?.venueId||match.venueId} venue={acta?.venue||match.venue}/>{showWeather&&<MatchWeather fieldId={acta?.venueId||match.venueId} date={match.date} time={match.time}/>}<View style={s.referee}><Text style={s.kicker}>EQUIPO ARBITRAL</Text>{acta?.referees?.length?acta.referees.map((r,i)=><Text key={i} style={s.name}>{r.role} · {r.name}</Text>):<Text style={s.muted}>Árbitro pendiente de designación o no publicado.</Text>}</View><MatchEvents match={{...match,team}} onVenue={()=>{}} onUpdate={v=>{sa(v);onReport(v)}}/>{showOpponentSanctions&&!played&&<Sanctions teamId={team.id} compact rivalOnly/>}</View>}</View>;
 }
-
-const s=StyleSheet.create({
-  card:{backgroundColor:'#151f2d',padding:20,borderRadius:20,borderWidth:1,borderColor:'#2d3e52',gap:14},
-  top:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
-  kicker:{color:'#91adff',fontSize:11,letterSpacing:1,fontWeight:'800'},
-  heading:{color:'#fff',fontSize:21,fontWeight:'800'},
-  opponent:{color:'#f0f4ff',fontSize:19,lineHeight:26,fontWeight:'800'},
-  vs:{color:'#ff9995',fontSize:13,fontWeight:'900'},
-  date:{color:'#91adff',fontWeight:'700',fontSize:16},
-  muted:{color:'#aab8cb',fontSize:12,lineHeight:21},
-  details:{gap:16,borderTopWidth:1,borderColor:'#2d3e52',paddingTop:16},
-  referee:{gap:10,paddingTop:14,borderTopWidth:1,borderColor:'#2d3e52'},
-  name:{color:'#f0f4ff',fontSize:14,fontWeight:'700',lineHeight:22},
-  arrow:{fontSize:21,color:'#91adff'},
-  rival:{flexDirection:'row',gap:11,alignItems:'center',paddingTop:14,borderTopWidth:1,borderColor:'#2d3e52'},
-  number:{width:28,height:28,borderRadius:14,backgroundColor:'#1b2e69',alignItems:'center',justifyContent:'center'},
-  numberText:{color:'#dce6ff',fontSize:12,fontWeight:'800'},
-  rivalName:{flex:1,fontSize:14,color:'#eaf0fa',lineHeight:20,fontWeight:'700'},
-  position:{minWidth:56,alignItems:'center',paddingHorizontal:8,paddingVertical:5,borderRadius:10,backgroundColor:'#0b121d'},
-  positionValue:{fontSize:17,color:'#91adff',fontWeight:'900'},
-  positionLabel:{fontSize:9,color:'#aab8cb'},
-});
+export default function NextMatch({teamId='680163',showFollowing=true,showWeather=true,showOpponentSanctions=false,showTeamSanctions=false,retainPlayedUntilNextReport=false}){
+ const [team,st]=useState(seed.teams.find(t=>t.id===teamId)),[report,sr]=useState(null),[table,ss]=useState(standingsSeed[teamId]),[error,se]=useState(false),[rivalExpanded,sx]=useState(null);const active=useRef(true),refreshing=useRef(false),closedReports=useRef(new Map());
+ useBackAction(()=>{sx(null);return true},20,rivalExpanded!==null);
+ const reconcile=value=>({...value,fixtures:(value.fixtures||[]).map(m=>{const report=closedReports.current.get(m.id);return report?matchWithReport(m,report):m})});
+ async function refresh(force=false){if(refreshing.current)return;refreshing.current=true;try{const value=await loadTeamCalendar(teamId,{force,onUpdate:v=>{if(active.current){st(reconcile(v));se(!!v.error)}}});if(active.current){st(reconcile(value));se(!!value.error);for(const report of closedReports.current.values())void applyTeamReport(teamId,report).catch(()=>{})}}catch{if(active.current)se(true)}finally{refreshing.current=false}}
+ useEffect(()=>{active.current=true;st(seed.teams.find(t=>t.id===teamId));sr(null);refresh();const timer=setInterval(refresh,300000),sub=AppState.addEventListener('change',v=>{if(v==='active')refresh()});return()=>{active.current=false;clearInterval(timer);sub.remove()}},[teamId]);
+ useEffect(()=>{let alive=true;ss(standingsSeed[teamId]);api('/api/standings?team='+teamId,{onUpdate:v=>{if(alive)ss(v)}}).then(v=>{if(alive)ss(v)}).catch(()=>{});return()=>{alive=false}},[teamId]);
+ const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}),matches=upcoming(team?.fixtures||[],today),candidate=matches[0];
+ function applyReport(value){if(!value||value.error||!value.closed)return;closedReports.current.set(value.id,value);st(old=>old?{...old,fixtures:old.fixtures.map(m=>matchWithReport(m,value))}:old);void applyTeamReport(teamId,value).catch(()=>{});if(value.closed){refresh(true);api('/api/standings?team='+teamId,{cache:'reload'}).then(v=>{if(active.current)ss(v)}).catch(()=>{})}}
+ useEffect(()=>{let alive=true;sr(null);if(!candidate)return;let running=false;const load=async()=>{if(running||AppState.currentState==='background')return;running=true;try{const v=await api('/api/match?team='+teamId+'&match='+candidate.id+'&refresh=1');if(alive){sr(v);applyReport(v)}}catch{}finally{running=false}};load();const timer=setInterval(load,60000),sub=AppState.addEventListener('change',v=>{if(v==='active')load()});return()=>{alive=false;clearInterval(timer);sub.remove()}},[teamId,candidate?.id]);
+ const {cards,rivals}=featuredSchedule(team?.fixtures||[],today,report,retainPlayedUntilNextReport);
+ const position=m=>{const id=isHome(m,team)?m.awayId:m.homeId,clean=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toLowerCase();return table?.rows?.find(r=>String(r.id)===String(id))||table?.rows?.find(r=>clean(r.name)===clean(rivalName(m,team)))};
+ return <View style={{gap:16}}>{showTeamSanctions&&<Sanctions teamId={teamId} compact teamAlertsOnly/>}{!cards.length&&<Text style={s.muted}>No hay partidos publicados.</Text>}{cards.map(card=><MatchCard key={teamId+':'+card.match.id} team={team} match={card.match} played={card.played} report={report?.id===card.match.id?report:null} showWeather={showWeather} showOpponentSanctions={showOpponentSanctions} onReport={applyReport}/>)}{error&&<Text style={s.muted}>No se pudo actualizar. Se conserva la información guardada.</Text>}{showFollowing&&rivals.length>0&&<View style={s.card}><Text style={s.heading}>Los tres próximos rivales</Text>{rivals.map((m,i)=><View key={m.id}><Pressable accessibilityRole="button" accessibilityState={{expanded:rivalExpanded===m.id}} onPress={()=>sx(rivalExpanded===m.id?null:m.id)} style={s.rival}><Text style={s.numberText}>{i+1}</Text><View style={{flex:1}}><Text style={s.rivalName}>{rivalName(m,team)}</Text><Text style={s.muted}>Jornada {m.round} · {m.date?.split('-').reverse().join('/')}</Text></View><Text style={s.positionValue}>{position(m)?.position??'—'}º</Text></Pressable>{rivalExpanded===m.id&&<Text style={s.muted}>{[['PG','won'],['PE','drawn'],['PP','lost'],['GF','gf'],['GC','ga']].map(([label,key])=>label+' '+(position(m)?.[key]??'—')).join('   ')}</Text>}</View>)}</View>}</View>;
+}
+const s=StyleSheet.create({card:{backgroundColor:'#151f2d',padding:20,borderRadius:20,borderWidth:1,borderColor:'#2d3e52',gap:14},top:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},kicker:{color:'#91adff',fontSize:11,letterSpacing:1,fontWeight:'800'},heading:{color:'#fff',fontSize:21,fontWeight:'800'},opponent:{color:'#f0f4ff',fontSize:19,lineHeight:26,fontWeight:'800'},vs:{color:'#ff9995',fontSize:16,fontWeight:'900'},date:{color:'#91adff',fontWeight:'700',fontSize:16},muted:{color:'#aab8cb',fontSize:12,lineHeight:21},details:{gap:16,borderTopWidth:1,borderColor:'#2d3e52',paddingTop:16},referee:{gap:10,paddingTop:14,borderTopWidth:1,borderColor:'#2d3e52'},name:{color:'#f0f4ff',fontSize:14,fontWeight:'700',lineHeight:22},arrow:{fontSize:21,color:'#91adff'},rival:{flexDirection:'row',gap:11,alignItems:'center',paddingTop:14,borderTopWidth:1,borderColor:'#2d3e52'},numberText:{color:'#dce6ff',fontSize:12,fontWeight:'800'},rivalName:{fontSize:14,color:'#eaf0fa',lineHeight:20,fontWeight:'700'},positionValue:{fontSize:17,color:'#91adff',fontWeight:'900'}});

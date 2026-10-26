@@ -266,13 +266,13 @@ export async function migratePlayerDetails(teamId,players,aliases,positions){
  return runTransaction(db,async transaction=>{const ref=doc(db,'teamWorkspaces',teamId),snap=await transaction.get(ref);if(!snap.exists())return false;const data=snap.data().data;const old=data.playerDetails||{},details=mergeLegacyDetails(old,players,aliases,positions);if(details!==old)transaction.set(ref,{data:{...data,playerDetails:details},updatedAt:serverTimestamp()});return true});
 }
 
-export async function adminSetProfileTeams(profile,teamIds,player=null){
+export async function adminSetProfileTeams(profile,teamIds,player=null,playerTeams=null){
  if(!db||!auth?.currentUser)throw Error('Inicia sesión como administrador.');
  const catalog=(await import('./teams.json')).default;
  const selected=[...new Set(teamIds)].map(id=>catalog.find(t=>t.id===id));
  if(!selected.length||selected.some(t=>!t))throw Error('Selecciona al menos un equipo válido o retira el acceso.');
  const old=profile.claim||{},first=selected[0],isPlayer=old.role==='player';
- if(isPlayer&&(selected.length!==1||!player?.id||String(player.teamId)!==first.id))throw Error('Selecciona la ficha oficial del jugador en su equipo.');
- const claim=isPlayer?{teamId:first.id,playerId:String(player.id),name:player.name,category:first.category,teamName:first.name,role:'player'}:{...old,name:old.name||profile.name,role:'trainer',teamId:first.id,teamIds:selected.map(t=>t.id),category:selected.map(t=>t.category).join(' · '),teamName:first.name,assignments:selected.map(t=>({teamId:t.id,teamName:t.name,category:t.category,name:old.assignments?.find(a=>a.teamId===t.id)?.name||old.name||profile.name}))};
+ if(isPlayer&&(!player?.id||String(player.teamId)!==first.id))throw Error('Selecciona la ficha oficial del jugador en su equipo.');
+ const claim=isPlayer?{teamIds:selected.map(t=>t.id),isPlayer:true,playerTeams:playerTeams||selected.map(t=>({teamId:t.id,playerId:String(player.id),name:player.name})),teamId:first.id,playerId:String(player.id),name:player.name,category:first.category,teamName:first.name,role:'player'}:{...old,isPlayer:playerTeams!==null?playerTeams.length>0:!!old.isPlayer,playerTeams:playerTeams||old.playerTeams||[],name:old.name||profile.name,role:'trainer',teamId:first.id,teamIds:selected.map(t=>t.id),category:selected.map(t=>t.category).join(' · '),teamName:first.name,assignments:selected.map(t=>({teamId:t.id,teamName:t.name,category:t.category,name:old.assignments?.find(a=>a.teamId===t.id)?.name||old.name||profile.name}))};
  await updateDoc(doc(db,'trainerProfiles',profile.id),{claim,updatedAt:Date.now()});
 }

@@ -1,4 +1,5 @@
 const {upcoming}=require('./upcoming.cjs');
 function publishedReport(report,id){return report?.id===id&&(report.published===true||report.closed===true||report.goals?.length>0||report.cards?.length>0)}
 function featuredMatch(fixtures,today,report,retainPlayed=false){const next=upcoming(fixtures,today)[0],played=fixtures.filter(m=>m.date&&m.date<=today&&Number.isInteger(m.homeScore)&&Number.isInteger(m.awayScore)).slice().sort((a,b)=>b.date.localeCompare(a.date)||b.round-a.round)[0];if(retainPlayed&&played&&(!next||!publishedReport(report,next.id)))return {match:played,retained:true};return {match:next,retained:false}}
-module.exports={featuredMatch,publishedReport};
+function featuredSchedule(fixtures,today,report,retain){const featured=featuredMatch(fixtures,today,report,retain),next=upcoming(fixtures,today)[0],cards=featured.match?[{match:featured.match,played:featured.retained},...(featured.retained&&next&&next.id!==featured.match.id?[{match:next,played:false}]:[])]:[];return {cards,rivals:upcoming(fixtures,today).filter(m=>!cards.some(c=>c.match.id===m.id)).slice(0,3)}}
+module.exports={featuredMatch,publishedReport,featuredSchedule};

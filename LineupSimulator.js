@@ -1,15 +1,17 @@
-import React,{useEffect,useMemo,useState} from 'react';
+import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Image,Modal,Platform,Pressable,ScrollView,Share,StyleSheet,Text,TextInput,View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {WebView} from 'react-native-webview';
-import {makeLineupVideoHtml,recordLineupVideoInBrowser} from './LineupVideo';
+import LineupPresentation from './LineupPresentation';
+import {api} from './api';
+import {trackLocalSave} from './update-save-guard.cjs';
+import {makeLineupVideoHtml,saveLineupVideoInBrowser} from './LineupVideo';
 import {makeSystem,shortPlayerName} from './lineup-systems.cjs';
 import SimulatorBoard from './SimulatorBoard';
 import seed from './players-seed.json';
 import teams from './teams.json';
 import {getPlayerPhoto} from './player-photos';
 const photoSource=photo=>typeof photo==='string'?{uri:photo}:photo;
-const photoUri=photo=>typeof photo==='string'?photo:(photo?Image.resolveAssetSource(photo)?.uri||null:null);
+const photoUri=photo=>typeof photo==='string'?photo:photo?.uri||(photo?Image.resolveAssetSource?.(photo)?.uri||null:null);
 
 const ELEVEN={
   '4-3-3':[[50,90],[13,75],[38,75],[62,75],[87,75],[20,55],[50,59],[80,55],[17,29],[50,23],[83,29]],
@@ -17,7 +19,6 @@ const ELEVEN={
   '4-2-3-1':[[50,90],[13,75],[38,75],[62,75],[87,75],[37,58],[63,58],[18,41],[50,39],[82,41],[50,22]],
 };
 const SEVEN={'2-3-1':[[50,90],[31,73],[69,73],[17,51],[50,55],[83,51],[50,27]],'3-2-1':[[50,90],[18,73],[50,76],[82,73],[35,52],[65,52],[50,27]]};
-const PITCH_IMAGE=require('./assets/lineup-pitch-realistic.png');
 const colors={panel:'#151f2d',dark:'#0b121d',line:'#e2f0df',text:'#edf3fa',muted:'#aab8cb',blue:'#91adff',red:'#c52321',border:'#34475e'};
 const defaultFormation=id=>String(teams.find(team=>team.id===id)?.gameType)==='2'?'2-3-1':'4-3-3';
 const formationMap=isSeven=>isSeven?SEVEN:ELEVEN;
@@ -25,10 +26,8 @@ const pointOf=point=>Array.isArray(point)?{x:point[0],y:point[1]}:point;
 const emptyPlan=teamId=>({id:'plan-default',name:'Alineación',formation:defaultFormation(teamId),starters:[],positions:{},playPositions:{}});
 const shirtNumber=p=>{const n=parseInt(p.number,10);return Number.isFinite(n)?n:999};
 const normalized=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-const lineupPlayerName=player=>String(player?.alias||'').trim()||String(player?.name||'').trim();
 function playerPosition(player,manual){return manual[player.id]||player.position||''}
 function positionRank(value){const v=normalized(value);if(/portero|guardameta/.test(v))return 0;if(/defens|central|lateral|carriler|libero/.test(v))return 1;if(/medio|medioc|centrocamp|mediapunta|pivote|interior|volante/.test(v))return 2;if(/delanter|extremo|punta|atacante/.test(v))return 3;return 4}
-function slotPosition(y){if(y>=84)return 'Portero';if(y>=65)return 'Defensa';if(y>=39)return 'Mediocentro';return 'Delantero'}
 
 function PlayerBadge({player,photo,compact=false,alias}){
   const visibleName=alias||player.name;
@@ -47,6 +46,9 @@ export default function LineupSimulator({teamId,players=[],lineups=[],onChange,s
     for(const p of players){const key=String(p.federationId||p.id);if(!merged.some(item=>item.id===key||normalized(item.name)===normalized(p.name)))merged.push({...p,id:key,number:p.number??null})}
     return merged;
   },[teamId,players]);
+  const presentationRef=useRef(null),releasePresentation=useRef(null);
+  const [videoProgress,setVideoProgress]=useState(''),[videoNotice,setVideoNotice]=useState(''),[presentationReady,setPresentationReady]=useState(false);
+  useEffect(()=>()=>releasePresentation.current?.(),[]);
   const [newSystem,setNewSystem]=useState(''),[lineupView,setLineupView]=useState('3d'),[playView,setPlayView]=useState('2d');
   const [photos,setPhotos]=useState({}),[localPositions,setManualPositions]=useState({}),[localAliases,setAliases]=useState({}),[activeId,setActiveId]=useState(lineups[0]?.id||'plan-default'),[error,setError]=useState(''),[planPicker,setPlanPicker]=useState(false),[fullScreen,setFullScreen]=useState(false),[videoHtml,setVideoHtml]=useState(''),[videoBusy,setVideoBusy]=useState(false);
   const manualPositions=sharedDetails===null?localPositions:Object.fromEntries(Object.entries(sharedDetails).map(([id,p])=>[id,p.position||'']));
@@ -80,27 +82,40 @@ export default function LineupSimulator({teamId,players=[],lineups=[],onChange,s
     }
     const message=[(activePlan.name||'Alineación')+' · '+activePlan.formation,...placedPlayers.map(player=>`${player.number??'—'} · ${displayName(player)} · ${playerPosition(player,manualPositions)||'Sin posición'}`)].join('\n');Share.share({title:'Alineación '+(activePlan.name||''),message}).catch(()=>setError('No se pudo compartir la alineación.'));
   }
+  function protectPresentation(){releasePresentation.current?.();const hold=new Promise(resolve=>{releasePresentation.current=resolve});trackLocalSave('lineup-presentation',hold)}
+  function finishPresentation(){releasePresentation.current?.();releasePresentation.current=null}
+  function closePresentation(){setVideoHtml('');setVideoBusy(false);releasePresentation.current?.();releasePresentation.current=null}
   async function generateVideo(){
     if(!starters.length){setError('Coloca primero a los jugadores que quieras presentar.');return}
-    setVideoBusy(true);setError('');
+    setPresentationReady(false);setVideoBusy(true);setError('');setVideoNotice('');setVideoProgress('Preparando fotos y estadísticas…');
+    protectPresentation();
     try{
-      let pitchBase64='';
-      if(Platform.OS==='web'){
-        const uri=Image.resolveAssetSource(PITCH_IMAGE)?.uri;if(!uri)throw Error('No se pudo cargar el campo.');const image=new window.Image();image.src=uri;await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(Error('No se pudo leer el césped.'))});const canvas=document.createElement('canvas');canvas.width=720;canvas.height=1080;canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);pitchBase64=canvas.toDataURL('image/jpeg',0.78).split(',')[1];
-      }else{
-        if(Platform.OS!=='android')throw Error('La exportación de vídeo está disponible en Android y en la versión web.');
-        const {Asset}=require('expo-asset'),Manipulator=require('expo-image-manipulator'),asset=Asset.fromModule(PITCH_IMAGE);await asset.downloadAsync();const optimized=await Manipulator.manipulateAsync(asset.localUri||asset.uri,[{resize:{width:720}}],{compress:0.78,format:Manipulator.SaveFormat.JPEG,base64:true});if(!optimized.base64)throw Error('No se pudo preparar el campo para el vídeo.');pitchBase64=optimized.base64;
-      }
-      const videoPlayers=await Promise.all(starters.map(async(id,index)=>{const player=roster.find(row=>row.id===id),pt=pointOf((tacticalMode?activePlan.playPositions?.[id]:null)||activePlan.positions?.[id]||slots[index]||[50,50]);if(!player)return null;let photo=photoFor(id);if(Platform.OS!=='web'&&photo){if(typeof photo==='string'&&photo.startsWith('data:image/')){}else{try{const {Asset}=require('expo-asset'),Manipulator=require('expo-image-manipulator');let uri=photo,type='jpeg';if(typeof photo==='number'){const asset=Asset.fromModule(photo);await asset.downloadAsync();uri=asset.localUri||asset.uri;type=(asset.type||'jpg').toLowerCase()}else if(typeof photo==='object'){uri=photo.uri||photoUri(photo)}const format=type==='png'?Manipulator.SaveFormat.PNG:Manipulator.SaveFormat.JPEG,result=await Manipulator.manipulateAsync(uri,[{resize:{width:512}}],{compress:0.82,format,base64:true});if(!result.base64)throw Error('No se pudo incrustar la foto de '+player.name+'.');photo=`data:image/${type==='png'?'png':'jpeg'};base64,${result.base64}`}catch{photo=photoUri(photo)}}}else photo=photoUri(photo);return {name:displayName(player),alias:String(aliases[id]||'').trim(),number:player.number,photo,x:pt.x,y:pt.y}})).then(rows=>rows.filter(Boolean));
-      const html=makeLineupVideoHtml({players:videoPlayers,pitchBase64,title:activePlan.name||'Alineación',formation:activePlan.formation});
-      if(Platform.OS==='web')await recordLineupVideoInBrowser(html,(activePlan.name||'alineacion').trim().replace(/[^a-z0-9]+/gi,'-').toLowerCase()||'alineacion');
-      else setVideoHtml(html);
-    }catch(err){setError(err?.message||'No se pudo crear el vídeo. Inténtalo de nuevo.')}
-    finally{setVideoBusy(false)}
+      let stats=[];try{const result=await api('/api/players?team='+encodeURIComponent(teamId));stats=result.players||[]}catch{}
+      const videoPlayers=await Promise.all(starters.map(async(id,index)=>{
+        const player=roster.find(row=>row.id===id);if(!player)return null;
+        const pt=pointOf(activePlan.positions?.[id]||slots[index]||[50,50]),official=stats.find(p=>String(p.id)===String(player.federationId||id))||player;
+        let photo=photoFor(id);
+        if(photo&&Platform.OS==='web'){try{const uri=photoUri(photo);if(uri?.startsWith('data:'))photo=uri;else if(uri){const response=await fetch(uri);if(!response.ok)throw Error('Foto no disponible');const blob=await response.blob();photo=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)})}else photo=null}catch{photo=null}}
+        else if(photo){if(typeof photo==='string'&&photo.startsWith('data:image/')){}else{try{const {Asset}=require('expo-asset'),Manipulator=require('expo-image-manipulator');let uri=photo;if(typeof photo==='number'){const asset=Asset.fromModule(photo);await asset.downloadAsync();uri=asset.localUri||asset.uri}else if(typeof photo==='object')uri=photo.uri||photoUri(photo);const result=await Manipulator.manipulateAsync(uri,[{resize:{width:480}}],{compress:.8,format:Manipulator.SaveFormat.JPEG,base64:true});photo=result.base64?'data:image/jpeg;base64,'+result.base64:null}catch{photo=null}}}
+        return {id,name:displayName(player),number:player.number??official.number,photo,x:pt.x,y:pt.y,goals:official.goals,yellow:official.yellow,red:official.red,played:official.played};
+      }));
+      setVideoHtml(makeLineupVideoHtml({players:videoPlayers.filter(Boolean),title:'Alineación',formation:activePlan.formation}));setVideoBusy(false);setVideoProgress('');
+    }catch(err){closePresentation();setError(err?.message||'No se pudo preparar la presentación.')}
   }
-  async function receiveVideoMessage(event){
-    try{const message=JSON.parse(event.nativeEvent.data);if(message.type==='error')throw Error(message.message||'No se pudo crear el vídeo.');if(message.type!=='video')return;const FileSystem=require('expo-file-system/legacy'),Sharing=require('expo-sharing'),extension=message.mime?.includes('mp4')?'mp4':'webm',filename=(activePlan.name||'alineacion').trim().replace(/[^a-z0-9]+/gi,'-').toLowerCase()||'alineacion',uri=FileSystem.cacheDirectory+filename+'-'+Date.now()+'.'+extension;await FileSystem.writeAsStringAsync(uri,message.base64,{encoding:FileSystem.EncodingType.Base64});if(!await Sharing.isAvailableAsync())throw Error('No hay ninguna aplicación disponible para compartir el vídeo.');setVideoHtml('');await Sharing.shareAsync(uri,{mimeType:message.mime||'video/webm',dialogTitle:'Enviar alineación por WhatsApp',UTI:'public.movie'})}catch(err){setVideoHtml('');setError(err?.message||'No se pudo guardar el vídeo para compartir.')}
+  async function receiveVideoMessage(message){
+    try{
+      if(message.type==='ready'){setPresentationReady(true);return}
+      if(message.type==='finished'){finishPresentation();return}
+      if(message.type==='error')throw Error(message.message||'No se pudo crear el vídeo.');
+      if(message.type==='progress'){if(videoBusy)setVideoProgress('Grabando jugador '+message.current+' de '+message.total);return}
+      if(message.type==='recording'){setVideoBusy(true);setVideoProgress('Grabando presentación…');return}
+      if(message.type!=='video')return;
+      if(Platform.OS==='web')await saveLineupVideoInBrowser(message,'villalbilla-alineacion');
+      else {const FileSystem=require('expo-file-system/legacy'),Sharing=require('expo-sharing'),extension=message.mime==='video/mp4'?'mp4':'webm',folder=FileSystem.documentDirectory+'alineaciones/',uri=folder+'villalbilla-'+Date.now()+'.'+extension;await FileSystem.makeDirectoryAsync(folder,{intermediates:true});await FileSystem.writeAsStringAsync(uri,message.base64,{encoding:FileSystem.EncodingType.Base64});if(!await Sharing.isAvailableAsync())throw Error('Vídeo guardado, pero no hay aplicaciones disponibles para compartirlo.');await Sharing.shareAsync(uri,{mimeType:message.mime,dialogTitle:'Compartir alineación · WhatsApp',UTI:message.mime==='video/mp4'?'public.mpeg-4':'public.movie'})}
+      finishPresentation();setVideoBusy(false);setVideoProgress('');setVideoNotice(message.mime==='video/mp4'?'Vídeo MP4 listo para compartir.':'Vídeo WebM guardado. Este dispositivo no genera MP4; WhatsApp puede necesitar otro formato.');
+    }catch(err){finishPresentation();setVideoBusy(false);setVideoProgress('');setError(err?.message||'No se pudo guardar o compartir el vídeo.');setVideoNotice(err?.message||'No se pudo guardar o compartir el vídeo.')}
   }
+  useEffect(()=>{if(!videoBusy||!videoHtml)return;const timer=setTimeout(()=>{closePresentation();setError('La grabación ha tardado demasiado. Vuelve a abrir la presentación e inténtalo de nuevo.')},90000);return()=>clearTimeout(timer)},[videoBusy,videoHtml]);
 
   function pitch(full=false,tactics=false){
     const boardPlayers=starters.map((id,index)=>{const player=roster.find(p=>p.id===id);if(!player)return null;const pt=pointOf((tactics?activePlan.playPositions?.[id]:null)||activePlan.positions?.[id]||slots[index]||[50,50]);return {id,name:displayName(player),number:player.number,x:pt.x,y:pt.y}}).filter(Boolean);
@@ -119,6 +134,7 @@ export default function LineupSimulator({teamId,players=[],lineups=[],onChange,s
     <View style={styles.counterRow}><Text style={styles.sectionTitle}>{tacticalMode?'Jugadores en la jugada':isSeven?'Siete inicial':'Once inicial'}</Text><Text style={styles.counter}>{starters.length} / {maxPlayers}</Text></View>
     <View style={{width:'100%'}}>{!fullScreen&&pitch(false,tacticalMode)}</View>
     {!!error&&<Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+    {!tacticalMode&&<Pressable accessibilityRole="button" disabled={videoBusy} onPress={generateVideo} style={styles.action}><Text style={styles.actionText}>{videoBusy?'Preparando presentación…':'▶ Presentación de alineación'}</Text></Pressable>}
     <View style={styles.toolbar}>{tacticalMode?<Pressable accessibilityRole="button" onPress={resetPlay} style={styles.action}><Text style={styles.actionText}>Restablecer posiciones</Text></Pressable>:<><Pressable accessibilityRole="button" onPress={autoFill} style={styles.action}><Text style={styles.actionText}>Completar alineación</Text></Pressable><Pressable accessibilityRole="button" onPress={exportLineup} style={styles.secondary}><Text style={styles.secondaryText}>⇧ Exportar</Text></Pressable><Pressable accessibilityRole="button" onPress={clearField} style={styles.secondary}><Text style={styles.secondaryText}>Vaciar campo</Text></Pressable>{plans.length>1&&<Pressable accessibilityRole="button" onPress={removePlan} style={styles.secondary}><Text style={styles.secondaryText}>Eliminar alineación</Text></Pressable>}</>}<Pressable accessibilityRole="button" onPress={()=>{setFullScreen(true)}} style={styles.secondary}><Text style={styles.secondaryText}>⛶ Pantalla completa · 2D / 3D</Text></Pressable></View>
     {!tacticalMode&&<><Text style={styles.sectionTitle}>Jugadores · por posición y dorsal</Text>
     {!available.length&&<Text style={styles.muted}>Todos los jugadores de la plantilla están en el campo.</Text>}
@@ -131,9 +147,9 @@ export default function LineupSimulator({teamId,players=[],lineups=[],onChange,s
     <Modal visible={fullScreen} animationType="slide" supportedOrientations={['portrait','landscape']} onRequestClose={()=>setFullScreen(false)}><View style={styles.fullScreen}>
       <View style={styles.fullHeader}><View style={{flex:1}}><Text style={styles.title}>{tacticalMode?'Jugada':'Alineación'} · {activePlan.formation}</Text><Text style={styles.muted}>{tacticalMode?'Pizarra precisa y previsualización 3D':activePlan.formation+' · cámara libre y jugadores con volumen'}</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Cerrar pantalla completa" onPress={()=>setFullScreen(false)} style={styles.closeButton}><Text style={styles.closeText}>✕</Text></Pressable></View>
       <View style={{flex:1,width:'100%'}}>{fullScreen&&pitch(true,tacticalMode)}</View>
-      <View style={styles.fullBottom}><Pressable accessibilityRole="button" disabled={videoBusy} onPress={generateVideo} style={[styles.action,videoBusy&&styles.disabledAction]}><Text style={styles.actionText}>{videoBusy?'Preparando vídeo…':'▶ Descargar vídeo · WhatsApp'}</Text></Pressable><Pressable accessibilityRole="button" onPress={exportLineup} style={styles.secondary}><Text style={styles.secondaryText}>⇧ Exportar imagen</Text></Pressable><Pressable accessibilityRole="button" onPress={()=>setFullScreen(false)} style={styles.secondary}><Text style={styles.secondaryText}>Volver</Text></Pressable></View>
+      <View style={styles.fullBottom}><Pressable accessibilityRole="button" disabled={videoBusy} onPress={generateVideo} style={[styles.action,videoBusy&&styles.disabledAction]}><Text style={styles.actionText}>{videoBusy?'Preparando presentación…':'▶ Presentación de alineación'}</Text></Pressable><Pressable accessibilityRole="button" onPress={exportLineup} style={styles.secondary}><Text style={styles.secondaryText}>⇧ Exportar imagen</Text></Pressable><Pressable accessibilityRole="button" onPress={()=>setFullScreen(false)} style={styles.secondary}><Text style={styles.secondaryText}>Volver</Text></Pressable></View>
     </View></Modal>
-    {!!videoHtml&&Platform.OS!=='web'&&<View style={styles.hiddenRecorder}><WebView source={{html:videoHtml}} javaScriptEnabled domStorageEnabled onMessage={receiveVideoMessage}/></View>}
+    <Modal visible={!!videoHtml} animationType="slide" supportedOrientations={['portrait','landscape']} onRequestClose={closePresentation}><View style={styles.fullScreen}><View style={styles.fullHeader}><Text style={{...styles.title,flex:1}}>Presentación de alineación</Text><Pressable accessibilityRole="button" accessibilityLabel="Cerrar presentación" onPress={closePresentation} style={styles.closeButton}><Text style={styles.closeText}>✕</Text></Pressable></View>{!!videoHtml&&<LineupPresentation ref={presentationRef} html={videoHtml} onMessage={receiveVideoMessage}/>}<Text style={styles.muted}>{videoProgress||videoNotice||(!presentationReady?'Cargando tarjetas…':'Fotos y datos disponibles de la temporada. «—» indica un dato no publicado.')}</Text><View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}><Pressable accessibilityRole="button" disabled={videoBusy||!presentationReady} onPress={()=>{protectPresentation();presentationRef.current?.command('replay')}} style={styles.secondary}><Text style={styles.secondaryText}>Repetir presentación</Text></Pressable><Pressable accessibilityRole="button" disabled={videoBusy||!presentationReady} onPress={()=>{protectPresentation();setVideoBusy(true);setVideoProgress('Preparando vídeo…');setVideoNotice('');presentationRef.current?.command('record')}} style={styles.action}><Text style={styles.actionText}>{videoBusy?'Generando vídeo…':'Descargar vídeo · WhatsApp'}</Text></Pressable></View></View></Modal>
   </View>;
 }
 
@@ -195,5 +211,4 @@ const styles=StyleSheet.create({
   closeButton:{width:42,height:42,borderRadius:21,alignItems:'center',justifyContent:'center',backgroundColor:'#25364c'},
   closeText:{color:'#fff',fontSize:19,fontWeight:'800'},
   fullBottom:{flexDirection:'row',justifyContent:'center',gap:8},
-  hiddenRecorder:{position:'absolute',left:-10,top:-10,width:1,height:1,opacity:0}
 });

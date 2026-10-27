@@ -2,6 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "villalbilla-cf",
   "main": "cloudflare-worker.mjs",
+  "build": {"command": "node scripts/prepare-apk-download.cjs"},
   "compatibility_date": "2026-10-22",
   "compatibility_flags": [
     "nodejs_compat"

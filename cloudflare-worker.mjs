@@ -1,3 +1,4 @@
+import {handleApkDownload} from './apk-download.mjs';
 import minuteReports from './server/minute-reports.cjs';
 import goalkeepers from './server/goalkeepers.cjs';
 import reportMembership from './server/report-membership.cjs';
@@ -116,6 +117,7 @@ export default {
   async scheduled(event,env,ctx){ctx.waitUntil(Promise.all([scheduledNotifications(env),dispatchAccessNotifications(env)]))},
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const download=await handleApkDownload(request,env.ASSETS);if(download)return download;
     const origin = request.headers.get('Origin') || '*';
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: {
       'Access-Control-Allow-Origin': origin,

@@ -6,7 +6,7 @@ Se identifica al portero por `portero=1` en el acta, no por dorsal ni por estar 
 
 `api.js` añade los acumulados a jugadores/ranking, conserva tarjetas y estadísticas oficiales, y guarda páginas y totales en el dispositivo. Datos no disponibles son —, no cero. Consultas repetidas del mismo equipo comparten la carga de porteros. La vista indica Actas del equipo y avisa de recuentos parciales; los totales no mezclan otros equipos o competiciones de la ficha.
 
-`GoalkeeperStats.js` se utiliza en Plantilla, perfil de jugador, directorio, identidad entrenador/jugador, favoritos, rankings y goleadores del club/liga para jugadores propios. En la presentación del portero se muestran seis datos: goles marcados, amarillas, rojas, partidos, goles encajados y porterías a cero. No se añaden módulos nativos.
+`GoalkeeperStats.js` se utiliza en Plantilla, perfil de jugador, directorio, identidad entrenador/jugador, favoritos, rankings y goleadores del club/liga para jugadores propios. En la presentación del portero se muestran primero goles encajados y porterías a cero, seguidos de partidos, amarillas y rojas. Goles marcados solo aparece si el total es positivo. Las fichas aplican el mismo criterio. No se añaden módulos nativos.
 
 Verificación: pruebas de titular/suplente, portería a cero, sustituciones, expulsiones, actas incompletas, goles/minutos ambiguos, descuento y persistencia sin conexión. Un acta pública real confirmó las banderas portero/titular de la RFFM y el reparto titular/suplente. No se alteran datos federativos ni usuarios.
 

@@ -1,3 +1,4 @@
+import {shouldShowGoals} from './player-stat-display.cjs';
 import GoalkeeperStats from './GoalkeeperStats';
 import React,{useEffect,useState} from 'react';
 import {View,Text} from 'react-native';
@@ -29,5 +30,5 @@ export default function CoachIdentity({account,teamId}){
   load().catch(()=>{});return()=>{alive=false};
  },[account.id,name]);
  const text={color:'#aab8cb',lineHeight:22};
- return <View style={{padding:16,gap:8,borderRadius:16,backgroundColor:'#151f2d'}}><Text style={text}>Entrenador · {teams.find(t=>t.id===teamId)?.category}</Text><Text style={text}>Temporada del equipo · {[['PG','won'],['PE','drawn'],['PP','lost'],['GF','gf'],['GC','ga']].map(([label,key])=>label+' '+(standing?.[key]??'—')).join('   ')}</Text>{player&&<><Text style={{color:'#91adff',fontWeight:'800'}}>También jugador · {teams.find(t=>t.id===player.teamId)?.category}</Text><Text style={text}>{[['Partidos','played'],['Goles','goals'],['Amarillas','yellow'],['Rojas','red']].map(([label,key])=>label+' '+(player[key]??'—')).join(' · ')}</Text><GoalkeeperStats player={player}/></>}</View>;
+ return <View style={{padding:16,gap:8,borderRadius:16,backgroundColor:'#151f2d'}}><Text style={text}>Entrenador · {teams.find(t=>t.id===teamId)?.category}</Text><Text style={text}>Temporada del equipo · {[['PG','won'],['PE','drawn'],['PP','lost'],['GF','gf'],['GC','ga']].map(([label,key])=>label+' '+(standing?.[key]??'—')).join('   ')}</Text>{player&&<><Text style={{color:'#91adff',fontWeight:'800'}}>También jugador · {teams.find(t=>t.id===player.teamId)?.category}</Text><GoalkeeperStats player={player}/><Text style={text}>{[['Partidos','played'],['Goles','goals'],['Amarillas','yellow'],['Rojas','red']].filter(([,key])=>key!=='goals'||shouldShowGoals(player)).map(([label,key])=>label+' '+(player[key]??'—')).join(' · ')}</Text></>}</View>;
 }

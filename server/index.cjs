@@ -1,3 +1,4 @@
+const {minuteReports}=require('./minute-reports.cjs');
 const {goalkeeperReports}=require('./goalkeepers.cjs');
 const http=require('http'),fs=require('fs'),path=require('path');
 const {clubStats}=require('./club-stats.cjs');
@@ -19,6 +20,7 @@ async function body(req){let text='';for await(const chunk of req){text+=chunk;i
 const server=http.createServer(async(req,res)=>{try{
  const u=new URL(req.url,'http://localhost'),bearer=(req.headers.authorization||'').replace(/^Bearer /,''),token=bearer&&bearer!=='cookie'?bearer:sessionStore.cookieToken(req);
  if(req.method==='POST'&&req.headers.origin){const expected=process.env.PUBLIC_APP_URL||((process.env.NODE_ENV==='production'||process.env.SESSION_COOKIE_SECURE==='true')?'https://':'http://')+req.headers.host;if(req.headers.origin!==expected)return json(res,403,{error:'Origen de solicitud no permitido.'})}
+ if(u.pathname==='/api/team-minutes'&&req.method==='GET'){const offset=Number(u.searchParams.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return json(res,400,{error:'Página no válida'});const value=await minuteReports(u.searchParams.get('team'),offset);return json(res,value?200:404,value||{error:'Equipo no encontrado'})}
  if(u.pathname==='/api/goalkeepers'&&req.method==='GET'){const offset=Number(u.searchParams.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return json(res,400,{error:'Página no válida'});const value=await goalkeeperReports(u.searchParams.get('team'),offset);return json(res,value?200:404,value||{error:'Equipo no encontrado'})}
  if(u.pathname==='/api/standings'&&req.method==='GET'){const data=await standings(u.searchParams.get('team'));return json(res,data?200:404,data||{error:'Equipo no encontrado.'})}
  if(u.pathname==='/api/match'&&req.method==='GET'){const data=await matchDetails(u.searchParams.get('team'),u.searchParams.get('match'),{refresh:u.searchParams.get('refresh')==='1'});return json(res,data?200:404,data||{error:'Partido no encontrado.'})}

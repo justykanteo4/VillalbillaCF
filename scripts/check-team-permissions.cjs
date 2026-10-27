@@ -18,6 +18,8 @@ received=await req('teamWorkspaces/a',jwt('coach'));
 assert.equal(received.body.fields.data.mapValue.fields.playerDetails.mapValue.fields['908562'].mapValue.fields.position.stringValue,'Mediocentro');
 const x=received.body.fields.data.mapValue.fields.lineups.arrayValue.values[0].mapValue.fields.positions.mapValue.fields['908562'].mapValue.fields.x;assert.equal(Number(x.integerValue??x.doubleValue),47.5);
 
+shared.playerDetails['908562'].minuteEntries={coach1:{minutes:20,createdAt:'2026-10-27T12:00:00Z'}};assert.equal((await req('teamWorkspaces/a',jwt('coach'),{data:shared})).status,200);shared.playerDetails['908562'].minuteEntries.coach2={minutes:15,createdAt:'2026-10-27T12:01:00Z'};assert.equal((await req('teamWorkspaces/a',jwt('other'),{data:shared})).status,200);received=await req('teamWorkspaces/a',jwt('coach'));const entries=received.body.fields.data.mapValue.fields.playerDetails.mapValue.fields['908562'].mapValue.fields.minuteEntries.mapValue.fields;assert.equal(Number(entries.coach1.mapValue.fields.minutes.integerValue)+Number(entries.coach2.mapValue.fields.minutes.integerValue),35);
+
 for(const uid of ['pending','revoked','player'])assert.equal((await req('teamWorkspaces/a',jwt(uid),{data:{}})).status,403,uid);
 assert.equal((await req('teamWorkspaces/c',jwt('coach'),{data:{}})).status,403);
 assert.equal((await req('teamWorkspaces/a',jwt('legacy'))).status,200);assert.equal((await req('teamWorkspaces/b',jwt('legacy'))).status,403);
@@ -28,5 +30,5 @@ assert.equal((await req('trainerProfiles/pending',jwt('admin','appvillalbilla@gm
 const approved=await req('trainerProfiles/pending',jwt('pending'));assert.equal(approved.status,200);assert.equal(approved.body.fields.accessNotice.mapValue.fields.id.stringValue,'notice-1');
 assert.equal((await req('trainerProfiles/pending',jwt('other'))).status,403);
 assert.equal((await req('trainerProfiles/new-self',jwt('new-self'),{uid:'new-self',email:'new-self@example.com',status:'unassigned',claim:null,accessNotice:notice})).status,403);
-console.log('Firestore emulator: alias, posiciones y alineación compartidos entre dos entrenadores; multi-equipo, aislamiento, jugador, pendiente, revocado y perfil antiguo correctos.');
+console.log('Firestore emulator: alias, posiciones, alineación y minutos manuales compartidos entre dos entrenadores; multi-equipo, aislamiento, jugador, pendiente, revocado y perfil antiguo correctos.');
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -1,3 +1,4 @@
+import {warmTeamCache} from './warm-team-cache';
 import {useEffect,useRef,useState} from 'react';
 import {AppState} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -38,7 +39,7 @@ export default function useTeamWorkspace(teamId,storageKey,initial){
     const raw=await AsyncStorage.getItem(storageKey);
     if(!alive)return;
     if(raw){const old=JSON.parse(raw);state.current=old.syncVersion===2?{base:old.base,data:old.data,dirty:old.dirty}:{base:{},data:old,dirty:true}}
-    hydrated=true;setData(state.current.data);setReady(true);
+    hydrated=true;setData(state.current.data);setReady(true);setTimeout(()=>{if(alive)warmTeamCache(teamId)},1500);
     stop=watchTeamWorkspace(teamId,remote=>{
      if(!alive||!remote)return;
      const current=state.current,next=current.dirty?mergeChanges(current.base,current.data,remote):remote;
@@ -48,7 +49,7 @@ export default function useTeamWorkspace(teamId,storageKey,initial){
     flush();
    }catch{if(alive)setError('La copia local no se pudo leer. No se sobrescribirán los registros.')}
   })();
-  const timer=setInterval(flush,2500),sub=AppState.addEventListener('change',value=>{if(value==='active')flush()});
+  const timer=setInterval(flush,2500),sub=AppState.addEventListener('change',value=>{if(value==='active'){flush();warmTeamCache(teamId)}});
   return()=>{alive=false;stop();clearInterval(timer);sub.remove()};
  },[teamId,storageKey]);
  return [data,set,ready,saved,error,setError];

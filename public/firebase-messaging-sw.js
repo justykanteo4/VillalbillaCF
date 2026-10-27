@@ -1,4 +1,4 @@
-const SHELL_CACHE='villalbilla-shell-v1';
+const SHELL_CACHE='villalbilla-shell-v1',IMAGE_CACHE='villalbilla-imagenes-v1';
 self.addEventListener('install',event=>{event.waitUntil((async()=>{
  const cache=await caches.open(SHELL_CACHE),response=await fetch('/');
  if(!response.ok)throw Error('No se pudo guardar la aplicación');
@@ -9,6 +9,7 @@ self.addEventListener('install',event=>{event.waitUntil((async()=>{
 self.addEventListener('activate',event=>{event.waitUntil(self.clients.claim())});
 self.addEventListener('fetch',event=>{
  const url=new URL(event.request.url);
+ if(event.request.method==='GET'&&event.request.destination==='image'&&url.protocol==='https:'){event.respondWith(caches.open(IMAGE_CACHE).then(async cache=>{const saved=await cache.match(event.request);if(saved)return saved;const response=await fetch(event.request);if(response.ok||response.type==='opaque')event.waitUntil(cache.put(event.request,response.clone()).catch(()=>{}));return response}).catch(()=>fetch(event.request)));return}
  if(event.request.method!=='GET'||url.origin!==self.location.origin||url.pathname.startsWith('/api/')||url.pathname.startsWith('/__/'))return;
  if(event.request.mode==='navigate'){
   event.respondWith(fetch(event.request).then(response=>{if(response.ok){const copy=response.clone();event.waitUntil(caches.open(SHELL_CACHE).then(cache=>cache.put('/',copy)))}return response}).catch(()=>caches.match('/')));return;

@@ -1,4 +1,5 @@
 import React from 'react';
+import CachedImage from './CachedImage';
 import {View,Text,Image,StyleSheet} from 'react-native';
 import {getPlayerPhoto} from './player-photos';
 import seed from './players-seed.json';
@@ -16,7 +17,7 @@ export default function PlayerPortrait({playerId,name,teamId,size=48,style,photo
   const source=(photo?(typeof photo==='string'?{uri:photo}:photo):null)||getPlayerPhoto(playerId)||(!disableLookup?getPlayerPhoto(photoIdFor(name,teamId)):null);
   const initial=String(name||'?').trim().slice(0,1).toLocaleUpperCase('es')||'?';
   return <View style={[s.base,{width:size,height:size,borderRadius:size/2},style]}>
-    {source?<Image onError={onPhotoError} source={source} accessibilityLabel={'Foto de '+(name||'jugador')} style={{width:size,height:size,borderRadius:size/2}} resizeMode="cover"/>:<Text style={[s.initial,{fontSize:Math.max(14,size*.4)}]}>{initial}</Text>}
+    {source?.uri&&/^https:\/\//.test(source.uri)?<CachedImage uri={source.uri} onError={onPhotoError} accessibilityLabel={'Foto de '+(name||'jugador')} style={{width:size,height:size,borderRadius:size/2}} resizeMode="cover"/>:source?<Image onError={onPhotoError} source={source} accessibilityLabel={'Foto de '+(name||'jugador')} style={{width:size,height:size,borderRadius:size/2}} resizeMode="cover"/>:<Text style={[s.initial,{fontSize:Math.max(14,size*.4)}]}>{initial}</Text>}
   </View>;
 }
 const s=StyleSheet.create({base:{overflow:'hidden',backgroundColor:'#25364c',alignItems:'center',justifyContent:'center'},initial:{color:'#dce6ff',fontWeight:'800'}});

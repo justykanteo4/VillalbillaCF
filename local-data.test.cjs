@@ -1,3 +1,4 @@
+globalThis.__goalkeeperTest=require('./goalkeeper-stats.cjs');
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -9,7 +10,7 @@ async function client(t,fetcher,entries=[]){
  global.fetch=fetcher;
  global.__localDataTest={readCopy:async key=>{reads.push(key);return copies.get(key)},saveCopy:async(key,data)=>{copies.set(key,{data,savedAt:new Date().toISOString()})}};
  const source=fs.readFileSync('./api.js','utf8')
-  .replace("import {readCopy,saveCopy} from './offline';","const {readCopy,saveCopy}=globalThis.__localDataTest;")
+  .replace("import {sumGoalkeepers} from './goalkeeper-stats.cjs';","const {sumGoalkeepers}=globalThis.__goalkeeperTest;").replace("import {readCopy,saveCopy} from './offline';","const {readCopy,saveCopy}=globalThis.__localDataTest;")
   .replace("import {Platform} from 'react-native';","const Platform={OS:'web'};");
  const {api}=await import('data:text/javascript,'+encodeURIComponent(source+'\n// Instance '+instance++));
  t.after(()=>{global.fetch=original;delete global.__localDataTest});
@@ -133,3 +134,10 @@ test('un acta histórica cerrada se consulta desde el dispositivo sin red; actua
 test('actualizar un acta también corrige el archivo que se abrirá sin conexión',async t=>{
  const path='/api/match?team=a&match=old';const {api}=await client(t,async()=>response({closed:true,goals:[{name:'Corregido'}]}),[[path,stale({closed:true,goals:[]})]]);await api(path+'&refresh=1',{cache:'no-store'});assert.equal((await api(path,{cache:'archive'})).goals[0].name,'Corregido');
 });
+
+test('estadísticas del portero recorren actas paginadas y se conservan sin conexión sin alterar tarjetas',async t=>{
+ const {api,copies}=await client(t,async url=>url.includes('/api/players')?response({players:[{id:'k',position:'Portero',goals:0,yellow:2,red:1}]}):response({records:[{id:'m',keepers:[{teamId:'a',playerId:'k',played:true,goalsConceded:2,cleanSheets:0}]}],nextOffset:null}));
+ const value=await api('/api/players?team=a');assert.equal(value.players[0].goalsConceded,2);assert.equal(value.players[0].cleanSheets,0);assert.equal(value.players[0].yellow,2);assert(copies.has('goalkeeperTotals.v1.a'));
+ global.fetch=async()=>{throw Error('sin conexión')};const saved=await api('/api/players?team=a',{cache:'reload'});assert.equal(saved.players[0].goalsConceded,2);assert.equal(saved.players[0].red,1);
+});
+test('recuento parcial de porteros conserva cifras confirmadas y su aviso sin conexión',async t=>{const {api,copies}=await client(t,async url=>url.includes('/api/players')?response({players:[{id:'k',position:'Portero'}]}):response({records:[{id:'one',keepers:[{teamId:'a',playerId:'k',played:true,goalsConceded:1,cleanSheets:0}]},{id:'pending',error:true}],nextOffset:null}));const first=await api('/api/players?team=a');assert.equal(first.players[0].goalsConceded,1);assert(first.players[0].goalkeeperPartial);assert.equal(copies.get('goalkeeperTotals.v1.a').data.missing,1);global.fetch=async()=>{throw Error('sin conexión')};const offline=await api('/api/players?team=a',{cache:'reload'});assert.equal(offline.players[0].goalsConceded,1);assert(offline.players[0].goalkeeperPartial)});

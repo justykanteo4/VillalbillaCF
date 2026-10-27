@@ -1,3 +1,4 @@
+globalThis.__goalkeeperTest=require('./goalkeeper-stats.cjs');
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {mergeChanges}=require('./workspace-sync.cjs');
@@ -60,7 +61,7 @@ test('endpoint Node de goleadores de liga llama al export correcto',async()=>{
 test('consultas públicas se recuperan de la copia local ante fallo de red',async()=>{
  const fs=require('node:fs'),original=global.fetch,copies=new Map();
  global.__testOffline={readCopy:async key=>copies.get(key),saveCopy:async(key,data)=>copies.set(key,{data,savedAt:'2026-10-25T10:00:00Z'})};
- let source=fs.readFileSync('./api.js','utf8').replace("import {readCopy,saveCopy} from './offline';","const {readCopy,saveCopy}=globalThis.__testOffline;").replace("import {Platform} from 'react-native';","const Platform={OS:'web'};");
+ let source=fs.readFileSync('./api.js','utf8').replace("import {sumGoalkeepers} from './goalkeeper-stats.cjs';","const {sumGoalkeepers}=globalThis.__goalkeeperTest;").replace("import {readCopy,saveCopy} from './offline';","const {readCopy,saveCopy}=globalThis.__testOffline;").replace("import {Platform} from 'react-native';","const Platform={OS:'web'};");
  try{
   const {api}=await import('data:text/javascript,'+encodeURIComponent(source));
   global.fetch=async()=>({ok:true,json:async()=>({rows:[{name:'Club',points:3}]})});

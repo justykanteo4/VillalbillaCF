@@ -1,3 +1,4 @@
+import goalkeepers from './server/goalkeepers.cjs';
 import reportMembership from './server/report-membership.cjs';
 import {handleAccess,dispatchAccessNotifications} from './access-service.mjs';
 import {handleActivity} from './activity-service.mjs';
@@ -30,6 +31,7 @@ const json = (value, status = 200, origin = '*', maxAge = 0) => new Response(JSO
 
 async function data(request, env) {
   const url = new URL(request.url), p = url.searchParams;
+  if(url.pathname==='/api/goalkeepers'){const offset=Number(p.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida'},400,0];const value=await goalkeepers.goalkeeperReports(p.get('team'),offset,env.VISITS_DB);return value?[value,200,value.error?0:60]:[{error:'Equipo no encontrado'},404,0]}
   if (url.pathname === '/api/club-stats') {
     const offset=Number(p.get('offset')||0);
     if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida.'},400,0];

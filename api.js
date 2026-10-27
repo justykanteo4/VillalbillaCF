@@ -1,10 +1,11 @@
 import {readCopy,saveCopy} from './offline';
+import {sumGoalkeepers} from './goalkeeper-stats.cjs';
 import {Platform} from 'react-native';
 export const apiBase=Platform.OS==='web'?'':(process.env.EXPO_PUBLIC_API_URL||'');
-const PUBLIC_DATA=/^\/api\/(?:news|report-membership|team-calendar|club-stats|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather|notifications)(?:\?|$)/;
+const PUBLIC_DATA=/^\/api\/(?:news|report-membership|team-calendar|goalkeepers|club-stats|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather|notifications)(?:\?|$)/;
 const refreshing=new Map(),versions=new Map(),MAX_AGE=60000;
 const limitData=(path,data)=>path.split('?')[0]==='/api/instagram'?{...data,posts:(Array.isArray(data.posts)?data.posts:[]).slice(0,8)}:data;
-export async function api(path,options={}){
+async function baseApi(path,options={}){
  if(Platform.OS!=='web'&&!apiBase)throw Error('Servicio pendiente de configurar para móvil');
  if(options.signal?.aborted)throw Object.assign(Error('Consulta cancelada'),{name:'AbortError'});
  const {onUpdate,onRefreshError,cache:cacheMode,...requestOptions}=options;
@@ -18,7 +19,7 @@ export async function api(path,options={}){
   const age=Date.now()-Date.parse(cached.savedAt);
   if(!Number.isFinite(age)||age<0||age>=MAX_AGE){
    if(!refreshing.has(path)){
-    const job=api(path,{...requestOptions,signal:undefined,cache:'reload',_background:true});
+    const job=baseApi(path,{...requestOptions,signal:undefined,cache:'reload',_background:true});
     refreshing.set(path,job);job.finally(()=>{if(refreshing.get(path)===job)refreshing.delete(path)}).catch(()=>{});
    }
    refreshing.get(path).then(data=>{if(!options.signal?.aborted)onUpdate?.(data)}).catch(error=>{
@@ -61,4 +62,23 @@ export async function api(path,options={}){
   clearTimeout(timeout);
   options.signal?.removeEventListener('abort',abortFromCaller);
  }
+}
+
+const goalkeeperJobs=new Map();
+async function enrichKeepers(path,data,options){
+ if(!Array.isArray(data?.players)||!/^\/api\/(players|team-ranking)\?/.test(path))return data;
+ const teamId=new URL('https://local'+path).searchParams.get('team');if(!teamId)return data;
+ const teamKey='goalkeeperTotals.v1.'+teamId,stored=await readCopy(teamKey).catch(()=>null);
+ let totals=stored?.data;
+ if(!totals||['reload','no-store'].includes(options.cache)||Date.now()-Date.parse(stored.savedAt)>300000){
+  if(!goalkeeperJobs.has(teamId)){const job=(async()=>{const pages=[],seen=new Set();let offset=0,failed=false;do{if(seen.has(offset))throw Error('Paginación de actas incorrecta');seen.add(offset);const page=await baseApi('/api/goalkeepers?team='+encodeURIComponent(teamId)+'&offset='+offset,{cache:options.cache,signal:options.signal});if(page.error){failed=true;break}pages.push(...page.records);offset=page.nextOffset;}while(Number.isSafeInteger(offset)&&offset>0);if(failed)throw Error('Actas pendientes');const result={players:sumGoalkeepers(pages,teamId),checkedAt:new Date().toISOString(),missing:pages.filter(p=>p.error).length};await saveCopy(teamKey,result).catch(()=>{});return result})().finally(()=>goalkeeperJobs.delete(teamId));goalkeeperJobs.set(teamId,job)}
+  try{totals=await goalkeeperJobs.get(teamId)}catch{if(totals)totals={...totals,stale:true}}
+ }
+ const players=data.players.map(p=>{const value=totals?.players?.find(v=>v.playerId===String(p.id)),keeper=value||p.isGoalkeeper||/portero|guardameta/i.test(String(p.position));return keeper?{...p,...(value||{goalsConceded:null,cleanSheets:null}),isGoalkeeper:true,goalkeeperPartial:!!(value?.goalkeeperPartial||totals?.missing||totals?.stale||!value),goalkeeperUpdatedAt:totals?.checkedAt}:p});
+ return {...data,players};
+}
+export async function api(path,options={}){
+ const enriched=/^\/api\/(players|team-ranking)\?/.test(path);if(!enriched)return baseApi(path,options);
+ let sequence=0;const onUpdate=value=>{const current=++sequence;enrichKeepers(path,value,options).then(data=>{if(current===sequence&&!options.signal?.aborted)options.onUpdate?.(data)}).catch(()=>{})};
+ const value=await baseApi(path,{...options,onUpdate});++sequence;const result=await enrichKeepers(path,value,options);if(options.signal?.aborted)throw Object.assign(Error('Consulta cancelada'),{name:'AbortError'});return result;
 }

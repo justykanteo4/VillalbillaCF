@@ -1,0 +1,13 @@
+# Estadísticas de porteros desde actas
+
+Se identifica al portero por `portero=1` en el acta, no por dorsal ni por estar convocado. Solo se calculan partidos cerrados y no suspendidos. Se reconstruyen sus intervalos con titularidad, sustituciones y expulsiones. Se suman los goles rivales durante su presencia; el marcador debe coincidir con los eventos de gol. Un suplente que no juega suma cero partidos como portero y ninguna portería a cero. Una portería a cero requiere completar el encuentro y no encajar. Los descuentos se ordenan dentro de su minuto (45+2 antes de46); si gol y cambio coinciden en minuto, no se inventa quién estaba en portería. Marcadores incompatibles, minutos ausentes, varias titularidades de portero o participación ambigua se marcan como parcial.
+
+`goalkeeper-stats.cjs` contiene cálculo y suma por equipo. `server/match.cjs` conserva el resumen en actas schema4; la caché D1 anterior se migra al consultar, y las actas cerradas históricas se reutilizan. `/api/goalkeepers?team=...&offset=0` pagina nueve actas por petición para respetar límites de subpeticiones. No se descarga toda la temporada en una única petición al Worker.
+
+`api.js` añade los acumulados a jugadores/ranking, conserva tarjetas y estadísticas oficiales, y guarda páginas y totales en el dispositivo. Datos no disponibles son —, no cero. Consultas repetidas del mismo equipo comparten la carga de porteros. La vista indica Actas del equipo y avisa de recuentos parciales; los totales no mezclan otros equipos o competiciones de la ficha.
+
+`GoalkeeperStats.js` se utiliza en Plantilla, perfil de jugador, directorio, identidad entrenador/jugador, favoritos, rankings y goleadores del club/liga para jugadores propios. En la presentación del portero se muestran seis datos: goles marcados, amarillas, rojas, partidos, goles encajados y porterías a cero. No se añaden módulos nativos.
+
+Verificación: pruebas de titular/suplente, portería a cero, sustituciones, expulsiones, actas incompletas, goles/minutos ambiguos, descuento y persistencia sin conexión. Un acta pública real confirmó las banderas portero/titular de la RFFM y el reparto titular/suplente. No se alteran datos federativos ni usuarios.
+
+En competiciones con cambios ilimitados (fútbol7 y similares), si el acta incluye varios porteros no se presume que el titular jugase todo el partido: la participación queda pendiente por falta de trazabilidad de cambios. Con un único portero identificado y titular se puede calcular. Esta precaución evita adjudicar a un portero los goles recibidos por otro cuando las sustituciones no se registran de forma completa.

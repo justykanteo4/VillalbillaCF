@@ -17,3 +17,5 @@ export function useScreenHistory(initial,{priority=0,key=null}={}){
  const back=useCallback(()=>{if(!history.current.back())return false;setValue(history.current.value);return true},[]);
  return [value,navigate,reset,back];
 }
+
+export function openStoredScreen(key,value){const history=screens.get(key)||createHistory(value);history.reset(value);screens.set(key,history)}

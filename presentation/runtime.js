@@ -3,8 +3,10 @@ import clubLogo from '../assets/escudo-transparente.png';
 import spainLogo from '../assets/bandera-espana-oficial.png';
 import madridLogo from '../assets/bandera-comunidad-madrid.svg';
 import {drawEmblem} from './emblems.js';
+import {chooseEmblems} from '../presentation-emblems.cjs';
 import {stadium} from '../simulator/stadium.js';
 function presentationRuntime(D){
+ const selectedEmblems=new Map(D.players.map(p=>[p,chooseEmblems(p)]));
  const C=document.getElementById('c');let X=C.getContext('2d',{alpha:false});const W=C.width,H=C.height,step=2800,hold=2800,total=D.players.length*step+hold;
  let spainImage=null,madridImage=null,clubImage=null,federationImage=null,portraits=[],cards=new Map(),fieldImage=null,scene=null,sceneIndex=-1,started=0,animation=0,recorder=null,recording=false,lastIndex=-1,stopped=false;
  const post=value=>{if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify(value));else parent.postMessage({lineupPresentation:true,...value},'*')};
@@ -14,7 +16,7 @@ function presentationRuntime(D){
 
  function spainFlag(){if(spainImage?.naturalWidth)X.drawImage(spainImage,-66,272,51,34);X.strokeStyle='#927335';X.lineWidth=.8;X.strokeRect(-66,272,51,34)}
  function madridFlag(){if(madridImage?.naturalWidth)X.drawImage(madridImage,7,272,53.43,34);X.strokeStyle='#927335';X.lineWidth=.8;X.strokeRect(7,272,53.43,34)}
- function emblem(p){drawEmblem(X,({Portero:2,Defensa:4,Mediocentro:0,Delantero:1})[p.role]??0)}
+ function emblem(p){for(const badge of selectedEmblems.get(p)||[]){const x=badge.type==='position'||badge.type==='goals'?-182:174,y=badge.type==='goals'?-91:-34;drawEmblem(X,badge.kind,{x,y,scale:.85});if(badge.count!==undefined){X.save();X.fillStyle='#3f301b';X.beginPath();X.arc(x+17,y+16,11,0,Math.PI*2);X.fill();X.fillStyle='#fff4cc';X.font='800 12px sans-serif';X.textAlign='center';X.fillText(String(badge.count),x+17,y+20,20);X.restore()}}}
  function badges(){spainFlag();madridFlag()}
  function headerBadges(p){if(federationImage?.naturalWidth)X.drawImage(federationImage,0,0,126,126,-24,-320,48,48);if(clubImage?.naturalWidth){const h=86,w=h*clubImage.naturalWidth/clubImage.naturalHeight;X.drawImage(clubImage,174-w/2,-270,w,h)}emblem(p)}
  function shield(){X.beginPath();X.moveTo(-196,-310);X.lineTo(-96,-310);X.quadraticCurveTo(0,-347,96,-310);X.lineTo(196,-310);X.lineTo(218,-270);X.lineTo(218,246);X.quadraticCurveTo(218,284,0,320);X.quadraticCurveTo(-218,284,-218,246);X.lineTo(-218,-270);X.closePath()}

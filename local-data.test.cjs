@@ -6,15 +6,16 @@ const {resolveDeviceTargets,matchesNotification}=require('./notification-targets
 let instance=0;
 const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done});return {promise,resolve}};
 async function client(t,fetcher,entries=[]){
- const original=global.fetch,copies=new Map(entries),reads=[];
+ const original=global.fetch,copies=new Map(entries),reads=[],events=[];global.__diagnosticTest=event=>events.push(event);
  global.fetch=fetcher;
  global.__localDataTest={readCopy:async key=>{reads.push(key);return copies.get(key)},saveCopy:async(key,data)=>{copies.set(key,{data,savedAt:new Date().toISOString()})}};
  const source=fs.readFileSync('./api.js','utf8')
   .replace("import {sumGoalkeepers} from './goalkeeper-stats.cjs';","const {sumGoalkeepers}=globalThis.__goalkeeperTest;").replace("import {readCopy,saveCopy} from './offline';","const {readCopy,saveCopy}=globalThis.__localDataTest;")
+  .replace("import {recordDiagnostic} from './diagnostics';","const recordDiagnostic=globalThis.__diagnosticTest;")
   .replace("import {Platform} from 'react-native';","const Platform={OS:'web'};");
  const {api}=await import('data:text/javascript,'+encodeURIComponent(source+'\n// Instance '+instance++));
  t.after(()=>{global.fetch=original;delete global.__localDataTest});
- return {api,copies,reads};
+ return {api,copies,reads,events};
 }
 const stale=data=>({savedAt:new Date(Date.now()-120000).toISOString(),data});
 const response=data=>({ok:true,json:async()=>data});
@@ -142,3 +143,5 @@ test('estadísticas del portero recorren actas paginadas y se conservan sin cone
 });
 test('recuento parcial de porteros conserva cifras confirmadas y su aviso sin conexión',async t=>{const {api,copies}=await client(t,async url=>url.includes('/api/players')?response({players:[{id:'k',position:'Portero'}]}):response({records:[{id:'one',keepers:[{teamId:'a',playerId:'k',played:true,goalsConceded:1,cleanSheets:0}]},{id:'pending',error:true}],nextOffset:null}));const first=await api('/api/players?team=a');assert.equal(first.players[0].goalsConceded,1);assert(first.players[0].goalkeeperPartial);assert.equal(copies.get('goalkeeperTotals.v1.a').data.missing,1);global.fetch=async()=>{throw Error('sin conexión')};const offline=await api('/api/players?team=a',{cache:'reload'});assert.equal(offline.players[0].goalsConceded,1);assert(offline.players[0].goalkeeperPartial)});
 test('muestra los acumulados locales del portero sin esperar la actualización de actas',async t=>{const network=deferred(),update=deferred(),old={players:[{playerId:'k',goalsConceded:2,cleanSheets:1,isGoalkeeper:true}],checkedAt:'old'};const {api}=await client(t,async url=>url.includes('/api/goalkeepers')?network.promise:response({players:[{id:'k',position:'Portero'}]}),[['goalkeeperTotals.v1.a',{data:old,savedAt:new Date(Date.now()-360000).toISOString()}]]);const initial=await api('/api/players?team=a',{onUpdate:update.resolve});assert.equal(initial.players[0].goalsConceded,2);network.resolve(response({records:[{id:'m',keepers:[{teamId:'a',playerId:'k',played:true,goalsConceded:3,cleanSheets:0}]}],nextOffset:null}));assert.equal((await update.promise).players[0].goalsConceded,3)});
+
+test('registra fallos de actas y formatos incorrectos sin guardar el contenido de la respuesta',async t=>{const {api,events}=await client(t,async()=>({ok:true,json:async()=>{throw SyntaxError('private response')}}));await assert.rejects(()=>api('/api/match?id=123',{cache:'reload'}),/datos válidos/);assert.equal(events[0].code,'FORMAT');assert.equal(events[0].category,'actas');assert.equal(JSON.stringify(events).includes('private response'),false)});

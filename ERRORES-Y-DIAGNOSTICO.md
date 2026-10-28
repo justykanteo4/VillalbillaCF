@@ -1,0 +1,13 @@
+# Errores y diagnóstico de administración
+
+Ajustes muestra Errores y diagnóstico solo a cuentas administradoras; también está dentro de Administración. El servidor verifica el token Firebase y el permiso administrativo existente antes de leer el registro del club. Enviar un registro requiere una sesión Firebase válida y no concede permisos.
+
+Se registran errores de API (HTTP, red, tiempo de espera, fuente y JSON incorrecto), actas/estadísticas derivadas, sincronización y lectura/guardado del espacio compartido, actualización nativa y errores de JavaScript no controlados. Los errores JavaScript no guardan mensajes ni trazas; se respeta el manejador original. No se promete recuperar errores previos a esta versión ni un cierre del sistema antes de poder guardar.
+
+El registro local conserva cien eventos y agrupa repeticiones durante cinco minutos. Los eventos pendientes se envían al iniciar sesión, volver a primer plano y cada minuto en primer plano. Un fallo de envío no genera más errores ni bloquea la app. El envío no bloquea nuevas escrituras y no marca como enviado un evento que cambió durante el envío.
+
+D1: diagnostics-schema.sql se añade a VISITS_DB sin modificar tablas anteriores. app_diagnostics conserva datos técnicos, sin correo, nombre, cuerpo, token, traza o identificador del dispositivo. El propietario del envío se usa solo como hash para límites e idempotencia y no aparece en la consulta del administrador. Los recursos conservan únicamente rutas API y parámetros numéricos team/id. El panel combina hasta cien registros centrales de los últimos treinta días y cien locales, con filtros por categoría. Un error al consultar no se presenta como ausencia de fallos.
+
+Los envíos se limitan a veinte eventos y 24 KB por petición; quinientos identificadores nuevos por cuenta/día, deduplicados por identificador. Las respuestas privadas no se cachean. Los fallos de la fuente en Worker también se registran, agrupados por servicio/código/recurso/estado y bloque de cinco minutos. La limpieza de eventos de más de treinta días se ejecuta al recibir envíos; la consulta excluye siempre los anteriores a treinta días.
+
+Verificación: 155 pruebas, incluida persistencia/reintento/agrupación, eventos concurrentes durante el envío, limpieza de datos privados, permisos y consulta restringida, validación de cuerpos, y detección de respuestas API malformadas. SQL ejecutado en SQLite real confirma agrupación. La pantalla se comprueba con datos ficticios en navegador: acceso de administrador, denegación a otros perfiles, filtros y conservación de copia si falla la conexión. No se generan errores ni envíos ficticios en producción para probarlo.

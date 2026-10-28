@@ -1,3 +1,4 @@
+import {recordDiagnostic} from './diagnostics';
 import {readCopy,saveCopy} from './offline';
 import {sumGoalkeepers} from './goalkeeper-stats.cjs';
 import {Platform} from 'react-native';
@@ -40,7 +41,9 @@ async function baseApi(path,options={}){
  else options.signal?.addEventListener('abort',abortFromCaller,{once:true});
  try{
   const r=await fetch(apiBase+path,{...fetchOptions,...(['reload','no-store'].includes(cacheMode)?{cache:cacheMode}:{}),headers:{...options.headers,'X-App-Platform':Platform.OS},signal:controller.signal});
-  const d=limitData(path,await r.json());
+  let payload;try{payload=await r.json()}catch{throw Object.assign(Error('El servidor no ha enviado datos válidos. Vuelve a actualizar.'),{diagnosticCode:'FORMAT'})}
+  const d=limitData(path,payload);
+  if(r.ok&&d.error)recordDiagnostic({category:/match|goalkeepers|team-minutes|report-membership/.test(path)?'actas':'conexion',code:'SOURCE',resource:path,status:r.status});
   if(!r.ok){const e=Error(d.error||'Servicio no disponible');e.status=r.status;throw e}
   if(cacheable&&version!==versions.get(path)){
    const latest=await readCopy(path).catch(()=>null);
@@ -49,6 +52,7 @@ async function baseApi(path,options={}){
   if(cacheable&&!d.error){await saveCopy(path,d).catch(()=>{});if(path.startsWith('/api/match?')&&path.includes('&refresh=1'))await saveCopy(path.replace('&refresh=1',''),d).catch(()=>{})}
   return d;
  }catch(error){
+  if(!options.signal?.aborted)recordDiagnostic({category:/match|goalkeepers|team-minutes|report-membership/.test(path)?'actas':'conexion',code:controller.signal.aborted?'TIMEOUT':error.diagnosticCode|| (error.status?'HTTP':'NETWORK'),resource:path,status:error.status});
   if(cacheable&&version!==versions.get(path)&&!options.signal?.aborted){
    const latest=await readCopy(path).catch(()=>null);
    if(latest)return {...limitData(path,latest.data),fromCache:true,savedAt:latest.savedAt};

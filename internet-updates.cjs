@@ -15,7 +15,7 @@ module.exports.manualUpdate=manualUpdate;
 
 // Poll while visible. A downloaded update is announced before an automatic restart.
 const AUTO_CHECK_INTERVAL=5*60*1000,NOTICE_DELAY=15000;
-function createAutoUpdater(updates,{now=Date.now,isActive=()=>true,isEditing=()=>false,canReload=()=>true,beforeReload=async()=>{},hasPending=()=>false,onStatus=()=>{}}={}){
+function createAutoUpdater(updates,{now=Date.now,isActive=()=>true,isEditing=()=>false,canReload=()=>true,beforeReload=async()=>{},hasPending=()=>false,onStatus=()=>{},onError=()=>{}}={}){
  let lastCheck=-Infinity,running=false,pending=false,readyAt=0,applied=false,retryAt=0,wasInactive=false;
  const announce=()=>{pending=true;readyAt=now();onStatus({phase:isEditing()||!canReload()?'waiting':'ready',seconds:Math.ceil(NOTICE_DELAY/1000)})};
  return async function tick(force=false){
@@ -38,7 +38,7 @@ function createAutoUpdater(updates,{now=Date.now,isActive=()=>true,isEditing=()=
    const result=await updates.checkForUpdateAsync();
    if(!result.isAvailable){onStatus({phase:'idle'});return}
    onStatus({phase:'downloading'});await updates.fetchUpdateAsync();announce();if(!isActive())wasInactive=true;
-  }catch{retryAt=now()+60000;onStatus({phase:pending?'retry':'idle'})}
+  }catch(error){onError(error);retryAt=now()+60000;onStatus({phase:pending?'retry':'idle'})}
   finally{running=false}
  };
 }

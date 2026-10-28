@@ -1,3 +1,4 @@
+import {recordDiagnostic} from './diagnostics';
 import {warmTeamCache} from './warm-team-cache';
 import {useEffect,useRef,useState} from 'react';
 import {AppState} from 'react-native';
@@ -15,7 +16,7 @@ export default function useTeamWorkspace(teamId,storageKey,initial){
   const current=state.current,next=typeof update==='function'?update(current.data):update;
   if(next===current.data)return;
   state.current={...current,data:next,dirty:true};setData(next);setSaved(false);
-  persist().catch(()=>setError('No se pudieron guardar los cambios en este dispositivo.'));
+  persist().catch(()=>{recordDiagnostic({category:'sincronizacion',code:'SYNC',resource:'/api/workspace?team='+teamId});setError('No se pudieron guardar los cambios en este dispositivo.')});
  };
  useEffect(()=>{
   let alive=true,writing=false,hydrated=false,stop=()=>{};
@@ -31,7 +32,7 @@ export default function useTeamWorkspace(teamId,storageKey,initial){
     const next=mergeChanges(sent.data,state.current.data,merged);
     const dirty=JSON.stringify(next)!==JSON.stringify(merged);
     state.current={base:merged,data:next,dirty};setData(next);setSaved(!dirty);setError('');await persist();
-   }catch(e){if(alive)setError(e.code==='permission-denied'?'Tu cuenta ya no tiene permiso para sincronizar este equipo.':'Cambios guardados en este dispositivo. Se sincronizarán al recuperar la conexión.')}
+   }catch(e){recordDiagnostic({category:'sincronizacion',code:'SYNC',resource:'/api/workspace?team='+teamId});if(alive)setError(e.code==='permission-denied'?'Tu cuenta ya no tiene permiso para sincronizar este equipo.':'Cambios guardados en este dispositivo. Se sincronizarán al recuperar la conexión.')}
    finally{writing=false}
   };
   (async()=>{
@@ -45,9 +46,9 @@ export default function useTeamWorkspace(teamId,storageKey,initial){
      const current=state.current,next=current.dirty?mergeChanges(current.base,current.data,remote):remote;
      state.current={base:remote,data:next,dirty:current.dirty};setData(next);setSaved(!current.dirty);persist().catch(()=>{});
      saveCopy('Vestuario '+teamId,remote).catch(()=>{});
-    },()=>setError('Usando la copia local. La sincronización se reintentará al conectar.'));
+    },()=>{recordDiagnostic({category:'sincronizacion',code:'SYNC',resource:'/api/workspace?team='+teamId});setError('Usando la copia local. La sincronización se reintentará al conectar.')});
     flush();
-   }catch{if(alive)setError('La copia local no se pudo leer. No se sobrescribirán los registros.')}
+   }catch{recordDiagnostic({category:'sincronizacion',code:'SYNC',resource:'/api/workspace?team='+teamId});if(alive)setError('La copia local no se pudo leer. No se sobrescribirán los registros.')}
   })();
   const timer=setInterval(flush,2500),sub=AppState.addEventListener('change',value=>{if(value==='active'){flush();warmTeamCache(teamId)}});
   return()=>{alive=false;stop();clearInterval(timer);sub.remove()};

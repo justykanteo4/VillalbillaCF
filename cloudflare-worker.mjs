@@ -1,3 +1,4 @@
+import {handleDiagnostics,saveDiagnostic} from './diagnostics-service.mjs';
 import {handleApkDownload} from './apk-download.mjs';
 import minuteReports from './server/minute-reports.cjs';
 import goalkeepers from './server/goalkeepers.cjs';
@@ -124,6 +125,7 @@ export default {
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
+    const diagnosticResponse=await handleDiagnostics(request,env);if(diagnosticResponse)return diagnosticResponse;
     const accessResponse=await handleAccess(request,env,ctx);if(accessResponse)return accessResponse;
     const activityResponse=await handleActivity(request,env);if(activityResponse)return activityResponse;
     const visitResponse=await handleVisits(request,env);
@@ -143,12 +145,14 @@ export default {
     } catch { /* Local development may not provide the Cloudflare cache API. */ }
     try {
       const [value, status, maxAge] = await data(request, env);
+      if(status>=500||value?.error)ctx.waitUntil(saveDiagnostic(env.VISITS_DB,{category:/match|goalkeepers|team-minutes|report-membership/.test(url.pathname)?'actas':'conexion',code:'SOURCE',resource:url.pathname+url.search,status,platform:'servidor'}).catch(()=>{}));
       const response = json(value, status, origin, maxAge);
       if (status === 200 && maxAge) {
         try { ctx.waitUntil(caches.default.put(cacheKey, response.clone())); } catch { /* Cache is an optimization. */ }
       }
       return response;
     } catch {
+      ctx.waitUntil(saveDiagnostic(env.VISITS_DB,{category:/match|goalkeepers|team-minutes|report-membership/.test(url.pathname)?'actas':'conexion',code:'SOURCE',resource:url.pathname+url.search,status:502,platform:'servidor'}).catch(()=>{}));
       return json({ error: 'No se pudo consultar la fuente. Inténtalo más tarde.' }, 502, origin);
     }
   },

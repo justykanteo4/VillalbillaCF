@@ -17,8 +17,8 @@ if(Platform.OS==='web'&&globalThis.navigator?.serviceWorker){
 const PREFIX='villalbilla.cache.v2.';
 const memory=new Map(),reading=new Map();
 function remember(key,value){memory.delete(key);memory.set(key,value);if(memory.size>32)memory.delete(memory.keys().next().value);return value}
-async function legacySaveCopy(key,data){
- const value={key,savedAt:new Date().toISOString(),data};
+async function legacySaveCopy(key,data,savedAt){
+ const value={key,savedAt:savedAt||new Date().toISOString(),data};
  await AsyncStorage.setItem(PREFIX+key,JSON.stringify(value));
  return remember(key,value);
 }

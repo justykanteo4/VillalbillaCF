@@ -1,10 +1,9 @@
 {
-  "id": "2026.10.29.1",
+  "id": "2026.10.29.2",
   "date": "2026-10-29",
-  "title": "Actas incluidas y novedades de la app",
+  "title": "Ranking del área de jugadores",
   "changes": [
-    "La actualización incluye una copia de las actas públicas y de los datos del club disponibles al preparar esta versión.",
-    "Los datos incluidos se guardan en el dispositivo conservando las copias más recientes y los cambios de tu equipo.",
-    "Al recibir una versión nueva verás lo que se añadió o modificó. Pulsa Continuar para entrar en la app."
+    "En el ranking del área de jugadores se muestran goles y tarjetas, sin el botón ni los datos de minutos.",
+    "Los entrenadores conservan los minutos en su ranking de gestión."
   ]
 }

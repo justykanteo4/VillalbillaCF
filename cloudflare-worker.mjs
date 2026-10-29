@@ -70,7 +70,7 @@ async function data(request, env) {
   }
   if (url.pathname === '/api/field') {
     const result = await fields.field(p.get('id'));
-    return result ? [result, 200, 86400] : [{ error: 'Campo no encontrado.' }, 404, 0];
+    return result ? [result, 200, result.error?0:86400] : [{ error: 'Campo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/weather') return [await weather.weather(p.get('field'), p.get('date'), p.get('time')), 200, 1800];
   if (url.pathname === '/api/players') {
@@ -134,7 +134,8 @@ export default {
     if(notificationResponse)return notificationResponse;
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (request.method !== 'GET') return json({ error: 'Método no permitido.' }, 405, origin);
-    const cacheKey = new Request(url.toString(), { method: 'GET' });
+    const cacheUrl=new URL(url);if(url.pathname==='/api/field')cacheUrl.searchParams.set('__source','field-alias-v2');
+    const cacheKey = new Request(cacheUrl.toString(), { method: 'GET' });
     try {
       const cached = url.pathname==='/api/match'&&url.searchParams.get('refresh')==='1'?null:await caches.default.match(cacheKey);
       if (cached) {
@@ -147,7 +148,7 @@ export default {
       const [value, status, maxAge] = await data(request, env);
       if(status>=500||value?.error)ctx.waitUntil(saveDiagnostic(env.VISITS_DB,{category:/match|goalkeepers|team-minutes|report-membership/.test(url.pathname)?'actas':'conexion',code:'SOURCE',resource:url.pathname+url.search,status,platform:'servidor'}).catch(()=>{}));
       const response = json(value, status, origin, maxAge);
-      if (status === 200 && maxAge) {
+      if (status === 200 && maxAge && !value?.error) {
         try { ctx.waitUntil(caches.default.put(cacheKey, response.clone())); } catch { /* Cache is an optimization. */ }
       }
       return response;

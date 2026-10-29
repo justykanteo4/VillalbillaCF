@@ -1,3 +1,5 @@
+import offlinePolicy from './offline-policy.cjs';
+const requireOfflineCurrent=fixtures=>offlinePolicy.selectCurrent(fixtures,new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}));
 import {handleDiagnostics,saveDiagnostic} from './diagnostics-service.mjs';
 import {handleApkDownload} from './apk-download.mjs';
 import minuteReports from './server/minute-reports.cjs';
@@ -34,8 +36,8 @@ const json = (value, status = 200, origin = '*', maxAge = 0) => new Response(JSO
 
 async function data(request, env) {
   const url = new URL(request.url), p = url.searchParams;
-  if(url.pathname==='/api/team-minutes'){const offset=Number(p.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida'},400,0];const value=await minuteReports.minuteReports(p.get('team'),offset,env.VISITS_DB);return value?[value,200,value.error?0:60]:[{error:'Equipo no encontrado'},404,0]}
-  if(url.pathname==='/api/goalkeepers'){const offset=Number(p.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida'},400,0];const value=await goalkeepers.goalkeeperReports(p.get('team'),offset,env.VISITS_DB);return value?[value,200,value.error?0:60]:[{error:'Equipo no encontrado'},404,0]}
+  if(url.pathname==='/api/team-minutes'){const offset=Number(p.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida'},400,0];const value=await minuteReports.minuteReports(p.get('team'),offset,env.VISITS_DB,{current:p.get('current')==='1',pending:(p.get('pending')||'').split(',').filter(id=>/^\d{1,20}$/.test(id)).slice(0,20)});return value?[value,200,value.error?0:60]:[{error:'Equipo no encontrado'},404,0]}
+  if(url.pathname==='/api/goalkeepers'){const offset=Number(p.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida'},400,0];const value=await goalkeepers.goalkeeperReports(p.get('team'),offset,env.VISITS_DB,{current:p.get('current')==='1',pending:(p.get('pending')||'').split(',').filter(id=>/^\d{1,20}$/.test(id)).slice(0,20)});return value?[value,200,value.error?0:60]:[{error:'Equipo no encontrado'},404,0]}
   if (url.pathname === '/api/club-stats') {
     const offset=Number(p.get('offset')||0);
     if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida.'},400,0];
@@ -44,7 +46,7 @@ async function data(request, env) {
   }
   if(url.pathname==='/api/report-membership'){const value=await reportMembership.reportMembership(p.get('team'),p.get('name'),Number(p.get('offset')||0),env.VISITS_DB);return value?[value,200,value.error?0:300]:[{error:'Consulta no válida.'},400,0]}
   if (url.pathname === '/api/team-calendar') {const result=await news.teamCalendar(p.get('team'),p.get('current')==='1');return result?[result,200,result.error?0:60]:[{error:'Equipo no encontrado.'},404,0] }
-  if (url.pathname === '/api/news') return [await news.refreshNews({ persistComments: false }), 200, 60];
+  if (url.pathname === '/api/news') {const value=await news.refreshNews({persistComments:false});return [p.get('current')==='1'?{...value,teams:value.teams.map(t=>({...t,fixtures:requireOfflineCurrent(t.fixtures)}))}:value,200,60]}
   if (url.pathname === '/api/instagram') return [await news.instagram(env.INSTAGRAM_ACCESS_TOKEN, env.INSTAGRAM_FACEBOOK_ACCESS_TOKEN), 200, 60];
   if (url.pathname === '/api/calendar') {
     const response = await fetch(calendar.SOURCE, { signal: AbortSignal.timeout(20000) });

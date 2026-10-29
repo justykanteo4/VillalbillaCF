@@ -40,3 +40,5 @@ export default function CachedImage({uri,...props}){
  useEffect(()=>{let active=true;setSource(undefined);localImage(uri).then(value=>{if(active)setSource({uri:value})}).catch(()=>{if(active)setSource({uri})});return()=>{active=false}},[uri]);
  return <Image {...props} source={source} onError={event=>{if(source?.uri!==uri)setSource({uri});props.onError?.(event)}}/>;
 }
+
+export const cacheImage=localImage;

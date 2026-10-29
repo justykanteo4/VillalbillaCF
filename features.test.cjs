@@ -1,3 +1,5 @@
+globalThis.__gameMinutesTest=require('./game-minutes.cjs');
+globalThis.__offlinePolicyTest=require('./offline-policy.cjs');
 globalThis.__goalkeeperTest=require('./goalkeeper-stats.cjs');
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
@@ -61,7 +63,7 @@ test('endpoint Node de goleadores de liga llama al export correcto',async()=>{
 test('consultas públicas se recuperan de la copia local ante fallo de red',async()=>{
  const fs=require('node:fs'),original=global.fetch,copies=new Map();
  global.__testOffline={readCopy:async key=>copies.get(key),saveCopy:async(key,data)=>copies.set(key,{data,savedAt:'2026-10-25T10:00:00Z'})};
- let source=fs.readFileSync('./api.js','utf8').replace("import {recordDiagnostic} from './diagnostics';","const recordDiagnostic=()=>{};").replace("import {sumGoalkeepers} from './goalkeeper-stats.cjs';","const {sumGoalkeepers}=globalThis.__goalkeeperTest;").replace("import {readCopy,saveCopy} from './offline';","const {readCopy,saveCopy}=globalThis.__testOffline;").replace("import {Platform} from 'react-native';","const Platform={OS:'web'};");
+ let source=fs.readFileSync('./api.js','utf8').replace("import {gameMinutes} from './game-minutes.cjs';","const {gameMinutes}=globalThis.__gameMinutesTest;").replace("import {policyAge,mergeNews,mergeRecords,monday,reportSignature,changedReportIds,calendarSignature,selectCurrent} from './offline-policy.cjs';","const {policyAge,mergeNews,mergeRecords,monday,reportSignature,changedReportIds,calendarSignature,selectCurrent}=globalThis.__offlinePolicyTest;").replace("import {noteSportsRevision,withSportsStats} from './sports-revision';","const noteSportsRevision=async()=>{},withSportsStats=async(id,work)=>work();").replace("import {recordDiagnostic} from './diagnostics';","const recordDiagnostic=()=>{};").replace("import {sumGoalkeepers} from './goalkeeper-stats.cjs';","const {sumGoalkeepers}=globalThis.__goalkeeperTest;").replace("import {readCopy,saveCopy} from './offline';","const {readCopy,saveCopy}=globalThis.__testOffline;").replace("import {Platform,AppState} from 'react-native';","const Platform={OS:'web'},AppState={currentState:'active'};");
  try{
   const {api}=await import('data:text/javascript,'+encodeURIComponent(source));
   global.fetch=async()=>({ok:true,json:async()=>({rows:[{name:'Club',points:3}]})});

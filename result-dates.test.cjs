@@ -18,3 +18,11 @@ test('tarjetas identifican categoría y letra del club sin cambiar rivales ni co
  assert.equal(resultTeamName("VILLALBILLA C.F. 'B'",'26724944'),'Infantil femenino B');
  assert.equal(resultTeamName("VILLALBILLA C.F. 'B'",null,{category:'SEGUNDA CADETE',name:"VILLALBILLA C.F. 'B'"}),'Cadete B');
 });
+test('recupera marcadores cerrados de actas recientes sin inventar ceros ni alterar equipos',async()=>{
+ const {fillResultScores}=require('./result-scores.cjs');
+ const fixture=id=>({id,homeId:'a',awayId:'b',date:'2026-10-31',homeScore:null,awayScore:null});
+ const fixtures=['ok','zero','open','blank','wrong','fail'].map(fixture);fixtures.push({...fixture('future'),date:'2026-11-01'},{...fixture('old'),date:'2026-10-01'});
+ const called=[];await fillResultScores([{id:'a',fixtures}],async(t,m)=>{called.push(m.id);if(m.id==='fail')throw Error();return {id:m.id,homeId:'a',awayId:m.id==='wrong'?'c':'b',closed:m.id!=='open',homeScore:m.id==='blank'?'':m.id==='zero'?'0':'10',awayScore:m.id==='zero'?'0':'2'}},'2026-10-31');
+ assert.deepEqual(fixtures.slice(0,2).map(m=>[m.homeScore,m.awayScore]),[[10,2],[0,0]]);
+ assert(fixtures.slice(2).every(m=>m.homeScore===null&&m.awayScore===null));assert(!called.includes('future'));assert(!called.includes('old'));
+});

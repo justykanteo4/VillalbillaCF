@@ -46,7 +46,7 @@ async function data(request, env) {
   }
   if(url.pathname==='/api/report-membership'){const value=await reportMembership.reportMembership(p.get('team'),p.get('name'),Number(p.get('offset')||0),env.VISITS_DB);return value?[value,200,value.error?0:300]:[{error:'Consulta no válida.'},400,0]}
   if (url.pathname === '/api/team-calendar') {const result=await news.teamCalendar(p.get('team'),p.get('current')==='1');return result?[result,200,result.error?0:60]:[{error:'Equipo no encontrado.'},404,0] }
-  if (url.pathname === '/api/news') {const value=await news.refreshNews({persistComments:false});return [p.get('current')==='1'?{...value,teams:value.teams.map(t=>({...t,fixtures:requireOfflineCurrent(t.fixtures)}))}:value,200,60]}
+  if (url.pathname === '/api/news') {const value=await news.refreshNews({persistComments:false,db:env.VISITS_DB});return [p.get('current')==='1'?{...value,teams:value.teams.map(t=>({...t,fixtures:requireOfflineCurrent(t.fixtures)}))}:value,200,60]}
   if (url.pathname === '/api/instagram') return [await news.instagram(env.INSTAGRAM_ACCESS_TOKEN, env.INSTAGRAM_FACEBOOK_ACCESS_TOKEN), 200, 60];
   if (url.pathname === '/api/calendar') {
     const response = await fetch(calendar.SOURCE, { signal: AbortSignal.timeout(20000) });
@@ -136,7 +136,7 @@ export default {
     if(notificationResponse)return notificationResponse;
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (request.method !== 'GET') return json({ error: 'Método no permitido.' }, 405, origin);
-    const cacheUrl=new URL(url);if(url.pathname==='/api/field')cacheUrl.searchParams.set('__source','field-alias-v2');
+    const cacheUrl=new URL(url);if(url.pathname==='/api/news')cacheUrl.searchParams.set('__source','report-scores-v1');if(url.pathname==='/api/field')cacheUrl.searchParams.set('__source','field-alias-v2');
     const cacheKey = new Request(cacheUrl.toString(), { method: 'GET' });
     try {
       const cached = url.pathname==='/api/match'&&url.searchParams.get('refresh')==='1'?null:await caches.default.match(cacheKey);

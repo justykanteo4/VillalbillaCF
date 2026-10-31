@@ -1,9 +1,9 @@
 {
-  "id": "2026.10.31.2",
+  "id": "2026.10.31.3",
   "date": "2026-10-31",
-  "title": "Categorías en los resultados",
+  "title": "Marcadores recuperados de las actas",
   "changes": [
-    "En las tarjetas de Noticias y Resultados, los equipos del Villalbilla aparecen por categoría y letra: por ejemplo, Cadete B contra Garena.",
-    "Se conservan el rival, el orden local/visitante, el marcador y los detalles del partido."
+    "Resultados muestra el marcador del acta cerrada cuando el calendario federativo todavía lo deja vacío.",
+    "La consulta adicional se limita a los partidos recientes sin resultado; no se inventan marcadores de encuentros pendientes."
   ]
 }

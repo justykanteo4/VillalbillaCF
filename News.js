@@ -11,15 +11,16 @@ import ClubNewsSummary from './ClubNewsSummary';
 import CachedImage from './CachedImage';
 import {instagramPostUrl} from './instagram-post.cjs';
 import MatchEvents from './MatchEvents';
-import {datePeriod,periodEnd,resultDateOptions,matchesByDate,toggleResultTeam,hasResult} from './result-dates.cjs';
+import {datePeriod,periodEnd,resultDateOptions,matchesByDate,toggleResultTeam,hasResult,resultTeamName} from './result-dates.cjs';
 import ResultTeamSelector from './ResultTeamSelector';
 import TeamSelector from './TeamSelector';
 import {VisitCounter} from './AppVisits';
 
 function UpcomingMatchCard({match}){
   const [expanded,setExpanded]=useState(false);
+  const home=resultTeamName(match.home,match.homeId,match.team),away=resultTeamName(match.away,match.awayId,match.team);
   useBackAction(()=>{setExpanded(false);return true},20,expanded);
-  return <View style={s.upcomingCard}><Pressable accessibilityRole="button" accessibilityState={{expanded}} accessibilityLabel={'Detalles: '+match.home+(hasResult(match)?' '+match.homeScore+' a '+match.awayScore+' ':' vs ')+match.away} onPress={()=>setExpanded(v=>!v)} style={{gap:10}}><View style={s.scoreboard}><Text style={[s.team,s.scoreTeam]}>{match.home}</Text><Text style={hasResult(match)?s.score:s.vs}>{hasResult(match)?match.homeScore+' — '+match.awayScore:'VS'}</Text><Text style={[s.team,s.scoreTeam]}>{match.away}</Text></View><Text style={s.link}>{expanded?'Ocultar detalles −':'Ver detalles +'}</Text></Pressable>{expanded&&<View style={{gap:12}}><Text style={s.kicker}>{match.team.category} · Jornada {match.round}</Text><Text style={s.muted}>{match.date?match.date.split('-').reverse().join('/'):'Fecha por confirmar'} · {match.time||'Hora por confirmar'}</Text><VenueDirections fieldId={match.venueId} venue={match.venue}/><MatchWeather fieldId={match.venueId} date={match.date} time={match.time}/><MatchEvents match={match} onVenue={()=>{}}/></View>}</View>;
+  return <View style={s.upcomingCard}><Pressable accessibilityRole="button" accessibilityState={{expanded}} accessibilityLabel={'Detalles: '+home+(hasResult(match)?' '+match.homeScore+' a '+match.awayScore+' ':' vs ')+away} onPress={()=>setExpanded(v=>!v)} style={{gap:10}}><View style={s.scoreboard}><Text style={[s.team,s.scoreTeam]}>{home}</Text><Text style={hasResult(match)?s.score:s.vs}>{hasResult(match)?match.homeScore+' — '+match.awayScore:'VS'}</Text><Text style={[s.team,s.scoreTeam]}>{away}</Text></View><Text style={s.link}>{expanded?'Ocultar detalles −':'Ver detalles +'}</Text></Pressable>{expanded&&<View style={{gap:12}}><Text style={s.kicker}>{match.team.category} · Jornada {match.round}</Text><Text style={s.muted}>{match.date?match.date.split('-').reverse().join('/'):'Fecha por confirmar'} · {match.time||'Hora por confirmar'}</Text><VenueDirections fieldId={match.venueId} venue={match.venue}/><MatchWeather fieldId={match.venueId} date={match.date} time={match.time}/><MatchEvents match={match} onVenue={()=>{}}/></View>}</View>;
 }
 
 export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[],favoritesOnly=false}){

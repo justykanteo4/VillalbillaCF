@@ -9,3 +9,12 @@ test('prioriza resultados incluidos 0-0 y mantiene fecha/hora dentro de cada gru
  assert.deepEqual(matchesByDate([{id:'a',category:'A',fixtures}],'2026-10-27').map(m=>m.id),['draw','later','pending','partial']);
  assert.deepEqual(matchesByDate([{id:'a',category:'A',fixtures}],'2026-10-20'),[]);
 });
+test('tarjetas identifican categoría y letra del club sin cambiar rivales ni confundir derbis',()=>{
+ const {resultTeamName}=require('./result-dates.cjs');
+ assert.equal(resultTeamName("VILLALBILLA C.F. 'B'",'8941348'),'Cadete B');
+ assert.equal(resultTeamName('GARENA','1234',{category:'SEGUNDA CADETE',name:"VILLALBILLA C.F. 'B'"}),'GARENA');
+ assert.equal(resultTeamName("VILLALBILLA C.F. 'C'",'26724950'),'Cadete C');
+ assert.equal(resultTeamName('VILLALBILLA C.F.','846518'),'Juvenil');
+ assert.equal(resultTeamName("VILLALBILLA C.F. 'B'",'26724944'),'Infantil femenino B');
+ assert.equal(resultTeamName("VILLALBILLA C.F. 'B'",null,{category:'SEGUNDA CADETE',name:"VILLALBILLA C.F. 'B'"}),'Cadete B');
+});

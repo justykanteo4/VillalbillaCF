@@ -1,10 +1,9 @@
 {
-  "id": "2026.10.31.1",
+  "id": "2026.10.31.2",
   "date": "2026-10-31",
-  "title": "Resultados a primera vista",
+  "title": "Categorías en los resultados",
   "changes": [
-    "En Noticias y Resultados aparecen primero los partidos que ya tienen marcador.",
-    "Cada tarjeta muestra los equipos y el resultado; al pulsarla se abren los detalles del partido.",
-    "Se mantienen la selección de equipos y las flechas para desplazarse entre fechas."
+    "En las tarjetas de Noticias y Resultados, los equipos del Villalbilla aparecen por categoría y letra: por ejemplo, Cadete B contra Garena.",
+    "Se conservan el rival, el orden local/visitante, el marcador y los detalles del partido."
   ]
 }

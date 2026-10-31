@@ -1,8 +1,8 @@
 {
-  "id": "2026.10.31.4",
+  "id": "2026.10.31.5",
   "date": "2026-10-31",
-  "title": "Marcadores en celeste",
+  "title": "Todos los marcadores en celeste",
   "changes": [
-    "Los marcadores de Noticias y Resultados se muestran en color celeste #50EBEC."
+    "Todos los marcadores de la app usan el celeste #50EBEC: resultados, calendarios, ficha del partido y actas guardadas."
   ]
 }

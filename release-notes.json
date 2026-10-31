@@ -1,9 +1,10 @@
 {
-  "id": "2026.10.29.2",
-  "date": "2026-10-29",
-  "title": "Ranking del área de jugadores",
+  "id": "2026.10.31.1",
+  "date": "2026-10-31",
+  "title": "Resultados a primera vista",
   "changes": [
-    "En el ranking del área de jugadores se muestran goles y tarjetas, sin el botón ni los datos de minutos.",
-    "Los entrenadores conservan los minutos en su ranking de gestión."
+    "En Noticias y Resultados aparecen primero los partidos que ya tienen marcador.",
+    "Cada tarjeta muestra los equipos y el resultado; al pulsarla se abren los detalles del partido.",
+    "Se mantienen la selección de equipos y las flechas para desplazarse entre fechas."
   ]
 }

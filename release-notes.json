@@ -1,9 +1,8 @@
 {
-  "id": "2026.10.31.3",
+  "id": "2026.10.31.4",
   "date": "2026-10-31",
-  "title": "Marcadores recuperados de las actas",
+  "title": "Marcadores en celeste",
   "changes": [
-    "Resultados muestra el marcador del acta cerrada cuando el calendario federativo todavía lo deja vacío.",
-    "La consulta adicional se limita a los partidos recientes sin resultado; no se inventan marcadores de encuentros pendientes."
+    "Los marcadores de Noticias y Resultados se muestran en color celeste #50EBEC."
   ]
 }

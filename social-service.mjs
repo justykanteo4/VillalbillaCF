@@ -40,10 +40,17 @@ export async function handleSocial(request,env,{verify=verifySocialUser,getAutho
   }
   if(url.pathname==='/api/social/votes'){
    if(!categories.includes(category))throw error('Votación no válida.');
-   if(request.method==='POST'){if(!catalog[category].some(c=>c.id===data.candidateId))throw error('Selecciona una candidatura de la lista oficial.');await db.prepare('INSERT INTO social_votes VALUES(?,?,?,?,?) ON CONFLICT(season,category,uid) DO UPDATE SET candidate_id=excluded.candidate_id,updated_at=excluded.updated_at').bind(season,category,uid,data.candidateId,Date.now()).run()}
-   if(request.method==='DELETE')await db.prepare('DELETE FROM social_votes WHERE season=? AND category=? AND uid=?').bind(season,category,uid).run();
-   const mine=uid?await db.prepare('SELECT candidate_id AS id FROM social_votes WHERE season=? AND category=? AND uid=?').bind(season,category,uid).first():null,rows=await db.prepare('SELECT candidate_id AS id,COUNT(*) AS votes FROM social_votes WHERE season=? AND category=? GROUP BY candidate_id ORDER BY votes DESC,candidate_id LIMIT 10').bind(season,category).all();let rank=0,last=null;const top=rows.results.map((r,i)=>{if(r.votes!==last)rank=i+1;last=r.votes;return {...catalog[category].find(c=>c.id===r.id),...r,rank}});
-   return reply({season,myVote:mine?.id||null,top,candidates:catalog[category].filter(c=>names.matchesPersonQuery(c.name,(url.searchParams.get('q')||'').slice(0,100))).slice(0,30)});
+   const points=request.method==='DELETE'?Number(url.searchParams.get('points')||1):Number(data.points??1);
+   if(write&&![1,2,3].includes(points))throw error('Elige 3, 2 o 1 punto.');
+   if(request.method==='POST'){
+    if(!catalog[category].some(c=>c.id===data.candidateId))throw error('Selecciona una candidatura de la lista oficial.');
+    const duplicate=await db.prepare('SELECT points FROM social_ballots WHERE season=? AND category=? AND uid=? AND candidate_id=? AND points<>?').bind(season,category,uid,data.candidateId,points).first();
+    if(duplicate)throw error('Este candidato ya tiene '+duplicate.points+' puntos. Elige otro o retira primero esa elección.',409);
+    try{await db.prepare('INSERT INTO social_ballots VALUES(?,?,?,?,?,?) ON CONFLICT(season,category,uid,points) DO UPDATE SET candidate_id=excluded.candidate_id,updated_at=excluded.updated_at').bind(season,category,uid,points,data.candidateId,Date.now()).run()}catch(e){if(/UNIQUE/.test(e.message))throw error('No puedes repetir candidato en la misma votación.',409);throw e}
+   }
+   if(request.method==='DELETE')await db.prepare('DELETE FROM social_ballots WHERE season=? AND category=? AND uid=? AND points=?').bind(season,category,uid,points).run();
+   const mine=uid?await db.prepare('SELECT candidate_id AS id,points FROM social_ballots WHERE season=? AND category=? AND uid=? ORDER BY points DESC').bind(season,category,uid).all():{results:[]},rows=await db.prepare('SELECT candidate_id AS id,SUM(points) AS points,COUNT(*) AS votes FROM social_ballots WHERE season=? AND category=? GROUP BY candidate_id ORDER BY points DESC,candidate_id LIMIT 10').bind(season,category).all();let rank=0,last=null;const top=rows.results.map((r,i)=>{if(r.points!==last)rank=i+1;last=r.points;return {...catalog[category].find(c=>c.id===r.id),...r,rank}});
+   return reply({season,myVote:mine.results.find(r=>r.points===1)?.id||null,myBallot:mine.results.map(r=>({...catalog[category].find(c=>c.id===r.id),...r})),top,candidates:catalog[category].filter(c=>names.matchesPersonQuery(c.name,(url.searchParams.get('q')||'').slice(0,100))).slice(0,30)});
   }
   return reply({error:'Ruta no disponible.'},404);
  }catch(e){return reply({error:e.status?e.message:'No se pudo guardar o consultar la participación.'},e.status||503)}

@@ -1,10 +1,12 @@
 {
-  "id": "2026.11.01.3",
+  "id": "2026.11.01.4",
   "date": "2026-11-01",
-  "title": "Comentarios y votaciones del club",
+  "title": "Alineación libre y votaciones por puntos",
   "changes": [
-    "Se elimina el chat de jugadores y entrenadores.",
-    "Los partidos permiten comentarios públicos y me gusta con sesión iniciada.",
-    "Nuevas votaciones de mejor equipo, jugador y entrenador, con su Top por votos en los rankings. Cada cuenta puede votar una vez por categoría y cambiar su elección."
+    "Puedes alinear y sustituir a cualquier jugador de la plantilla en cualquier puesto, aunque no tenga posición asignada.",
+    "Las posiciones habituales solo orientan la colocación automática y no limitan tus elecciones.",
+    "Votaciones del club aparece debajo del ranking. En cada categoría puedes repartir 3, 2 y 1 punto entre tres candidatos distintos.",
+    "El Top se ordena por la suma de puntos. Los votos anteriores se conservan como elecciones de 1 punto.",
+    "Nueva pestaña Rankings junto a Goleadores, con selector de equipo y votaciones debajo del ranking."
   ]
 }

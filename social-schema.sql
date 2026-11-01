@@ -4,3 +4,8 @@ CREATE INDEX IF NOT EXISTS social_comments_match ON social_comments(match_id,cre
 CREATE INDEX IF NOT EXISTS social_comments_rate ON social_comments(uid,created_at);
 CREATE TABLE IF NOT EXISTS social_votes(season TEXT NOT NULL,category TEXT NOT NULL,uid TEXT NOT NULL,candidate_id TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(season,category,uid));
 CREATE INDEX IF NOT EXISTS social_votes_top ON social_votes(season,category,candidate_id);
+CREATE TABLE IF NOT EXISTS social_ballots(season TEXT NOT NULL,category TEXT NOT NULL,uid TEXT NOT NULL,points INTEGER NOT NULL CHECK(points IN (1,2,3)),candidate_id TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(season,category,uid,points),UNIQUE(season,category,uid,candidate_id));
+CREATE INDEX IF NOT EXISTS social_ballots_top ON social_ballots(season,category,candidate_id);
+CREATE TABLE IF NOT EXISTS social_migrations(id TEXT PRIMARY KEY);
+INSERT OR IGNORE INTO social_ballots(season,category,uid,points,candidate_id,updated_at) SELECT season,category,uid,1,candidate_id,updated_at FROM social_votes WHERE NOT EXISTS(SELECT 1 FROM social_migrations WHERE id='points-321');
+INSERT OR IGNORE INTO social_migrations VALUES('points-321');

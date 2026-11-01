@@ -1,12 +1,10 @@
 {
-  "id": "2026.11.01.4",
+  "id": "2026.11.01.5",
   "date": "2026-11-01",
-  "title": "Alineación libre y votaciones por puntos",
+  "title": "Votaciones con fotos y pestañas",
   "changes": [
-    "Puedes alinear y sustituir a cualquier jugador de la plantilla en cualquier puesto, aunque no tenga posición asignada.",
-    "Las posiciones habituales solo orientan la colocación automática y no limitan tus elecciones.",
-    "Votaciones del club aparece debajo del ranking. En cada categoría puedes repartir 3, 2 y 1 punto entre tres candidatos distintos.",
-    "El Top se ordena por la suma de puntos. Los votos anteriores se conservan como elecciones de 1 punto.",
-    "Nueva pestaña Rankings junto a Goleadores, con selector de equipo y votaciones debajo del ranking."
+    "Votaciones tiene su propia sección entre Calendario y Usuario, separada del ranking deportivo.",
+    "El ranking de votaciones usa pestañas de Jugadores, Equipos y Entrenadores, con fotos o escudos y puntos.",
+    "Los resultados de búsqueda y las elecciones muestran las fotos disponibles o el escudo del equipo. Se mantienen los votos de 3, 2 y 1 punto."
   ]
 }

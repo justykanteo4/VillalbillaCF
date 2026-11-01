@@ -1,8 +1,9 @@
 {
-  "id": "2026.10.31.5",
-  "date": "2026-10-31",
-  "title": "Todos los marcadores en celeste",
+  "id": "2026.11.01.1",
+  "date": "2026-11-01",
+  "title": "Chats de jugadores y entrenadores",
   "changes": [
-    "Todos los marcadores de la app usan el celeste #50EBEC: resultados, calendarios, ficha del partido y actas guardadas."
+    "Nuevo grupo de chat para cada equipo y conversaciones privadas entre sus jugadores y entrenadores aprobados.",
+    "Buscador de contactos y copia local de los mensajes consultados. Los mensajes pendientes se guardan y reintentan sin duplicarse al recuperar la conexión."
   ]
 }

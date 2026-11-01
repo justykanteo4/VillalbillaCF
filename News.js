@@ -1,3 +1,4 @@
+import {SocialThread} from './SocialCommunity';
 import React,{useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,Image,StyleSheet,AppState,ScrollView,Linking} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,7 +28,7 @@ function UpcomingMatchCard({match}){
       <MatchWeather compact fieldId={match.venueId} date={match.date} time={match.time}/>
       <Text style={s.link}>{expanded?'Ocultar detalles':'Ver campo y cómo llegar'} →</Text>
     </Pressable>
-    {expanded&&<View style={s.venueDetails}><VenueDirections fieldId={match.venueId} venue={match.venue}/></View>}
+    {expanded&&<View style={s.venueDetails}><VenueDirections fieldId={match.venueId} venue={match.venue}/><SocialThread topic={'match:'+match.team.id+':'+match.id}/></View>}
   </View>;
 }
 
@@ -102,7 +103,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
           <Text style={s.muted}>Jornada {match.round} · {match.date.split('-').reverse().join('/')} {match.time||''}</Text>
           <Text style={s.team}>{match.home}</Text>
           <Text style={s.score}>{match.homeScore!==null&&match.awayScore!==null?`${match.homeScore} — ${match.awayScore}`:'Pendiente de resultado'}</Text>
-          <Text style={s.team}>{match.away}</Text>
+          <Text style={s.team}>{match.away}</Text><SocialThread topic={'match:'+item.id+':'+match.id}/>
         </View>)}
       </View>;
     })}
@@ -123,7 +124,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
     </View>
     {ig.posts.slice(0,8).map(post=><View key={post.id} style={s.card}>
       <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator accessibilityLabel="Fotos de la publicación; desliza para ver más">{post.images.map((url,index)=><Image key={index} source={{uri:url}} accessibilityLabel={(post.caption||'Foto de Villalbilla C.F.')+' · '+(index+1)+' de '+post.images.length} style={{width:280,height:280,borderRadius:12,marginRight:8}} resizeMode="contain"/>)}</ScrollView>{post.images.length>1&&<Text style={s.muted}>Desliza para ver las {post.images.length} fotos →</Text>}{(post.permalink?.startsWith('https://www.instagram.com/')||post.permalink?.startsWith('https://instagram.com/'))&&<Pressable accessibilityRole="link" onPress={()=>Linking.openURL(post.permalink).catch(()=>setError('No se pudo abrir Instagram.'))}><Text style={s.link}>Ver publicación en Instagram ↗</Text></Pressable>}
-      <Text style={s.muted}>{new Date(post.date).toLocaleDateString('es-ES')}</Text><Text style={s.team}>{post.caption}</Text>
+      <Text style={s.muted}>{new Date(post.date).toLocaleDateString('es-ES')}</Text><Text style={s.team}>{post.caption}</Text><SocialThread topic={'news:'+post.id}/>
     </View>)}
   </>);
 

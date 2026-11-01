@@ -27,5 +27,21 @@
     "crons": [
       "* * * * *"
     ]
-  }
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "TEAM_CHAT",
+        "class_name": "TeamChatRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "social-chat-v1",
+      "new_sqlite_classes": [
+        "TeamChatRoom"
+      ]
+    }
+  ]
 }

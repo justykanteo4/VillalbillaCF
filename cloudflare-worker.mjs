@@ -1,3 +1,5 @@
+import {handleChat} from './chat-service.mjs';
+export {ChatRoom} from './chat-room.mjs';
 import offlinePolicy from './offline-policy.cjs';
 const requireOfflineCurrent=fixtures=>offlinePolicy.selectCurrent(fixtures,new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}));
 import {handleDiagnostics,saveDiagnostic} from './diagnostics-service.mjs';
@@ -127,6 +129,7 @@ export default {
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
+    const chatResponse=await handleChat(request,env);if(chatResponse)return chatResponse;
     const diagnosticResponse=await handleDiagnostics(request,env);if(diagnosticResponse)return diagnosticResponse;
     const accessResponse=await handleAccess(request,env,ctx);if(accessResponse)return accessResponse;
     const activityResponse=await handleActivity(request,env);if(activityResponse)return activityResponse;

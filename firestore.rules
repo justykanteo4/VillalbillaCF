@@ -104,14 +104,6 @@ service cloud.firestore {
     function chatAccess(teamId) {
       return signedIn() && chatApproved(request.auth.uid, teamId);
     }
-    function validChatMessage() {
-      let d = request.resource.data;
-      return d.keys().hasOnly(['body', 'senderId', 'senderName', 'createdAt'])
-        && d.senderId == request.auth.uid
-        && d.senderName == chatProfile(request.auth.uid).claim.name
-        && d.body is string && d.body.size() > 0 && d.body.size() <= 2000
-        && d.createdAt == request.time;
-    }
     function privateChatAccess(teamId, ids) {
       return chatAccess(teamId) && ids is list && ids.size() == 2
         && ids[0] != ids[1] && request.auth.uid in ids
@@ -119,7 +111,8 @@ service cloud.firestore {
     }
     match /teamChats/{teamId} {
       match /members/{uid} {
-        allow read: if chatAccess(teamId);
+        allow get: if chatAccess(teamId) && chatApproved(uid,teamId);
+        allow list: if false;
         allow create, update: if chatAccess(teamId) && request.auth.uid == uid
           && request.resource.data.keys().hasOnly(['uid', 'name', 'role'])
           && request.resource.data.uid == uid
@@ -129,20 +122,18 @@ service cloud.firestore {
       }
       match /messages/{messageId} {
         allow read: if chatAccess(teamId);
-        allow create: if chatAccess(teamId) && validChatMessage();
+        allow create: if false;
         allow update, delete: if false;
       }
       match /direct/{threadId} {
         allow get: if chatAccess(teamId) && (!exists(/databases/$(database)/documents/teamChats/$(teamId)/direct/$(threadId))
           || privateChatAccess(teamId, resource.data.memberIds));
         allow list: if false;
-        allow create: if request.resource.data.keys().hasOnly(['memberIds'])
-          && privateChatAccess(teamId, request.resource.data.memberIds);
+        allow create: if false;
         allow update, delete: if false;
         match /messages/{messageId} {
           allow read: if privateChatAccess(teamId, get(/databases/$(database)/documents/teamChats/$(teamId)/direct/$(threadId)).data.memberIds);
-          allow create: if privateChatAccess(teamId, get(/databases/$(database)/documents/teamChats/$(teamId)/direct/$(threadId)).data.memberIds)
-            && validChatMessage();
+          allow create: if false;
           allow update, delete: if false;
         }
       }

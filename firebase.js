@@ -10,7 +10,7 @@ import {
   onAuthStateChanged, signOut,
 } from 'firebase/auth';
 import {
-  getFirestore, collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, limitToLast,
+  getFirestore, collection, doc, getDoc, getDocs, onSnapshot,
   serverTimestamp, setDoc, updateDoc, runTransaction,
 } from 'firebase/firestore';
 
@@ -88,7 +88,7 @@ export function watchProfile(user, callback, onError) {
     }
     AsyncStorage.setItem('villalbilla.profile.'+user.uid,JSON.stringify(profile)).catch(()=>{});
     const {chatTeams}=require('./chat-core.cjs');
-    for(const teamId of chatTeams(profile))syncChatMembership(profile,teamId).catch(()=>{});
+    for(const teamId of chatTeams(profile))import('./chat-client').then(m=>m.syncChatMembership(profile,teamId)).catch(()=>{});
     callback(profile);
   }, onError);
 }
@@ -271,27 +271,10 @@ export async function migratePlayerDetails(teamId,players,aliases,positions){
  return runTransaction(db,async transaction=>{const ref=doc(db,'teamWorkspaces',teamId),snap=await transaction.get(ref);if(!snap.exists())return false;const data=snap.data().data;const old=data.playerDetails||{},details=mergeLegacyDetails(old,players,aliases,positions);if(details!==old)transaction.set(ref,{data:{...data,playerDetails:details},updatedAt:serverTimestamp()});return true});
 }
 
-export function syncChatMembership(account,teamId){
+export function syncChatPermission(account,teamId){
  if(!db||!auth?.currentUser||auth.currentUser.uid!==account.id)return Promise.reject(Error('Inicia sesión para usar los chats.'));
  return setDoc(doc(db,'teamChats',teamId,'members',account.id),{uid:account.id,name:account.claim.name,role:account.claim.role});
 }
-export function watchChatMembers(teamId,onData,onError){
- return onSnapshot(collection(db,'teamChats',teamId,'members'),snap=>onData(snap.docs.map(d=>({id:d.id,...d.data()}))),onError);
-}
-export async function openDirectChat(teamId,peerId){
- const {directChatId}=require('./chat-core.cjs'),uid=auth.currentUser.uid,id=directChatId(uid,peerId),ref=doc(db,'teamChats',teamId,'direct',id);
- await runTransaction(db,async tx=>{const snap=await tx.get(ref);if(!snap.exists())tx.set(ref,{memberIds:[uid,peerId].sort()})});return id;
-}
-const chatCollection=(teamId,directId)=>directId?collection(db,'teamChats',teamId,'direct',directId,'messages'):collection(db,'teamChats',teamId,'messages');
-export function watchChatMessages(teamId,directId,onData,onError){
- return onSnapshot(query(chatCollection(teamId,directId),orderBy('createdAt'),limitToLast(100)),snap=>onData(snap.docs.map(d=>{const row=d.data({serverTimestamps:'estimate'});return {id:d.id,...row,createdAt:row.createdAt?.toMillis?.()||0,pending:d.metadata.hasPendingWrites}})),onError);
-}
-export function sendChatMessage(teamId,directId,text,account,id){
- const {messageText}=require('./chat-core.cjs');
- const ref=doc(chatCollection(teamId,directId),id);
- return runTransaction(db,async tx=>{const old=await tx.get(ref);if(old.exists()){if(old.data().senderId!==auth.currentUser.uid||old.data().body!==messageText(text))throw Error('Mensaje no válido.');return}tx.set(ref,{body:messageText(text),senderId:auth.currentUser.uid,senderName:account.claim.name,createdAt:serverTimestamp()})});
-}
-
 
 export async function adminSetProfileTeams(profile,teamIds,player=null,playerTeams=null){
  if(!db||!auth?.currentUser)throw Error('Inicia sesión como administrador.');

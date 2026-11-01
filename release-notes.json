@@ -1,9 +1,10 @@
 {
-  "id": "2026.11.01.1",
+  "id": "2026.11.01.2",
   "date": "2026-11-01",
-  "title": "Chats de jugadores y entrenadores",
+  "title": "Chats en Cloudflare",
   "changes": [
-    "Nuevo grupo de chat para cada equipo y conversaciones privadas entre sus jugadores y entrenadores aprobados.",
-    "Buscador de contactos y copia local de los mensajes consultados. Los mensajes pendientes se guardan y reintentan sin duplicarse al recuperar la conexión."
+    "Los grupos y chats privados usan Cloudflare para el historial y los mensajes en directo, con servicios del plan gratuito.",
+    "Firebase se conserva para iniciar sesión y comprobar permisos. Se recuperan hasta 500 mensajes anteriores por conversación al abrirla.",
+    "Se mantiene la copia local y el reenvío de pendientes; las conexiones se cierran cuando la app pasa a segundo plano."
   ]
 }

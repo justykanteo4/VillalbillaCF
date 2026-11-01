@@ -87,8 +87,6 @@ export function watchProfile(user, callback, onError) {
      try{if((await getDoc(doc(db,'clubAdmins',user.email.toLowerCase()))).exists())profile.status='admin'}catch{}
     }
     AsyncStorage.setItem('villalbilla.profile.'+user.uid,JSON.stringify(profile)).catch(()=>{});
-    const {chatTeams}=require('./chat-core.cjs');
-    for(const teamId of chatTeams(profile))import('./chat-client').then(m=>m.syncChatMembership(profile,teamId)).catch(()=>{});
     callback(profile);
   }, onError);
 }
@@ -269,11 +267,6 @@ export async function migratePlayerDetails(teamId,players,aliases,positions){
  if(!db||!teamId)return;
  const {mergeLegacyDetails}=await import('./player-details.cjs');
  return runTransaction(db,async transaction=>{const ref=doc(db,'teamWorkspaces',teamId),snap=await transaction.get(ref);if(!snap.exists())return false;const data=snap.data().data;const old=data.playerDetails||{},details=mergeLegacyDetails(old,players,aliases,positions);if(details!==old)transaction.set(ref,{data:{...data,playerDetails:details},updatedAt:serverTimestamp()});return true});
-}
-
-export function syncChatPermission(account,teamId){
- if(!db||!auth?.currentUser||auth.currentUser.uid!==account.id)return Promise.reject(Error('Inicia sesión para usar los chats.'));
- return setDoc(doc(db,'teamChats',teamId,'members',account.id),{uid:account.id,name:account.claim.name,role:account.claim.role});
 }
 
 export async function adminSetProfileTeams(profile,teamIds,player=null,playerTeams=null){

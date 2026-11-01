@@ -1,0 +1,13 @@
+# Comentarios, me gusta y votaciones
+
+Comentarios y me gusta aparecen al abrir los detalles de un partido, en el mismo panel de actas compartido por Resultados, Calendario y Plantilla. Los comentarios son públicos; escribir, dar me gusta o votar requiere sesión Firebase no anónima. El botón de participación abre los métodos de acceso existentes y no exige solicitar un perfil de jugador o entrenador. Los votos y la participación se guardan en Cloudflare D1, en tablas independientes del historial antiguo de chat. No se utilizan listeners ni mensajes de Firestore.
+
+Las votaciones de mejor equipo, jugador y entrenador se muestran en el ranking de equipo (entrenadores y jugadores) y en Goleadores del Club (parte pública). Cada categoría muestra su Top de diez candidaturas; los empates comparten puesto. Un voto por cuenta, temporada 2026/27 y categoría, modificable o retirable. No es una clasificación deportiva oficial. Las candidaturas se generan con equipos y fichas públicas disponibles; no se inventan jugadores o entrenadores ausentes en la fuente. El buscador admite nombre o apellidos.
+
+El servidor verifica el JWT Firebase y fija el autor de comentarios desde su perfil, usando la identidad oficial solo si está aprobada y sin publicar correos. No devuelve identificadores de cuentas en listados. Los comentarios tienen un máximo de 500 caracteres y cinco publicaciones cada diez minutos. El identificador de publicación evita duplicados en reintentos. Los me gusta son únicos por cuenta y partido y se pueden retirar. Solo el autor o un administrador puede borrar comentarios. Las publicaciones rechazadas conservan el texto en pantalla para poder corregir o reintentar.
+
+Los resultados consultados se guardan en el dispositivo, separados por sesión; la escritura necesita conexión. Los endpoints no usan la caché pública. Se consultan los últimos 50 comentarios por partido. No se envían notificaciones push. Los datos de usuarios no se incluyen en el paquete público.
+
+Aplicar `social-schema.sql` a la D1 existente `villalbilla-chats` (binding histórico `CHAT_DB`), sin borrar tablas anteriores. `npm run prepare:release-data` regenera el catálogo público `social-candidates.json` y los partidos `social-matches.json`. Se usan cuotas gratuitas de Cloudflare, sin contratar un plan nuevo. Al agotarse cuota pueden fallar temporalmente las acciones; la interfaz conserva el error y no afirma que se hayan guardado.
+
+`npm test` verifica sesión, partidos válidos, idempotencia, privacidad, moderación, límites, voto único, cambios, categorías y Top empatado. La retirada de chats conserva la clase remota como cierre inactivo para no destruir datos.

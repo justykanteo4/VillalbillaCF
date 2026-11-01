@@ -1,4 +1,4 @@
-import {handleChat} from './chat-service.mjs';
+import {handleSocial} from './social-service.mjs';
 export {ChatRoom} from './chat-room.mjs';
 import offlinePolicy from './offline-policy.cjs';
 const requireOfflineCurrent=fixtures=>offlinePolicy.selectCurrent(fixtures,new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}));
@@ -129,7 +129,8 @@ export default {
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
-    const chatResponse=await handleChat(request,env);if(chatResponse)return chatResponse;
+    if(url.pathname.startsWith('/api/chats/'))return Response.json({error:'El chat se ha eliminado.'},{status:410,headers:{'Cache-Control':'no-store'}});
+    const socialResponse=await handleSocial(request,env);if(socialResponse)return socialResponse;
     const diagnosticResponse=await handleDiagnostics(request,env);if(diagnosticResponse)return diagnosticResponse;
     const accessResponse=await handleAccess(request,env,ctx);if(accessResponse)return accessResponse;
     const activityResponse=await handleActivity(request,env);if(activityResponse)return activityResponse;

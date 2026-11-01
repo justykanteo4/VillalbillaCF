@@ -93,50 +93,8 @@ service cloud.firestore {
     }
 
 
-    function chatProfile(uid) {
-      return get(/databases/$(database)/documents/trainerProfiles/$(uid)).data;
-    }
-    function chatApproved(uid, teamId) {
-      let p = chatProfile(uid);
-      return p.status in ['approved', 'admin'] && p.claim.role in ['trainer', 'player']
-        && (p.claim.teamId == teamId || ('teamIds' in p.claim && teamId in p.claim.teamIds));
-    }
-    function chatAccess(teamId) {
-      return signedIn() && chatApproved(request.auth.uid, teamId);
-    }
-    function privateChatAccess(teamId, ids) {
-      return chatAccess(teamId) && ids is list && ids.size() == 2
-        && ids[0] != ids[1] && request.auth.uid in ids
-        && chatApproved(ids[0], teamId) && chatApproved(ids[1], teamId);
-    }
-    match /teamChats/{teamId} {
-      match /members/{uid} {
-        allow get: if chatAccess(teamId) && chatApproved(uid,teamId);
-        allow list: if false;
-        allow create, update: if chatAccess(teamId) && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['uid', 'name', 'role'])
-          && request.resource.data.uid == uid
-          && request.resource.data.name == chatProfile(uid).claim.name
-          && request.resource.data.role == chatProfile(uid).claim.role;
-        allow delete: if signedIn() && request.auth.uid == uid;
-      }
-      match /messages/{messageId} {
-        allow read: if chatAccess(teamId);
-        allow create: if false;
-        allow update, delete: if false;
-      }
-      match /direct/{threadId} {
-        allow get: if chatAccess(teamId) && (!exists(/databases/$(database)/documents/teamChats/$(teamId)/direct/$(threadId))
-          || privateChatAccess(teamId, resource.data.memberIds));
-        allow list: if false;
-        allow create: if false;
-        allow update, delete: if false;
-        match /messages/{messageId} {
-          allow read: if privateChatAccess(teamId, get(/databases/$(database)/documents/teamChats/$(teamId)/direct/$(threadId)).data.memberIds);
-          allow create: if false;
-          allow update, delete: if false;
-        }
-      }
+    match /teamChats/{document=**} {
+      allow read, write: if false;
     }
 
     match /clubAdmins/{email} {

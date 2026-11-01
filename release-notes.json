@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.01.2",
+  "id": "2026.11.01.3",
   "date": "2026-11-01",
-  "title": "Chats en Cloudflare",
+  "title": "Comentarios y votaciones del club",
   "changes": [
-    "Los grupos y chats privados usan Cloudflare para el historial y los mensajes en directo, con servicios del plan gratuito.",
-    "Firebase se conserva para iniciar sesión y comprobar permisos. Se recuperan hasta 500 mensajes anteriores por conversación al abrirla.",
-    "Se mantiene la copia local y el reenvío de pendientes; las conexiones se cierran cuando la app pasa a segundo plano."
+    "Se elimina el chat de jugadores y entrenadores.",
+    "Los partidos permiten comentarios públicos y me gusta con sesión iniciada.",
+    "Nuevas votaciones de mejor equipo, jugador y entrenador, con su Top por votos en los rankings. Cada cuenta puede votar una vez por categoría y cambiar su elección."
   ]
 }

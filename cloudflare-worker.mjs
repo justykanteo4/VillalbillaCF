@@ -1,3 +1,5 @@
+import {handleSocial} from './social/http.mjs';
+export {TeamChatRoom} from './social/chat-room.mjs';
 import {handleFreeNotifications,scheduledNotifications} from './free-notifications.mjs';
 import news from './server/news.cjs';
 import clubStats from './server/club-stats.cjs';
@@ -109,9 +111,15 @@ export default {
     const origin = request.headers.get('Origin') || '*';
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: {
       'Access-Control-Allow-Origin': origin,
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
+    const socialResponse=await handleSocial(request,env);
+    if(socialResponse){
+      if(socialResponse.status===101)return socialResponse;
+      const headers=new Headers(socialResponse.headers);headers.set('Access-Control-Allow-Origin',origin);
+      return new Response(socialResponse.body,{status:socialResponse.status,headers});
+    }
     const notificationResponse=await handleFreeNotifications(request,env,ctx);
     if(notificationResponse)return notificationResponse;
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);

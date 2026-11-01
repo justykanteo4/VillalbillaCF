@@ -1,3 +1,4 @@
+import {SocialThread} from './SocialCommunity';
 import React,{useState,useEffect} from 'react';
 import {View,Text,StyleSheet,Pressable} from 'react-native';
 import {api} from './api';
@@ -79,6 +80,7 @@ export default function NextMatch({teamId='680163',showFollowing=true,showWeathe
           {!acta?<Text style={s.muted}>Consultando designación…</Text>:acta.error?<Text style={s.muted}>No se ha podido consultar la designación arbitral.</Text>:acta.referees?.length?acta.referees.map((referee,index)=><View key={index} style={{gap:4}}><Text style={s.muted}>{referee.role}</Text><Text style={s.name}>{referee.name}</Text></View>):<Text style={s.muted}>Árbitro pendiente de designación o no publicado por la RFFM.</Text>}
         </View>
       </View>}
+      {next&&<SocialThread topic={'match:'+teamId+':'+next.id}/>}
       {(error||team?.error)&&<Text style={s.muted}>No se ha podido actualizar el calendario. Mostramos la última información disponible.</Text>}
     </View>
     {showFollowing&&matches.length>1&&<View style={s.card}>

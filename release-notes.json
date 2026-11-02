@@ -1,10 +1,11 @@
 {
-  "id": "2026.11.01.5",
+  "id": "2026.11.01.6",
   "date": "2026-11-01",
-  "title": "Votaciones con fotos y pestañas",
+  "title": "Votaciones con límite de cambios y teclado ajustado",
   "changes": [
-    "Votaciones tiene su propia sección entre Calendario y Usuario, separada del ranking deportivo.",
-    "El ranking de votaciones usa pestañas de Jugadores, Equipos y Entrenadores, con fotos o escudos y puntos.",
-    "Los resultados de búsqueda y las elecciones muestran las fotos disponibles o el escudo del equipo. Se mantienen los votos de 3, 2 y 1 punto."
+    "Goleadores del Club pasa a llamarse Goleadores club.",
+    "Cada cuenta puede modificar sus elecciones cuatro veces por categoría. Un cartel muestra los cambios restantes; las primeras elecciones no consumen cambios.",
+    "La pantalla de búsqueda se adapta al teclado para mantener visibles el campo y los resultados.",
+    "Los botones inferiores respetan el espacio de la barra del teléfono y la barra de secciones se oculta mientras escribes."
   ]
 }

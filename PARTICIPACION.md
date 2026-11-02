@@ -11,3 +11,9 @@ Los resultados consultados se guardan en el dispositivo, separados por sesión; 
 Aplicar `social-schema.sql` a la D1 existente `villalbilla-chats` (binding histórico `CHAT_DB`), sin borrar tablas anteriores. `npm run prepare:release-data` regenera el catálogo público `social-candidates.json` y los partidos `social-matches.json`. Se usan cuotas gratuitas de Cloudflare, sin contratar un plan nuevo. Al agotarse cuota pueden fallar temporalmente las acciones; la interfaz conserva el error y no afirma que se hayan guardado.
 
 `npm test` verifica sesión, partidos válidos, idempotencia, privacidad, moderación, límites, voto único, cambios, categorías y Top empatado. La retirada de chats conserva la clase remota como cierre inactivo para no destruir datos.
+
+## Límite de cambios
+
+Desde esta versión cada cuenta tiene cuatro modificaciones por categoría y temporada. Las primeras elecciones de los puestos 3, 2 y 1 son gratuitas. Sustituir, retirar o volver a ocupar un puesto ya utilizado consume una modificación. Repetir exactamente el mismo envío no consume cambios; las elecciones iniciales pendientes siguen disponibles aunque se hayan agotado las modificaciones. Un cartel muestra el saldo; se conserva al buscar y se verifica en el servidor. Triggers SQLite protegen el límite incluso con solicitudes simultáneas o versiones antiguas del cliente. Los votos existentes empiezan con cuatro cambios disponibles; no se reconstruyen ni penalizan modificaciones pasadas.
+
+La barra de secciones de la app se oculta al abrir el teclado y reaparece al cerrarlo. Se reserva el espacio inferior del sistema en las áreas pública, de jugadores y de entrenadores; no se oculta forzosamente la navegación del teléfono. Android usa el ajuste de tamaño ya incluido en el APK e iOS evita la doble compensación del teclado. El campo de búsqueda de votaciones se desplaza a la zona visible.

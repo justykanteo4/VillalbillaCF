@@ -50,8 +50,9 @@ export async function handleSocial(request,env,{verify=verifySocialUser,getAutho
    }
    if(request.method==='DELETE')await db.prepare('DELETE FROM social_ballots WHERE season=? AND category=? AND uid=? AND points=?').bind(season,category,uid,points).run();
    const mine=uid?await db.prepare('SELECT candidate_id AS id,points FROM social_ballots WHERE season=? AND category=? AND uid=? ORDER BY points DESC').bind(season,category,uid).all():{results:[]},rows=await db.prepare('SELECT candidate_id AS id,SUM(points) AS points,COUNT(*) AS votes FROM social_ballots WHERE season=? AND category=? GROUP BY candidate_id ORDER BY points DESC,candidate_id').bind(season,category).all();let rank=0,last=null;const top=rows.results.map((r,i)=>{if(r.points!==last)rank=i+1;last=r.points;return {...catalog[category].find(c=>c.id===r.id),...r,rank}});
-   return reply({season,myVote:mine.results.find(r=>r.points===1)?.id||null,myBallot:mine.results.map(r=>({...catalog[category].find(c=>c.id===r.id),...r})),top,candidates:catalog[category].filter(c=>names.matchesPersonQuery(c.name,(url.searchParams.get('q')||'').slice(0,100))).slice(0,30)});
+   const quota=uid?await db.prepare('SELECT changes,seen_mask FROM social_ballot_limits WHERE season=? AND category=? AND uid=?').bind(season,category,uid).first():null;
+   return reply({season,changeLimit:4,changesUsed:quota?.changes||0,changesRemaining:4-(quota?.changes||0),initializedPoints:[1,2,3].filter(p=>((quota?.seen_mask||0)&(1<<p))!==0),myVote:mine.results.find(r=>r.points===1)?.id||null,myBallot:mine.results.map(r=>({...catalog[category].find(c=>c.id===r.id),...r})),top,candidates:catalog[category].filter(c=>names.matchesPersonQuery(c.name,(url.searchParams.get('q')||'').slice(0,100))).slice(0,30)});
   }
   return reply({error:'Ruta no disponible.'},404);
- }catch(e){return reply({error:e.status?e.message:'No se pudo guardar o consultar la participación.'},e.status||503)}
+ }catch(e){if(/VOTE_CHANGE_LIMIT/.test(e.message))return reply({error:'Has agotado los cuatro cambios de esta categoría.',changesRemaining:0,changeLimit:4},409);return reply({error:e.status?e.message:'No se pudo guardar o consultar la participación.'},e.status||503)}
 }

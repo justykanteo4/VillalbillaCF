@@ -1,11 +1,15 @@
-# Actualización automática
+# Actualización silenciosa
 
-InternetUpdates.native.js comprueba al arrancar y al volver a primer plano, y cada cinco minutos mientras la app está activa. Usa Expo Updates para mejoras compatibles con el APK instalado. Tras descargar muestra un aviso dentro de la app y una cuenta atrás de 15 segundos, y aplica la actualización con reloadAsync sin pedir una pulsación. Una descarga pendiente del arranque nativo se trata igual.
+InternetUpdates.native.js comprueba al arrancar, al volver a primer plano y cada cinco minutos mientras la app está activa. Descarga las mejoras compatibles y todos sus recursos, incluido el paquete público de actas y datos, sin mostrar banners, progreso ni cuentas atrás. Una descarga pendiente del arranque nativo sigue el mismo flujo.
 
-No reinicia en segundo plano. Al volver a primer plano recupera el plazo de aviso. Si el teclado está abierto o useTeamWorkspace está guardando, espera y vuelve a dar el plazo. update-save-guard.cjs rastrea escrituras locales y bloquea reinicio automático si una falla, hasta una escritura correcta. No promete conservar borradores de formularios no enviados: protege los cambios del vestuario que ya se guardan automáticamente. La sincronización con la nube puede completarse después de recuperar conexión; no se exige red para conservar cambios locales.
+Solo cuando la descarga termina, el teclado está cerrado y han finalizado los guardados locales, aparece el único aviso «Actualización obligatoria». No se puede cerrar ni aplazar: el botón «Actualizar» aplica el paquete y reinicia. No hay un reinicio temporizado. Si falla la aplicación, el mismo aviso permite reintentar. Buscar actualizaciones en Ajustes usa el mismo controlador y no crea otro flujo de descarga o reinicio.
 
-Sin conexión o si falla la descarga conserva la versión instalada. Una aplicación fallida de la actualización se reintenta más tarde. Cada consulta está protegida frente a ejecuciones simultáneas. La cuenta atrás se muestra en una ventana sobre la pantalla actual, también sobre la vista del simulador, sin requerir confirmación. El botón manual sigue disponible.
+No se reinicia en segundo plano. Si la descarga termina con la app inactiva, el aviso espera al regreso. Android o iOS pueden pausar la ejecución al cerrar la app; no se promete descargar con el proceso terminado. Se comprueba de nuevo al regresar. No se añaden permisos ni servicios nativos de ejecución permanente.
 
-Este mecanismo no instala APKs ni módulos nativos nuevos. La primera activación requiere recibir esta OTA con el comportamiento previo o pulsar Actualizar app una vez.
+update-save-guard.cjs protege las escrituras locales que ya se guardan automáticamente. La aplicación se vuelve a comprobar después de finishLocalSaves. Una escritura privada fallida impide reiniciar hasta corregirla. No se garantiza conservar borradores no enviados. La sincronización con la nube continúa al recuperar conexión.
 
-Validación: pruebas del arranque, periodicidad sin cerrar app, aviso/plazo, fallo de descarga, espera por teclado/escrituras, pausa en segundo plano y guardado local fallido. Aplicación/reinicio reales pendientes de confirmar en teléfono Android.
+La preparación del paquete público ocurre sin pantalla de novedades ni botón Continuar y se serializa con las escrituras de caché para conservar datos más recientes. Un fallo de datos públicos se registra y reintenta sin bloquear permanentemente una actualización de la app. Las novedades siguen disponibles en Ajustes → Actualizar app.
+
+Sin conexión o si falla la descarga se conserva la versión instalada. Este mecanismo aplica actualizaciones Expo compatibles; no instala APKs ni módulos nativos nuevos. Recibir esta primera versión requiere el flujo anterior de actualización. El comportamiento nuevo se usa desde entonces.
+
+Validación: pruebas de descarga silenciosa, ausencia de reinicio sin pulsación, primer plano, teclado, escrituras pendientes/fallidas, reintento, consultas simultáneas, periodicidad, respuesta sin paquete nuevo y caché concurrente. Las pruebas de interfaz usan Expo simulado; no equivalen a comprobar el reinicio en un teléfono físico.

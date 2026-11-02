@@ -12,7 +12,7 @@ La versión restaurada anterior, código 15, carece de este canal nuevo: no bast
 
 ## Funcionamiento
 
-Expo Updates busca y descarga al arrancar. Al volver al primer plano también comprueba novedades si han pasado 15 minutos. Las mejoras se aplican al siguiente arranque sin interrumpir una edición; la copia instalada sigue funcionando sin conexión. Ajustes muestra si hay una actualización descargándose o lista.
+En las versiones actuales compatibles (runtimes 0.1.11 y 0.1.12), se comprueba al abrir, al volver y cada cinco minutos mientras la app está activa. La descarga de mejoras y datos incluidos es silenciosa. Al terminar aparece un único aviso obligatorio, con el botón Actualizar, después de finalizar la escritura y los guardados locales. No hay cuenta atrás ni pantalla adicional de novedades. La versión instalada sigue disponible sin conexión. Consulta ACTUALIZACION-AUTOMATICA.md para el flujo actual; los APK y publicaciones que siguen documentan la configuración inicial histórica.
 
 JavaScript y recursos compatibles se publican por Internet. Añadir o cambiar módulos nativos, permisos o configuración nativa requiere un APK nuevo y un runtime nuevo. No cambiar expo.version para actualizaciones JavaScript compatibles del runtime 0.1.9.
 

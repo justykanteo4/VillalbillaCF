@@ -1,3 +1,4 @@
+import {createCopyCoordinator} from './copy-coordinator.cjs';
 import {createWebDeviceCache} from './web-device-cache.cjs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Platform} from 'react-native';
@@ -35,4 +36,5 @@ async function legacyListCopies(){
 
 const legacy={saveCopy:legacySaveCopy,readCopy:legacyReadCopy,listCopies:legacyListCopies};
 const device=Platform.OS==='web'&&globalThis.caches&&globalThis.location?.origin?createWebDeviceCache({legacy,cacheStorage:globalThis.caches,origin:globalThis.location.origin}):legacy;
-export const saveCopy=device.saveCopy,readCopy=device.readCopy,listCopies=device.listCopies;
+const coordinated=createCopyCoordinator(device);
+export const saveCopy=coordinated.saveCopy,readCopy=coordinated.readCopy,listCopies=coordinated.listCopies,updateCopy=coordinated.updateCopy;

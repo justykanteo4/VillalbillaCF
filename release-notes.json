@@ -1,10 +1,11 @@
 {
-  "id": "2026.11.02.3",
+  "id": "2026.11.02.4",
   "date": "2026-11-02",
-  "title": "Comentarios y recuerdos del partido",
+  "title": "Actualizaciones silenciosas con datos incluidos",
   "changes": [
-    "En Noticias y Resultados, los partidos con marcador ocultan el tiempo meteorológico y la localización del campo.",
-    "Los comentarios estrenan un diseño de red social con la foto del autor cuando está disponible.",
-    "Puedes publicar una foto o un vídeo del partido, ampliarlos y reproducirlos al pulsar. Máximo 2 MB por foto y 8 MB por vídeo."
+    "Las mejoras y sus datos incluidos se descargan en segundo plano mientras usas la app.",
+    "Solo aparece un aviso de Actualización obligatoria cuando la descarga está lista. Pulsa Actualizar para aplicarla.",
+    "Las actas y los datos públicos incluidos se preparan sin otra pantalla de inicio. Se conservan tus datos más recientes y los guardados locales.",
+    "Puedes consultar estas novedades en Ajustes → Actualizar app."
   ]
 }

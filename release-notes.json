@@ -1,11 +1,10 @@
 {
-  "id": "2026.11.01.6",
-  "date": "2026-11-01",
-  "title": "Votaciones con límite de cambios y teclado ajustado",
+  "id": "2026.11.02.1",
+  "date": "2026-11-02",
+  "title": "Diagnóstico dentro de Administración",
   "changes": [
-    "Goleadores del Club pasa a llamarse Goleadores club.",
-    "Cada cuenta puede modificar sus elecciones cuatro veces por categoría. Un cartel muestra los cambios restantes; las primeras elecciones no consumen cambios.",
-    "La pantalla de búsqueda se adapta al teclado para mantener visibles el campo y los resultados.",
-    "Los botones inferiores respetan el espacio de la barra del teléfono y la barra de secciones se oculta mientras escribes."
+    "Errores y diagnóstico aparece solo dentro de Administración, sin el acceso duplicado de Ajustes.",
+    "Al abrir un error se muestran sus detalles y una solución recomendada. Se retira de pendientes al volver, y reaparece si el fallo se repite.",
+    "Las consultas compatibles pueden reintentarse desde el error. Las lecturas sin conexión se guardan y sincronizan después."
   ]
 }

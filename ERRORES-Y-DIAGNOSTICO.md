@@ -1,6 +1,6 @@
 # Errores y diagnóstico de administración
 
-Ajustes muestra Errores y diagnóstico solo a cuentas administradoras; también está dentro de Administración. El servidor verifica el token Firebase y el permiso administrativo existente antes de leer el registro del club. Enviar un registro requiere una sesión Firebase válida y no concede permisos.
+El único acceso está en Ajustes → Administración → Errores y diagnóstico; se ha quitado el duplicado del menú general. El servidor verifica el token Firebase y el permiso administrativo existente antes de leer el registro del club. Enviar un registro requiere una sesión Firebase válida y no concede permisos.
 
 Se registran errores de API (HTTP, red, tiempo de espera, fuente y JSON incorrecto), actas/estadísticas derivadas, sincronización y lectura/guardado del espacio compartido, actualización nativa y errores de JavaScript no controlados. Los errores JavaScript no guardan mensajes ni trazas; se respeta el manejador original. No se promete recuperar errores previos a esta versión ni un cierre del sistema antes de poder guardar.
 
@@ -13,3 +13,14 @@ Los envíos se limitan a veinte eventos y 24 KB por petición; quinientos identi
 Verificación: 155 pruebas, incluida persistencia/reintento/agrupación, eventos concurrentes durante el envío, limpieza de datos privados, permisos y consulta restringida, validación de cuerpos, y detección de respuestas API malformadas. SQL ejecutado en SQLite real confirma agrupación. La pantalla se comprueba con datos ficticios en navegador: acceso de administrador, denegación a otros perfiles, filtros y conservación de copia si falla la conexión. No se generan errores ni envíos ficticios en producción para probarlo.
 
 Corrección de carga (29/10/2026): alias de campos validados por query.codcampo del documento federativo; canonicalId conserva el código de ficha. No se cachean respuestas de campo con error, y su clave HTTP pasa a field-alias-v2 para retirar errores antiguos de 24 h. Páginas de porteros/minutos bajan de nueve a tres actas en paralelo, conservan nextOffset y todo el historial. Duración/calendario de minutos se consultan en paralelo. Timeout cliente de estas páginas45s cubre calendario20s+una tanda de actas20s; lectura pública reintenta una pérdida de conexión TypeError una sola vez dentro del mismo plazo, nunca duplica escrituras ni ignora cancelaciones. Los diagnósticos incluyen match numérico para identificar el acta, aclaran HTTP200 con fuente fallida y distinguen historial de estado actual.
+
+
+## Bandeja de errores vistos y soluciones
+
+Al abrir «Ver error y solución» se registra como vista esa repetición concreta (identificador, última fecha y contador). El detalle permanece visible para leer los pasos y, al volver, sale de pendientes. No se borra el evento técnico: D1 conserva un marcador `diagnostic_reads` y filtra lo ya visto. Si aumentan la fecha o las repeticiones, reaparece. Abrir una copia antigua no puede silenciar una nueva repetición. Los marcadores se limpian tras 30 días con la limpieza de diagnósticos.
+
+La lectura requiere permiso de administrador, se guarda primero en el dispositivo y se sincroniza en lotes de hasta 20 al abrir, actualizar, volver al primer plano o cada 30 segundos mientras el panel esté abierto. Si no hay conexión queda pendiente; el registro no reaparece en ese móvil. La consulta de hasta 100 identificadores locales incorpora los marcadores del servidor para no duplicar un error ya visto por otro administrador. Solo se marcan como vistos los errores cuyos detalles se han abierto, no toda la lista al cargarla.
+
+`diagnostic-solutions.cjs` ofrece pasos según código, categoría y estado: conexión, fuente federativa, permisos, sincronización, actualización o formato. Los consejos no afirman un arreglo garantizado. «Reintentar consulta» ejecuta únicamente GET públicos compatibles, con parámetros requeridos; excluye administración, envíos y cambios privados. El resultado distingue respuesta correcta de fallo persistente. Una repetición generada por el reintento vuelve a ser pendiente.
+
+Las pruebas cubren autorización, validación, retirada de pendientes, repeticiones con igual fecha, lecturas antiguas y acciones seguras. La interfaz se verifica con datos ficticios, incluyendo lectura sin red persistente, solución y reintento. No se marcan errores reales como vistos ni se envían avisos para probar.

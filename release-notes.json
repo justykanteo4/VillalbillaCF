@@ -1,10 +1,9 @@
 {
-  "id": "2026.11.02.1",
+  "id": "2026.11.02.2",
   "date": "2026-11-02",
-  "title": "Diagnóstico dentro de Administración",
+  "title": "Marcar todos los errores como vistos",
   "changes": [
-    "Errores y diagnóstico aparece solo dentro de Administración, sin el acceso duplicado de Ajustes.",
-    "Al abrir un error se muestran sus detalles y una solución recomendada. Se retira de pendientes al volver, y reaparece si el fallo se repite.",
-    "Las consultas compatibles pueden reintentarse desde el error. Las lecturas sin conexión se guardan y sincronizan después."
+    "Nuevo botón Marcar todos como vistos dentro de Administración → Errores y diagnóstico.",
+    "Marca los errores cargados de todas las categorías, conserva las incidencias nuevas y se sincroniza en lotes al recuperar la conexión."
   ]
 }

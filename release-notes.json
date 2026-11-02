@@ -1,9 +1,10 @@
 {
-  "id": "2026.11.02.2",
+  "id": "2026.11.02.3",
   "date": "2026-11-02",
-  "title": "Marcar todos los errores como vistos",
+  "title": "Comentarios y recuerdos del partido",
   "changes": [
-    "Nuevo botón Marcar todos como vistos dentro de Administración → Errores y diagnóstico.",
-    "Marca los errores cargados de todas las categorías, conserva las incidencias nuevas y se sincroniza en lotes al recuperar la conexión."
+    "En Noticias y Resultados, los partidos con marcador ocultan el tiempo meteorológico y la localización del campo.",
+    "Los comentarios estrenan un diseño de red social con la foto del autor cuando está disponible.",
+    "Puedes publicar una foto o un vídeo del partido, ampliarlos y reproducirlos al pulsar. Máximo 2 MB por foto y 8 MB por vídeo."
   ]
 }

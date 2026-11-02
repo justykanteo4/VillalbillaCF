@@ -30,3 +30,12 @@ END;
 CREATE TRIGGER IF NOT EXISTS social_ballot_delete_count AFTER DELETE ON social_ballots BEGIN
  UPDATE social_ballot_limits SET changes=changes+1 WHERE season=OLD.season AND category=OLD.category AND uid=OLD.uid;
 END;
+-- Separate tables keep old app clients and existing comments compatible.
+CREATE TABLE IF NOT EXISTS social_comment_profiles(id TEXT PRIMARY KEY,photo TEXT,player_id TEXT,team_id TEXT);
+CREATE TABLE IF NOT EXISTS social_media(id TEXT PRIMARY KEY,uid TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,created_at INTEGER NOT NULL,digest TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS social_media_user_date ON social_media(uid,created_at);
+CREATE TABLE IF NOT EXISTS social_media_chunks(id TEXT NOT NULL,part INTEGER NOT NULL,content BLOB NOT NULL,PRIMARY KEY(id,part));
+CREATE TRIGGER IF NOT EXISTS social_media_quota BEFORE INSERT ON social_media BEGIN
+ SELECT CASE WHEN (SELECT COALESCE(SUM(size),0) FROM social_media)+NEW.size>67108864 THEN RAISE(ABORT,'MEDIA_STORAGE_LIMIT') END;
+ SELECT CASE WHEN (SELECT COALESCE(SUM(size),0) FROM social_media WHERE uid=NEW.uid AND created_at>NEW.created_at-86400000)+NEW.size>16777216 THEN RAISE(ABORT,'MEDIA_USER_LIMIT') END;
+END;

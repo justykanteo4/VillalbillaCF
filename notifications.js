@@ -1,3 +1,4 @@
+import {registerAccessPush} from './access-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getRandomBytesAsync} from 'expo-crypto';
 import {AppState} from 'react-native';
@@ -32,10 +33,10 @@ function syncSavedPreferences(){
  });
  syncing=job.catch(()=>{});return job;
 }
-export async function enableNotifications(teamIds,playerIds){
+export async function enableNotifications(teamIds,playerIds,{admin=false}={}){
  const push=await registerPush();
  await saveNotificationPreferences({...(await notificationPreferences()),enabled:true,teamIds,playerIds,teamSelection:'custom',playerSelection:'custom',...push,consentedAt:new Date().toISOString(),pendingSync:true});
- await syncSavedPreferences();return notificationPreferences();
+ await syncSavedPreferences();await registerAccessPush({prompt:false,admin}).catch(()=>{});return notificationPreferences();
 }
 export async function updateNotificationTargets(teamIds,playerIds){
  const next=await changePreferences(value=>value?{...value,...resolveDeviceTargets(value,teamIds,playerIds),pendingSync:!!(value.enabled||value.pendingSync)}:value);

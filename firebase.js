@@ -169,7 +169,7 @@ export async function claimTeam(user, team, name, assignments=[]) {
     if (!saved.exists() || saved.data().status !== 'pending' || saved.data().claim?.teamId !== team.id) {
       throw Error('Firebase no confirmó la solicitud. Comprueba la conexión y vuelve a enviarla.');
     }
-    return { id: user.uid, ...saved.data() };
+    const result={id:user.uid,...saved.data()};try{await queueAccessRequest(result)}catch{}return result;
   } catch (error) {
     if (error.code === 'permission-denied') {
       throw Error('Firebase ha rechazado la solicitud. Comprueba que has iniciado sesión con una cuenta verificada y vuelve a intentarlo.');
@@ -207,7 +207,7 @@ export async function claimPlayer(user, team, player) {
     if (!saved.exists() || saved.data().status !== 'pending' || saved.data().claim?.playerId !== String(player.id)) {
       throw Error('Firebase no confirmó la solicitud. Comprueba la conexión y vuelve a intentarlo.');
     }
-    return { id: user.uid, ...saved.data() };
+    const result={id:user.uid,...saved.data()};try{await queueAccessRequest(result)}catch{}return result;
   } catch (error) {
     if (error.code === 'permission-denied') throw Error('Firebase ha rechazado la solicitud. Comprueba que has iniciado sesión con una cuenta verificada y vuelve a intentarlo.');
     if (error.code === 'not-found') throw Error('No se encontró tu perfil. Cierra sesión, vuelve a entrar y solicita acceso de nuevo.');
@@ -225,6 +225,12 @@ export async function decideRequest(id,action){
   transaction.update(ref,{status,updatedAt,...(action==='approve'?{accessNotice:{id:String(updatedAt),createdAt:updatedAt,title:'Acceso aceptado',body:'El administrador ha aceptado tu solicitud. Ya puedes acceder a tu espacio del club.',queued:false}}:{})});
  });
  if(action==='approve'){try{await queueAccessApproval(id)}catch{/* Admin lifecycle retries durable unqueued approvals. */}}
+ else{try{const token=await auth.currentUser.getIdToken();await api('/api/access/request-resolved',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({uid:id})})}catch{}}
+}
+export async function queueAccessRequest(profile){
+ const user=auth?.currentUser;if(!user||profile?.status!=='pending')return;
+ const key='villalbilla.access-request.queued.'+user.uid+'.'+profile.id,revision=String(profile.updatedAt||'');if(revision&&await AsyncStorage.getItem(key)===revision)return;
+ const token=await user.getIdToken(),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);try{const result=await api('/api/access/request',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({uid:profile.id}),signal:controller.signal});if(revision&&auth.currentUser?.uid===user.uid)await AsyncStorage.setItem(key,revision);return result}finally{clearTimeout(timer)}
 }
 export async function queueAccessApproval(uid){
  if(!auth?.currentUser)throw Error('Inicia sesión como administrador.');
@@ -237,7 +243,7 @@ export async function claimOfficialIdentity(user,identity){
  if(!db||!user)throw Error('Inicia sesión antes de seleccionar tu ficha.');
  const claim=identityClaim(identity,teamCatalog),ref=doc(db,'trainerProfiles',user.uid);
  await runTransaction(db,async transaction=>{const snap=await transaction.get(ref);if(!snap.exists())throw Error('No se encontró tu cuenta. Vuelve a iniciar sesión.');if(['approved','admin','pending'].includes(snap.data().status))throw Error('Tu cuenta ya tiene acceso o una solicitud pendiente.');transaction.update(ref,{claim,status:'pending',updatedAt:Date.now()})});
- const saved=await getDoc(ref);return {id:user.uid,...saved.data()};
+ const saved=await getDoc(ref),result={id:user.uid,...saved.data()};try{await queueAccessRequest(result)}catch{}return result;
 }
 
 export async function getTeamWorkspace(teamId) {

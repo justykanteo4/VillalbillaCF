@@ -1,11 +1,10 @@
 {
-  "id": "2026.11.02.4",
-  "date": "2026-11-02",
-  "title": "Actualizaciones silenciosas con datos incluidos",
+  "id": "2026.11.06.1",
+  "date": "2026-11-06",
+  "title": "Avisos privados de solicitudes y accesos aceptados",
   "changes": [
-    "Las mejoras y sus datos incluidos se descargan en segundo plano mientras usas la app.",
-    "Solo aparece un aviso de Actualización obligatoria cuando la descarga está lista. Pulsa Actualizar para aplicarla.",
-    "Las actas y los datos públicos incluidos se preparan sin otra pantalla de inicio. Se conservan tus datos más recientes y los guardados locales.",
-    "Puedes consultar estas novedades en Ajustes → Actualizar app."
+    "Los administradores reciben un aviso cuando hay una nueva solicitud de acceso. Al pulsarlo se abre la solicitud para revisarla.",
+    "Al aceptar el acceso, la persona recibe una confirmación privada. Pulsarla abre su zona de jugador o entrenador.",
+    "Los envíos pendientes se reintentan sin volver a aprobar solicitudes ni duplicar los trabajos ya preparados. Es necesario permitir notificaciones en el móvil."
   ]
 }

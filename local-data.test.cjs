@@ -85,19 +85,20 @@ test('los equipos elegidos para avisos no se reemplazan al cambiar los favoritos
  assert.deepEqual(resolveDeviceTargets({},['b'],[]).teamIds,['b']);
 });
 test('guarda la selección, reintenta cambios sin red y conserva los equipos al desactivar',async t=>{
- const stored=new Map(),sent=[];let online=true,gate=null;
+ const stored=new Map(),sent=[],privateRegistrations=[];let online=true,gate=null;
  global.__notificationTest={
   storage:{getItem:async key=>stored.get(key)||null,setItem:async(key,value)=>stored.set(key,value)},
   getRandomBytesAsync:async()=>new Uint8Array(32).fill(1),
   AppState:{currentState:'active',addEventListener:()=>({remove(){}})},auth:{currentUser:null},
   api:async(path,options)=>{assert.equal(path,'/api/push/subscription');if(!online)throw Error('Sin red');sent.push(JSON.parse(options.body));if(gate){const current=gate;gate=null;current.started.resolve();await current.promise}return {ok:true}},
-  registerPush:async()=>({provider:'expo',token:'ExponentPushToken[device-fixture]'}),
+  registerPush:async()=>({provider:'expo',token:'ExponentPushToken[device-fixture]'}),registerAccessPush:async options=>privateRegistrations.push(options),
   saveCopy:async()=>{},readCopy:async()=>null,resolveDeviceTargets,
  };
  t.after(()=>delete global.__notificationTest);
  global.__notificationTest.verifiedAccount=require('./account-verification.cjs').verifiedAccount;
  let source=fs.readFileSync('./notifications.js','utf8');
  const imports={
+  "import {registerAccessPush} from './access-notifications';":"const {registerAccessPush}=globalThis.__notificationTest;",
   "import {verifiedAccount} from './account-verification.cjs';":"const {verifiedAccount}=globalThis.__notificationTest;",
   "import AsyncStorage from '@react-native-async-storage/async-storage';":"const AsyncStorage=globalThis.__notificationTest.storage;",
   "import {getRandomBytesAsync} from 'expo-crypto';":"const {getRandomBytesAsync}=globalThis.__notificationTest;",
@@ -110,7 +111,7 @@ test('guarda la selección, reintenta cambios sin red y conserva los equipos al 
  };
  for(const [before,after] of Object.entries(imports)){assert(source.includes(before));source=source.replace(before,after)}
  const service=await import('data:text/javascript,'+encodeURIComponent(source));
- await service.enableNotifications(['a'],[]);
+ await service.enableNotifications(['a'],[],{admin:true});assert.deepEqual(privateRegistrations,[{prompt:false,admin:true}]);
  await service.updateNotificationTargets(['b'],[]);
  assert.deepEqual(sent.at(-1).teamIds,['a']);assert.match(sent[0].installationKey,/^[0-9a-f]{64}$/);
  const delayed=deferred();delayed.started=deferred();gate=delayed;

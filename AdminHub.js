@@ -1,3 +1,4 @@
+import {useAccessRequestSelection} from './access-request-selection';
 import AdminDiagnostics from './AdminDiagnostics';
 import {matchesPersonQuery} from './name-search.cjs';
 import {loadOfficialDirectory,reportTeams} from './official-directory';
@@ -25,13 +26,14 @@ export function ProfileAccess({profile,onDone,assignmentOnly=false}){
 }
 
 function AccessList({pending=false,account}){
+ const selectedRequest=useAccessRequestSelection();
  const [rows,sr]=useState([]),[error,se]=useState(''),[busy,sb]=useState(false),[selected,ss]=useState(null),[search,sc]=useState('');
  useBackAction(()=>{ss(null);return true},40,!!selected);
  useEffect(()=>watchProfiles(sr,e=>se(e.message)),[]);
  async function refresh(){sb(true);try{sr(await getProfiles());se('')}catch(e){se(e.message)}finally{sb(false)}}
  const decide=async(id,action)=>{sb(true);try{await decideRequest(id,action);await refresh()}catch(e){se(e.message)}finally{sb(false)}};
  const allRows=!pending&&account&&!rows.some(r=>r.id===account.id)?[account,...rows]:rows;
- const visible=(!pending&&search.trim().length<2?[]:allRows).filter(r=>pending?r.status==='pending':r.status!=='unassigned'||r.id===account?.id).filter(r=>matchesPersonQuery([r.name,r.email,r.claim?.name].join(' '),search));
+ const visible=(!pending&&search.trim().length<2?[]:allRows).filter(r=>pending?r.status==='pending':r.status!=='unassigned'||r.id===account?.id).filter(r=>matchesPersonQuery([r.name,r.email,r.claim?.name].join(' '),search)).sort((a,b)=>Number(b.id===selectedRequest)-Number(a.id===selectedRequest));
  return <View style={{gap:14}}><Text style={{...text,fontSize:24,fontWeight:'800'}}>{pending?'Nuevas solicitudes':'Accesos de jugadores y entrenadores'}</Text><Button disabled={busy} onPress={refresh}>{busy?'Actualizando…':'Actualizar'}</Button>{!pending&&<TextInput accessibilityLabel="Buscar cuenta" placeholder="Buscar nombre o correo" placeholderTextColor="#91a5be" style={{...text,padding:14,backgroundColor:'#151f2d'}} value={search} onChangeText={sc}/>} {!!error&&<Text style={{color:'#ffc1c9'}}>{error}</Text>}{!visible.length&&<Text style={text}>{pending?'No hay solicitudes nuevas.':search.trim().length<2?'Busca por nombre o correo para mostrar una cuenta.':'No hay accesos para esta búsqueda.'}</Text>}{visible.map(r=><View style={card} key={r.id}><Text style={text}>{r.claim?.name||r.name} · {r.claim?.role==='player'?'Jugador':'Entrenador'}</Text><Text style={text}>{r.email}</Text>{r.claim&&<IdentitySummary claim={r.claim}/>} {pending?<><Button disabled={busy} onPress={()=>decide(r.id,'approve')}>Aceptar acceso</Button><Button disabled={busy} onPress={()=>decide(r.id,'reject')}>Rechazar solicitud</Button></>:<><Text style={text}>Estado: {r.status}</Text><Button onPress={()=>ss(selected===r.id?null:r.id)}>Cambiar equipos o retirar accesos</Button>{selected===r.id&&<ProfileAccess key={r.id} profile={r} onDone={()=>{ss(null);refresh()}}/>}</>}</View>)}</View>;
 }
 function Usage(){const [data,sd]=useState(null),[error,se]=useState(''),[busy,sb]=useState(false);async function refresh(){sb(true);try{const token=await auth.currentUser.getIdToken();sd(await api('/api/admin/usage',{headers:{Authorization:'Bearer '+token},cache:'no-store'}));se('')}catch(e){se(e.message)}finally{sb(false)}}useEffect(()=>{refresh()},[]);return <View style={{gap:14}}><Text style={{...text,fontSize:24,fontWeight:'800'}}>Conexiones de usuarios</Text><Text style={text}>Dispositivos y sesiones por tipo de acceso seleccionado. Activos: últimos 5 minutos. Registro desde la activación de esta función.</Text><Button disabled={busy} onPress={refresh}>{busy?'Actualizando…':'Actualizar estadísticas'}</Button>{!!error&&<Text style={{color:'#ffc1c9'}}>{error}</Text>}{[['trainer','Entrenadores'],['player','Jugadores'],['fan','Hinchas']].map(([role,label])=>{const r=data?.roles?.find(r=>r.role===role);return <View style={card} key={role}><Text style={text}>{label}</Text><Text style={text}>Activos {r?.active??'—'} · Dispositivos {r?.devices??'—'} · Sesiones {r?.sessions??'—'}</Text></View>})}</View>}

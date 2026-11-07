@@ -7,3 +7,5 @@ Antes de publicar, ejecuta `npm run prepare:release-data` y `npm run check:relea
 No sobrescribas en la importación copias locales más recientes ni datos privados del equipo. Conserva los controles de acceso. Ejecuta las pruebas y las exportaciones apropiadas antes de publicar. Mantén los runtimes Android verificados 0.1.11 y 0.1.12 mientras no se añadan módulos nativos.
 
 Wrangler debe conservar `assets.run_worker_first` para `/api/*` y `/downloads/*`. Mantén la preparación de la descarga del APK y despliega con `--keep-vars`.
+
+Las resoluciones de la intranet federativa son privadas: mantenerlas en VISITS_DB y en la caché por cuenta de `/api/private/sanctions`, nunca en Git ni en el paquete público. Leer SANCIONES-OFICIALES.md antes de modificar su conexión. No imprimir ni publicar RFFM_SESSION, RFFM_USERNAME o RFFM_PASSWORD.

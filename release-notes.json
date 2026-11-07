@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.06.1",
-  "date": "2026-11-06",
-  "title": "Avisos privados de solicitudes y accesos aceptados",
+  "id": "2026.11.07.1",
+  "date": "2026-11-07",
+  "title": "Sanciones de la resolución oficial",
   "changes": [
-    "Los administradores reciben un aviso cuando hay una nueva solicitud de acceso. Al pulsarlo se abre la solicitud para revisarla.",
-    "Al aceptar el acceso, la persona recibe una confirmación privada. Pulsarla abre su zona de jugador o entrenador.",
-    "Los envíos pendientes se reintentan sin volver a aprobar solicitudes ni duplicar los trabajos ya preparados. Es necesario permitir notificaciones en el móvil."
+    "Las sanciones se consultan en la resolución oficial de la federación para las 17 categorías del Villalbilla, incluidas acumulaciones y dobles amonestaciones.",
+    "Los entrenadores autorizados y administradores conservan una copia por cuenta y equipo para usarla sin conexión. Si falla la consulta, se mantiene la última resolución y se indica el problema.",
+    "Los partidos pendientes se muestran como estimación de cumplimiento; se mantiene un enlace a la resolución oficial."
   ]
 }

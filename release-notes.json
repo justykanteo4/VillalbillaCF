@@ -1,10 +1,11 @@
 {
-  "id": "2026.11.07.7",
+  "id": "2026.11.07.8",
   "date": "2026-11-07",
-  "title": "Resumen del club desde las actas guardadas",
+  "title": "Reparación del registro de notificaciones",
   "changes": [
-    "El resumen de tarjetas usa las actas incluidas y las guardadas en el dispositivo, también sin conexión.",
-    "Una consulta fallida no borra tarjetas ya confirmadas. Solo se consultan las actas pendientes y las de la jornada al actualizar manualmente.",
-    "Las actas sin cerrar se identifican como pendientes y nunca se cuentan como cero tarjetas."
+    "Se renueva automáticamente el registro de los móviles con avisos activados y cuando cambia el identificador del dispositivo, sin volver a pedir permiso.",
+    "Los usuarios ya aceptados también pueden activar los avisos al entrar por primera vez en un dispositivo nuevo; se respeta la elección de no recibirlos.",
+    "Notificaciones muestra el permiso real y detecta el canal bloqueado de Android. Incluye Comprobar y reparar avisos, acceso a permisos y una prueba local del teléfono.",
+    "Los avisos del club y de accesos se envían con prioridad alta en Android. Se conserva el motivo cuando Google rechaza un envío."
   ]
 }

@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {createECDH,randomBytes} from 'node:crypto';
 import {generateKeyPair,exportJWK,SignJWT} from 'jose';
 import webpush from 'web-push';
-import {handleFreeNotifications,dispatchPending,validWebSubscription,validateNotice,FREE_LIMITS} from './free-notifications.mjs';
+import {handleFreeNotifications,dispatchPending,scheduledNotifications,validWebSubscription,validateNotice,FREE_LIMITS} from './free-notifications.mjs';
 
 class D1 {
  constructor(){this.db=new DatabaseSync(':memory:');this.db.exec(readFileSync(new URL('./notification-schema.sql',import.meta.url),'utf8'))}
@@ -52,7 +52,7 @@ test('JWT verificado publica solo para destinatarios, cifra Web Push y no reenv�
   const destination={type:'match',teamId:'680163',matchId:'5587337'};
   const sent=await handleFreeNotifications(request('/api/push/send',{destination,title:'Entrenamiento',body:'Mañana a las 18:00',all:false,teamIds:['680163'],playerIds:[]},token),env,ctx);
   assert.equal(sent.status,200);await Promise.all(jobs.splice(0));assert.equal(pushes,1);
-  await dispatchPending(env);assert.equal(pushes,1);assert.equal(expo.length,1);assert.deepEqual(expo[0].data.destination,destination);
+  await dispatchPending(env);assert.equal(pushes,1);assert.equal(expo.length,1);assert.equal(expo[0].priority,'high');assert.deepEqual(expo[0].data.destination,destination);
   const inbox=await(await handleFreeNotifications(request('/api/notifications'),env,ctx)).json();assert.equal(inbox.messages.length,1);assert.deepEqual(inbox.messages[0].destination,destination);assert.deepEqual(JSON.parse(env.NOTIFICATIONS_DB.db.prepare('SELECT destination FROM club_notices').get().destination),destination);
   const insert=env.NOTIFICATIONS_DB.db.prepare('INSERT INTO club_notices(id,title,body,all_club,team_ids,player_ids,created_by,created_at,queued) VALUES(?,?,?,?,?,?,?,?,?)');for(let i=1;i<FREE_LIMITS.noticesPerDay;i++)insert.run('n'+i,'a','b',1,'[]','[]','admin',Date.now(),1);
   assert.equal((await handleFreeNotifications(request('/api/push/send',{title:'Límite',body:'Texto',all:true,teamIds:[],playerIds:[]},token),env,ctx)).status,429);
@@ -88,4 +88,7 @@ test('la migración del destino conserva avisos y envíos anteriores sin inventa
 });
 test('el destino del aviso se valida y descarta propiedades ajenas a la ruta pública',()=>{
  const base={title:'Hola',body:'Texto',all:true,teamIds:[],playerIds:[]};for(const destination of [{type:'url',url:'https://evil.test'},{type:'section',section:'Ajustes'},{type:'match',teamId:'680163',matchId:'../../admin'}])assert.throws(()=>validateNotice({...base,destination}));assert.deepEqual(validateNotice({...base,destination:{type:'section',section:'goalkeepers',url:'https://evil.test'}}).destination,{type:'section',section:'goalkeepers'});assert.deepEqual(validateNotice(base).destination,{type:'section',section:'news'});
+});
+test('conserva el error de Google en el recibo para diagnosticar entregas rechazadas',async()=>{
+ const env=makeEnv(),db=env.NOTIFICATIONS_DB.db,original=global.fetch;db.prepare('INSERT INTO club_notices(id,title,body,all_club,team_ids,player_ids,created_by,created_at,queued) VALUES(?,?,?,?,?,?,?,?,?)').run('notice','Aviso','Texto',1,'[]','[]','admin',Date.now(),1);db.prepare('INSERT INTO push_subscriptions VALUES(?,?,?,?,?,?,?,?)').run('device','hash','expo','{}','[]','[]',1,Date.now());db.prepare("INSERT INTO push_outbox(notice_id,subscription_id,status,ticket) VALUES('notice','device','accepted','fixture')").run();global.fetch=async url=>{assert(String(url).includes('getReceipts'));return Response.json({data:{fixture:{status:'error',details:{error:'InvalidCredentials'}}}})};try{await scheduledNotifications(env);const row=db.prepare('SELECT status,last_error FROM push_outbox').get();assert.equal(row.status,'failed');assert.equal(row.last_error,'InvalidCredentials')}finally{global.fetch=original}
 });

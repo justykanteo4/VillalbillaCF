@@ -91,7 +91,7 @@ test('guarda la selección, reintenta cambios sin red y conserva los equipos al 
   getRandomBytesAsync:async()=>new Uint8Array(32).fill(1),
   AppState:{currentState:'active',addEventListener:()=>({remove(){}})},auth:{currentUser:null},
   api:async(path,options)=>{assert.equal(path,'/api/push/subscription');if(!online)throw Error('Sin red');sent.push(JSON.parse(options.body));if(gate){const current=gate;gate=null;current.started.resolve();await current.promise}return {ok:true}},
-  registerPush:async()=>({provider:'expo',token:'ExponentPushToken[device-fixture]'}),registerAccessPush:async options=>privateRegistrations.push(options),
+  onPushTokenChange:()=>()=>{},registerPush:async()=>({provider:'expo',token:'ExponentPushToken[device-fixture]'}),registerAccessPush:async options=>privateRegistrations.push(options),
   saveCopy:async()=>{},readCopy:async()=>null,resolveDeviceTargets,
  };
  t.after(()=>delete global.__notificationTest);
@@ -105,7 +105,7 @@ test('guarda la selección, reintenta cambios sin red y conserva los equipos al 
   "import {AppState} from 'react-native';":"const {AppState}=globalThis.__notificationTest;",
   "import {auth} from './firebase';":"const {auth}=globalThis.__notificationTest;",
   "import {api} from './api';":"const {api}=globalThis.__notificationTest;",
-  "import {registerPush} from './push';":"const {registerPush}=globalThis.__notificationTest;",
+  "import {registerPush,onPushTokenChange} from './push';":"const {registerPush,onPushTokenChange}=globalThis.__notificationTest;",
   "import {saveCopy,readCopy} from './offline';":"const {saveCopy,readCopy}=globalThis.__notificationTest;",
   "import {resolveDeviceTargets} from './notification-targets.cjs';":"const {resolveDeviceTargets}=globalThis.__notificationTest;",
  };

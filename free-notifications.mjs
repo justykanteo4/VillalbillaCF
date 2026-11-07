@@ -118,7 +118,7 @@ export async function dispatchPending(env){
     if([404,410].includes(response.status))throw Object.assign(Error('Dispositivo dado de baja'),{expired:true});
     if(!response.ok)throw Error('El proveedor rechazó el envío ('+response.status+')');
    }else{
-    const response=await fetch('https://exp.host/--/api/v2/push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:subscription.token,title:job.title,body:job.body,sound:'default',channelId:'club',data:{notificationId:job.notice_id,destination}}),signal:AbortSignal.timeout(10000)});
+    const response=await fetch('https://exp.host/--/api/v2/push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:subscription.token,title:job.title,body:job.body,sound:'default',priority:'high',channelId:'club',data:{notificationId:job.notice_id,destination}}),signal:AbortSignal.timeout(10000)});
     const result=await response.json();if(!response.ok||result.data?.status!=='ok')throw Object.assign(Error('Expo rechazó el envío'),{expired:result.data?.details?.error==='DeviceNotRegistered'});ticket=result.data.id;
    }
    await db.prepare("UPDATE push_outbox SET status='accepted',ticket=?,last_error=NULL WHERE notice_id=? AND subscription_id=?").bind(ticket,job.notice_id,job.subscription_id).run();
@@ -136,7 +136,7 @@ export async function scheduledNotifications(env){
  const jobs=await db.prepare("SELECT notice_id,subscription_id,ticket FROM push_outbox WHERE status='accepted' AND ticket IS NOT NULL LIMIT 100").all();
  if(jobs.results.length){
   const response=await fetch('https://exp.host/--/api/v2/push/getReceipts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids:jobs.results.map(row=>row.ticket)})});
-  if(response.ok){const receipts=(await response.json()).data||{};for(const job of jobs.results){const receipt=receipts[job.ticket];if(!receipt)continue;await db.prepare('UPDATE push_outbox SET status=? WHERE notice_id=? AND subscription_id=?').bind(receipt.status==='ok'?'delivered':'failed',job.notice_id,job.subscription_id).run();if(receipt.details?.error==='DeviceNotRegistered')await db.prepare('UPDATE push_subscriptions SET enabled=0 WHERE id=?').bind(job.subscription_id).run()}}
+  if(response.ok){const receipts=(await response.json()).data||{};for(const job of jobs.results){const receipt=receipts[job.ticket];if(!receipt)continue;await db.prepare('UPDATE push_outbox SET status=?,last_error=? WHERE notice_id=? AND subscription_id=?').bind(receipt.status==='ok'?'delivered':'failed',receipt.status==='ok'?null:(receipt.details?.error||'PROVIDER_ERROR'),job.notice_id,job.subscription_id).run();if(receipt.details?.error==='DeviceNotRegistered')await db.prepare('UPDATE push_subscriptions SET enabled=0 WHERE id=?').bind(job.subscription_id).run()}}
  }
  await db.batch([db.prepare('DELETE FROM push_outbox WHERE notice_id IN (SELECT id FROM club_notices WHERE created_at<?)').bind(cutoff),db.prepare('DELETE FROM club_notices WHERE created_at<?').bind(cutoff),db.prepare('DELETE FROM push_subscriptions WHERE enabled=0 AND updated_at<?').bind(cutoff)]);
 }

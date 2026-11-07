@@ -1,7 +1,11 @@
 import {api} from './api';
-export async function registerPush(){
+export async function inspectPushPermission(){return {granted:globalThis.Notification?.permission==='granted',channelBlocked:false,status:globalThis.Notification?.permission||'unavailable'}}
+export const openPushSettings=async()=>{throw Error('En Chrome, abre los permisos de este sitio y permite las notificaciones.');};
+export const onPushTokenChange=()=>()=>{};
+export const testLocalNotification=async()=>{throw Error('La prueba del teléfono está disponible en la APK.');};
+export async function registerPush({prompt=true}={}){
  if(!('Notification' in globalThis)||!navigator.serviceWorker||!('PushManager' in globalThis))throw Error('Para recibir avisos, instala la web en la pantalla de inicio y ábrela desde su icono. También puedes leerlos dentro de la app.');
- const permission=await Notification.requestPermission();
+ const permission=prompt?await Notification.requestPermission():Notification.permission;
  if(permission!=='granted')throw Error('El navegador no ha autorizado los avisos. Puedes cambiarlo en sus ajustes.');
  const {publicKey}=await api('/api/push/key');
  if(!publicKey)throw Error('Los avisos aún no están disponibles. Inténtalo más tarde.');

@@ -5,7 +5,7 @@ import {AppState} from 'react-native';
 import {verifiedAccount} from './account-verification.cjs';
 import {auth} from './firebase';
 import {api} from './api';
-import {registerPush} from './push';
+import {registerPush,onPushTokenChange} from './push';
 import {saveCopy,readCopy} from './offline';
 import {resolveDeviceTargets} from './notification-targets.cjs';
 export const NOTIFICATION_KEY='villalbilla.notifications.v1';
@@ -25,22 +25,25 @@ async function installationKey(){
 async function saveSubscription(value){
  await api('/api/push/subscription',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...value,teamIds:value.receiveTeams===false?[]:value.teamIds,playerIds:value.receivePlayers===false?[]:value.playerIds,installationKey:await installationKey()})});
 }
-function syncSavedPreferences(){
+function syncSavedPreferences({refreshRegistration=false,force=false}={}){
  const job=syncing.then(async()=>{
-  const value=await notificationPreferences();if(!value?.pendingSync)return value;
+  let value=await notificationPreferences();
+  if(value?.enabled&&refreshRegistration){const age=Date.now()-Date.parse(value.registrationCheckedAt||''),due=force||!Number.isFinite(age)||age>(value.registrationError?300000:86400000);if(due){try{const push=await registerPush({prompt:false});value=await changePreferences(current=>current?.enabled?{...current,...push,registrationCheckedAt:new Date().toISOString(),registrationError:null,pendingSync:true}:current)}catch(error){value=await changePreferences(current=>current?.enabled?{...current,registrationCheckedAt:new Date().toISOString(),registrationError:error.message}:current);if(value?.enabled)throw error}}else if(value.registrationError)throw Error(value.registrationError)}
+  if(!value?.pendingSync)return value;
   await saveSubscription(value);
   return changePreferences(current=>JSON.stringify(current)===JSON.stringify(value)?{...current,pendingSync:false}:current);
  });
  syncing=job.catch(()=>{});return job;
 }
+export function watchPushRegistration({admin=false}={}){return onPushTokenChange(()=>{syncSavedPreferences({refreshRegistration:true,force:true}).catch(()=>{});registerAccessPush({prompt:false,admin}).catch(()=>{})})}
 export async function enableNotifications(teamIds,playerIds,{admin=false}={}){
  const push=await registerPush();
- await saveNotificationPreferences({...(await notificationPreferences()),enabled:true,teamIds,playerIds,teamSelection:'custom',playerSelection:'custom',...push,consentedAt:new Date().toISOString(),pendingSync:true});
+ await saveNotificationPreferences({...(await notificationPreferences()),enabled:true,teamIds,playerIds,teamSelection:'custom',playerSelection:'custom',...push,registrationCheckedAt:new Date().toISOString(),registrationError:null,consentedAt:new Date().toISOString(),pendingSync:true});
  await syncSavedPreferences();await registerAccessPush({prompt:false,admin}).catch(()=>{});return notificationPreferences();
 }
 export async function updateNotificationTargets(teamIds,playerIds){
  const next=await changePreferences(value=>value?{...value,...resolveDeviceTargets(value,teamIds,playerIds),pendingSync:!!(value.enabled||value.pendingSync)}:value);
- if(next?.pendingSync)await syncSavedPreferences();
+ if(next?.pendingSync)await syncSavedPreferences({refreshRegistration:true});
 }
 export async function saveNotificationTeams(teamIds,playerIds,choices={}){
  const next=await changePreferences(previous=>({...previous,receiveTeams:choices.receiveTeams??previous?.receiveTeams??true,receivePlayers:choices.receivePlayers??previous?.receivePlayers??true,enabled:!!previous?.enabled,...resolveDeviceTargets({teamSelection:'custom',teamIds,playerSelection:'custom',playerIds},teamIds,playerIds),teamSelection:'custom',playerSelection:'custom',pendingSync:!!(previous?.enabled||previous?.pendingSync)}));

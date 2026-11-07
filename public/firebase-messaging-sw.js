@@ -17,11 +17,13 @@ self.addEventListener('fetch',event=>{
  if(!url.pathname.startsWith('/assets/')&&!url.pathname.startsWith('/_expo/')&&!url.pathname.endsWith('.ico'))return;
  event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request).then(response=>{if(response.ok){const copy=response.clone();event.waitUntil(caches.open(SHELL_CACHE).then(cache=>cache.put(event.request,copy)))}return response})));
 });
+const newsUrl=()=>self.location.origin+'/?aviso='+encodeURIComponent(JSON.stringify({type:'section',section:'news'}));
+function noticeUrl(value){try{const u=new URL(value,self.location.origin);if(u.origin===self.location.origin&&u.pathname==='/'&&u.searchParams.has('aviso')&&u.href.length<2000)return u.href}catch{}return newsUrl()}
 self.addEventListener('push',event=>{
  let message={};try{message=event.data?.json()||{}}catch{message={body:event.data?.text()||''}}
- event.waitUntil(self.registration.showNotification(message.title||'Villalbilla C.F.',{body:message.body||'Nuevo aviso del club',tag:message.id,icon:'/app-icon.png',data:{url:self.location.origin+'/?avisos=1'}}));
+ event.waitUntil(self.registration.showNotification(message.title||'Villalbilla C.F.',{body:message.body||'Nuevo aviso del club',tag:message.id,icon:'/app-icon.png',data:{url:noticeUrl(message.url)}}));
 });
 self.addEventListener('notificationclick',event=>{
  event.notification.close();
- event.waitUntil((async()=>{const url=self.location.origin+'/?avisos=1';const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});for(const client of windows){if(new URL(client.url).origin===self.location.origin){await client.navigate(url);return client.focus()}}return self.clients.openWindow(url)})());
+ event.waitUntil((async()=>{const url=noticeUrl(event.notification.data?.url);const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});for(const client of windows){if(new URL(client.url).origin===self.location.origin){await client.navigate(url);return client.focus()}}return self.clients.openWindow(url)})());
 });

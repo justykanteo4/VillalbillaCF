@@ -7,7 +7,7 @@ CREATE INDEX IF NOT EXISTS push_destination ON push_subscriptions(destination);
 CREATE TABLE IF NOT EXISTS club_notices (
  id TEXT PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL,
  all_club INTEGER NOT NULL, team_ids TEXT NOT NULL, player_ids TEXT NOT NULL,
- created_by TEXT NOT NULL, created_at INTEGER NOT NULL, queued INTEGER NOT NULL DEFAULT 0
+ created_by TEXT NOT NULL, created_at INTEGER NOT NULL, destination TEXT, queued INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS notice_date ON club_notices(created_at);
 CREATE TABLE IF NOT EXISTS push_outbox (

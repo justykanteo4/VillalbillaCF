@@ -3,6 +3,8 @@ import React,{useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,StyleSheet,AppState,Linking} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {api} from './api';
+import {matchWithReport} from './match-report.cjs';
+import clubTeams from './teams.json';
 import seed from './news-seed.json';
 import VenueDirections from './VenueDirections';
 import MatchWeather from './MatchWeather';
@@ -16,14 +18,24 @@ import ResultTeamSelector from './ResultTeamSelector';
 import TeamSelector from './TeamSelector';
 import {VisitCounter} from './AppVisits';
 
-function UpcomingMatchCard({match}){
-  const [expanded,setExpanded]=useState(false);
+function UpcomingMatchCard({match:sourceMatch,initialExpanded=false}){
+  const [expanded,setExpanded]=useState(initialExpanded),[report,setReport]=useState(null);
+  const match=matchWithReport(sourceMatch,report);
   const home=resultTeamName(match.home,match.homeId,match.team),away=resultTeamName(match.away,match.awayId,match.team);
   useBackAction(()=>{setExpanded(false);return true},20,expanded);
-  return <View style={s.upcomingCard}><Pressable accessibilityRole="button" accessibilityState={{expanded}} accessibilityLabel={'Detalles: '+home+(hasResult(match)?' '+match.homeScore+' a '+match.awayScore+' ':' vs ')+away} onPress={()=>setExpanded(v=>!v)} style={{gap:10}}><View style={s.scoreboard}><Text style={[s.team,s.scoreTeam]}>{home}</Text><Text style={hasResult(match)?s.score:s.vs}>{hasResult(match)?match.homeScore+' — '+match.awayScore:'VS'}</Text><Text style={[s.team,s.scoreTeam]}>{away}</Text></View><Text style={s.link}>{expanded?'Ocultar detalles −':'Ver detalles +'}</Text></Pressable>{expanded&&<View style={{gap:12}}><Text style={s.kicker}>{match.team.category} · Jornada {match.round}</Text><Text style={s.muted}>{match.date?match.date.split('-').reverse().join('/'):'Fecha por confirmar'} · {match.time||'Hora por confirmar'}</Text>{!hasResult(match)&&<><VenueDirections fieldId={match.venueId} venue={match.venue}/><MatchWeather fieldId={match.venueId} date={match.date} time={match.time}/></>}<MatchEvents match={match} onVenue={()=>{}}/></View>}</View>;
+  return <View style={s.upcomingCard}><Pressable accessibilityRole="button" accessibilityState={{expanded}} accessibilityLabel={'Detalles: '+home+(hasResult(match)?' '+match.homeScore+' a '+match.awayScore+' ':' vs ')+away} onPress={()=>setExpanded(v=>!v)} style={{gap:10}}><View style={s.scoreboard}><Text style={[s.team,s.scoreTeam]}>{home}</Text><Text style={hasResult(match)?s.score:s.vs}>{hasResult(match)?match.homeScore+' — '+match.awayScore:'VS'}</Text><Text style={[s.team,s.scoreTeam]}>{away}</Text></View><Text style={s.link}>{expanded?'Ocultar detalles −':'Ver detalles +'}</Text></Pressable>{expanded&&<View style={{gap:12}}><Text style={s.kicker}>{match.team.category} · Jornada {match.round}</Text><Text style={s.muted}>{match.date?match.date.split('-').reverse().join('/'):'Fecha por confirmar'}{!hasResult(match)?' · '+(match.time||'Hora por confirmar'):''}</Text>{!hasResult(match)&&<><VenueDirections fieldId={match.venueId} venue={match.venue}/><MatchWeather fieldId={match.venueId} date={match.date} time={match.time}/></>}<MatchEvents match={match} onVenue={()=>{}} onUpdate={setReport} forceRefresh={initialExpanded}/></View>}</View>;
 }
 
-export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[],favoritesOnly=false}){
+export function NotificationMatch({target,onClose}){
+ const find=calendar=>{const fixture=calendar?.fixtures?.find(m=>String(m.id)===target.matchId);return fixture?{...fixture,team:{...clubTeams.find(t=>t.id===target.teamId),...calendar}}:null};
+ const [match,setMatch]=useState(()=>find(seed.teams.find(t=>t.id===target.teamId))),[retry,setRetry]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ useEffect(()=>{let active=true;const controller=new AbortController();setBusy(true);setError('');const apply=value=>{if(!active)return;const found=find(value);if(found)setMatch(found);if(value.error)setError('No se pudo actualizar. Mostramos la información disponible.');else if(!found)setError('Este partido no está disponible en el calendario consultado. Puedes reintentar o ver todos los resultados.')};api('/api/team-calendar?team='+target.teamId,{signal:controller.signal,cache:retry?'reload':undefined,onUpdate:apply}).then(apply).catch(()=>{if(active)setError('No se pudo consultar el partido. Comprueba la conexión o reintenta.')}).finally(()=>{if(active)setBusy(false)});return()=>{active=false;controller.abort()}},[target.teamId,target.matchId,retry]);
+ return <View style={{gap:14}}><Text style={s.kicker}>Partido del aviso</Text><Pressable accessibilityRole="button" onPress={onClose} style={s.chip}><Text style={s.white}>Ver todos los resultados</Text></Pressable>{!!error&&<Text style={s.warning}>{error}</Text>}{match?<UpcomingMatchCard key={target.teamId+':'+target.matchId} match={match} initialExpanded/>:<Text style={s.muted}>{busy?'Buscando el partido del aviso…':'No hay información disponible de este partido.'}</Text>}<Pressable accessibilityRole="button" disabled={busy} onPress={()=>setRetry(n=>n+1)} style={s.chip}><Text style={s.white}>{busy?'Comprobando partido…':'Volver a consultar el partido'}</Text></Pressable></View>;
+}
+
+export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[],favoritesOnly=false,initialMatch=null}){
+  const [target,setTarget]=useState(initialMatch);
+  useBackAction(()=>{setTarget(null);return true},25,!!target);
   const [news,setNews]=useState(seed),[ig,setIg]=useState({connected:false,posts:[]}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[teamIds,setTeamIds]=useState([]),[dateSelection,setDateSelection]=useState('auto');
   const alive=useRef(true),newsUpdated=useRef(false),inFlight=useRef(false);
   async function refresh(force=false){
@@ -64,7 +76,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
   </>);
 
   return <View style={{gap:18}}>
-    {mode==='results'?<><Text style={s.title}>Resultados</Text>{results}</>:<>
+    {mode==='results'?<><Text style={s.title}>Resultados</Text>{target?<NotificationMatch target={target} onClose={()=>setTarget(null)}/>:results}</>:<>
       <ClubNewsSummary teams={news.teams}/>
       {instagram}
       {!!error&&<Text style={s.warning}>{error}</Text>}

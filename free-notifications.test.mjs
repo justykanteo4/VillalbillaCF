@@ -40,18 +40,21 @@ test('origen ajeno y administrador no autenticado no pueden publicar',async()=>{
 test('JWT verificado publica solo para destinatarios, cifra Web Push y no reenvía aceptados',async()=>{
  const env=makeEnv(),pair=await generateKeyPair('RS256'),jwk=await exportJWK(pair.publicKey);jwk.kid='test';
  const token=await new SignJWT({email:'albaresfernandez@gmail.com',email_verified:false,firebase:{sign_in_provider:'google.com'}}).setProtectedHeader({alg:'RS256',kid:'test'}).setIssuer('https://securetoken.google.com/villalbillacf').setAudience('villalbillacf').setSubject('admin').setExpirationTime('5m').sign(pair.privateKey);
- const original=globalThis.fetch;let pushes=0;
+ const original=globalThis.fetch;let pushes=0;const expo=[];
  globalThis.fetch=async(url,options)=>{
   if(String(url).includes('googleapis.com/service_accounts'))return Response.json({keys:[jwk]});
+  if(String(url).includes('exp.host')){expo.push(JSON.parse(options.body));return Response.json({data:{status:'ok',id:'fixture-ticket'}})}
   assert(String(url).startsWith('https://web.push.apple.com/'));assert(options.headers.Authorization||options.headers.authorization);assert(options.body.byteLength>0);pushes++;return new Response(null,{status:201});
  };
  try{
   for(const [i,team]of [[1,'680163'],[2,'42']])await handleFreeNotifications(request('/api/push/subscription',{installationKey:String(i).repeat(64),enabled:true,provider:'web',subscription:subscription(),teamIds:[team],playerIds:[]}),env,ctx);
-  const sent=await handleFreeNotifications(request('/api/push/send',{title:'Entrenamiento',body:'Mañana a las 18:00',all:false,teamIds:['680163'],playerIds:[]},token),env,ctx);
+  await handleFreeNotifications(request('/api/push/subscription',{installationKey:'3'.repeat(64),enabled:true,provider:'expo',token:'ExpoPushToken[fixture]',teamIds:['680163'],playerIds:[]}),env,ctx);
+  const destination={type:'match',teamId:'680163',matchId:'5587337'};
+  const sent=await handleFreeNotifications(request('/api/push/send',{destination,title:'Entrenamiento',body:'Mañana a las 18:00',all:false,teamIds:['680163'],playerIds:[]},token),env,ctx);
   assert.equal(sent.status,200);await Promise.all(jobs.splice(0));assert.equal(pushes,1);
-  await dispatchPending(env);assert.equal(pushes,1);
-  const inbox=await(await handleFreeNotifications(request('/api/notifications'),env,ctx)).json();assert.equal(inbox.messages.length,1);
-  const insert=env.NOTIFICATIONS_DB.db.prepare('INSERT INTO club_notices VALUES(?,?,?,?,?,?,?,?,?)');for(let i=1;i<FREE_LIMITS.noticesPerDay;i++)insert.run('n'+i,'a','b',1,'[]','[]','admin',Date.now(),1);
+  await dispatchPending(env);assert.equal(pushes,1);assert.equal(expo.length,1);assert.deepEqual(expo[0].data.destination,destination);
+  const inbox=await(await handleFreeNotifications(request('/api/notifications'),env,ctx)).json();assert.equal(inbox.messages.length,1);assert.deepEqual(inbox.messages[0].destination,destination);assert.deepEqual(JSON.parse(env.NOTIFICATIONS_DB.db.prepare('SELECT destination FROM club_notices').get().destination),destination);
+  const insert=env.NOTIFICATIONS_DB.db.prepare('INSERT INTO club_notices(id,title,body,all_club,team_ids,player_ids,created_by,created_at,queued) VALUES(?,?,?,?,?,?,?,?,?)');for(let i=1;i<FREE_LIMITS.noticesPerDay;i++)insert.run('n'+i,'a','b',1,'[]','[]','admin',Date.now(),1);
   assert.equal((await handleFreeNotifications(request('/api/push/send',{title:'Límite',body:'Texto',all:true,teamIds:[],playerIds:[]},token),env,ctx)).status,429);
  }finally{globalThis.fetch=original}
 });
@@ -79,4 +82,10 @@ test('una sesión manipulada no puede enviar avisos ni procesar la cola',async()
   assert.equal(response.status,401);
  }
  assert.equal(env.NOTIFICATIONS_DB.db.prepare('SELECT count(*) n FROM club_notices').get().n,0);
+});
+test('la migración del destino conserva avisos y envíos anteriores sin inventar un enlace privado',()=>{
+ const db=new DatabaseSync(':memory:');db.exec(readFileSync('./notification-schema.sql','utf8').replace('destination TEXT, ',''));db.prepare('INSERT INTO club_notices VALUES(?,?,?,?,?,?,?,?,?)').run('old','Aviso','Texto',1,'[]','[]','admin',1,1);db.exec(readFileSync('./notification-destination-migration.sql','utf8'));assert.equal(db.prepare('SELECT title FROM club_notices').get().title,'Aviso');assert.equal(db.prepare('SELECT destination FROM club_notices').get().destination,null);db.close();
+});
+test('el destino del aviso se valida y descarta propiedades ajenas a la ruta pública',()=>{
+ const base={title:'Hola',body:'Texto',all:true,teamIds:[],playerIds:[]};for(const destination of [{type:'url',url:'https://evil.test'},{type:'section',section:'Ajustes'},{type:'match',teamId:'680163',matchId:'../../admin'}])assert.throws(()=>validateNotice({...base,destination}));assert.deepEqual(validateNotice({...base,destination:{type:'section',section:'goalkeepers',url:'https://evil.test'}}).destination,{type:'section',section:'goalkeepers'});assert.deepEqual(validateNotice(base).destination,{type:'section',section:'news'});
 });

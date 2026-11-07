@@ -1,5 +1,6 @@
 import {createRemoteJWKSet,jwtVerify} from 'jose';
 import verification from './account-verification.cjs';
+import destinations from './notification-destination.cjs';
 import webpush from 'web-push';
 
 const googleKeys=createRemoteJWKSet(new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'));
@@ -19,7 +20,8 @@ const ids=value=>Array.isArray(value)&&value.length<=100&&value.every(id=>typeof
 export function validateNotice(value){
  if(typeof value.title!=='string'||!value.title.trim()||value.title.length>120||typeof value.body!=='string'||!value.body.trim()||value.body.length>2000)throw error('Escribe un título y mensaje válidos.');
  if(typeof value.all!=='boolean'||!ids(value.teamIds)||!ids(value.playerIds)||(!value.all&&!value.teamIds.length&&!value.playerIds.length))throw error('Selecciona los destinatarios.');
- return {...value,title:value.title.trim(),body:value.body.trim()};
+ const destination=value.destination===undefined?destinations.defaultDestination:destinations.normalizeDestination(value.destination);if(!destination)throw error('Selecciona una sección o un partido válido para abrir el aviso.');
+ return {...value,title:value.title.trim(),body:value.body.trim(),destination};
 }
 export async function verifyAdmin(request,env){
  const token=request.headers.get('Authorization')?.match(/^Bearer (.+)$/)?.[1];
@@ -45,7 +47,7 @@ export async function handleFreeNotifications(request,env,ctx){
   if(path==='/api/push/key'&&request.method==='GET')return reply({publicKey:env.WEB_PUSH_PUBLIC_KEY||null,free:true});
   if(path==='/api/notifications'&&request.method==='GET'){
    const rows=await db.prepare('SELECT * FROM club_notices ORDER BY created_at DESC LIMIT 100').all();
-   return reply({messages:rows.results.map(row=>({id:row.id,title:row.title,body:row.body,all:!!row.all_club,teamIds:JSON.parse(row.team_ids),playerIds:JSON.parse(row.player_ids),createdAt:new Date(row.created_at).toISOString()}))});
+   return reply({messages:rows.results.map(row=>({id:row.id,title:row.title,body:row.body,destination:destinations.storedDestination(row.destination),all:!!row.all_club,teamIds:JSON.parse(row.team_ids),playerIds:JSON.parse(row.player_ids),createdAt:new Date(row.created_at).toISOString()}))});
   }
   if(request.method!=='POST')return reply({error:'Método no permitido.'},405);
   const origin=request.headers.get('Origin');
@@ -79,7 +81,7 @@ export async function handleFreeNotifications(request,env,ctx){
   }
   if(path!=='/api/push/send')throw error('Ruta no encontrada.',404);
   const value=validateNotice(await body(request)),id=crypto.randomUUID(),now=Date.now();
-  const inserted=await db.prepare('INSERT INTO club_notices(id,title,body,all_club,team_ids,player_ids,created_by,created_at) SELECT ?,?,?,?,?,?,?,? WHERE (SELECT count(*) FROM club_notices WHERE created_at>=?)<?').bind(id,value.title,value.body,value.all?1:0,JSON.stringify(value.teamIds),JSON.stringify(value.playerIds),uid,now,now-86400000,FREE_LIMITS.noticesPerDay).run();
+  const inserted=await db.prepare('INSERT INTO club_notices(id,title,body,all_club,team_ids,player_ids,created_by,created_at,destination) SELECT ?,?,?,?,?,?,?,?,? WHERE (SELECT count(*) FROM club_notices WHERE created_at>=?)<?').bind(id,value.title,value.body,value.all?1:0,JSON.stringify(value.teamIds),JSON.stringify(value.playerIds),uid,now,JSON.stringify(value.destination),now-86400000,FREE_LIMITS.noticesPerDay).run();
   if(!inserted.meta.changes)throw error('Has alcanzado los 20 avisos diarios del modo gratuito. Inténtalo mañana.',429);
   await queueNotice(db,id);
   ctx.waitUntil(dispatchPending(env));
@@ -100,7 +102,7 @@ export async function dispatchPending(env){
  const recent=await db.prepare('SELECT id FROM club_notices WHERE queued=0 AND created_at>? ORDER BY created_at DESC LIMIT 20').bind(now-86400000).all();
  for(const row of recent.results)await queueNotice(db,row.id);
  await db.prepare("UPDATE push_outbox SET status='pending' WHERE status='sending' AND next_at<=?").bind(now).run();
- const jobs=await db.prepare(`SELECT o.*,n.title,n.body,s.provider,s.payload FROM push_outbox o
+ const jobs=await db.prepare(`SELECT o.*,n.title,n.body,n.destination,s.provider,s.payload FROM push_outbox o
  JOIN club_notices n ON n.id=o.notice_id JOIN push_subscriptions s ON s.id=o.subscription_id
  WHERE o.status='pending' AND o.next_at<=? AND o.attempts<5 AND s.enabled=1
  ORDER BY o.next_at LIMIT ?`).bind(now,FREE_LIMITS.batch).all();
@@ -108,15 +110,15 @@ export async function dispatchPending(env){
   const claimed=await db.prepare("UPDATE push_outbox SET status='sending',attempts=attempts+1,next_at=? WHERE notice_id=? AND subscription_id=? AND status IN ('pending','sending') AND next_at<=?").bind(now+120000,job.notice_id,job.subscription_id,now).run();
   if(!claimed.meta.changes)continue;
   try{
-   const subscription=JSON.parse(job.payload);let ticket=null;
+   const subscription=JSON.parse(job.payload),destination=destinations.storedDestination(job.destination);let ticket=null;
    if(job.provider==='web'){
     if(!env.WEB_PUSH_PRIVATE_KEY||!env.WEB_PUSH_PUBLIC_KEY)throw Error('Push no configurado');
-    const details=webpush.generateRequestDetails(subscription,JSON.stringify({title:job.title,body:job.body,id:job.notice_id}),{TTL:86400,contentEncoding:'aes128gcm',vapidDetails:{subject:'mailto:appvillalbilla@gmail.com',publicKey:env.WEB_PUSH_PUBLIC_KEY,privateKey:env.WEB_PUSH_PRIVATE_KEY}});
+    const details=webpush.generateRequestDetails(subscription,JSON.stringify({title:job.title,body:job.body,id:job.notice_id,url:destinations.destinationUrl(destination,job.notice_id)}),{TTL:86400,contentEncoding:'aes128gcm',vapidDetails:{subject:'mailto:appvillalbilla@gmail.com',publicKey:env.WEB_PUSH_PUBLIC_KEY,privateKey:env.WEB_PUSH_PRIVATE_KEY}});
     const response=await fetch(details.endpoint,{method:details.method,headers:details.headers,body:details.body,signal:AbortSignal.timeout(10000)});
     if([404,410].includes(response.status))throw Object.assign(Error('Dispositivo dado de baja'),{expired:true});
     if(!response.ok)throw Error('El proveedor rechazó el envío ('+response.status+')');
    }else{
-    const response=await fetch('https://exp.host/--/api/v2/push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:subscription.token,title:job.title,body:job.body,sound:'default',channelId:'club',data:{notificationId:job.notice_id}}),signal:AbortSignal.timeout(10000)});
+    const response=await fetch('https://exp.host/--/api/v2/push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:subscription.token,title:job.title,body:job.body,sound:'default',channelId:'club',data:{notificationId:job.notice_id,destination}}),signal:AbortSignal.timeout(10000)});
     const result=await response.json();if(!response.ok||result.data?.status!=='ok')throw Object.assign(Error('Expo rechazó el envío'),{expired:result.data?.details?.error==='DeviceNotRegistered'});ticket=result.data.id;
    }
    await db.prepare("UPDATE push_outbox SET status='accepted',ticket=?,last_error=NULL WHERE notice_id=? AND subscription_id=?").bind(ticket,job.notice_id,job.subscription_id).run();

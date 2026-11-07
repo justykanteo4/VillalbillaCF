@@ -1,9 +1,9 @@
 {
-  "id": "2026.11.07.3",
+  "id": "2026.11.07.4",
   "date": "2026-11-07",
-  "title": "Ranking de porteros por coeficiente",
+  "title": "Categorías del ranking de porteros",
   "changes": [
-    "La clasificación de porteros se ordena por menor coeficiente: goles encajados divididos entre partidos jugados.",
-    "A igualdad de coeficiente, aparece primero quien ha jugado más partidos. Las porterías a cero siguen visibles como información."
+    "Se excluyen Benjamín y Prebenjamín de la clasificación deportiva de porteros del club.",
+    "Se mantiene el orden por menor coeficiente y, en empate, más partidos jugados."
   ]
 }

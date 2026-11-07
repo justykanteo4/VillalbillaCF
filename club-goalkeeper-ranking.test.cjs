@@ -26,3 +26,7 @@ test('failed or older refresh keeps newer stored statistics and marks the record
  }
  const merged=mergeKeeperTeam(previous,{players:[player('a',6,3,6,{goalkeeperUpdatedAt:'2026-11-08T10:00:00Z'})]});assert.equal(merged.players[0].goalkeeperPlayed,6);assert.equal(merged.players[0].goalkeeperPartial,false);
 });
+test('Benjamín and Prebenjamín are excluded before aggregation, including pending keepers',()=>{
+ const teams=[{...team('a',[player('eligible',3,1,2)]),category:'PRIMERA ALEVÍN'},...['PREFERENTE BENJAMIN F7','Primera Benjamín','PREBENJAMIN','Pre-Benjamín','Pre Benjamín'].map((category,i)=>({...team(String(i),[player('excluded-'+i,4,4,0),player('pending-'+i,null,null,null),player('eligible',10,10,0)]),category}))];
+ const {ranked,pending,partial}=rankClubGoalkeepers(teams);assert.deepEqual(ranked.map(p=>p.id),['eligible']);assert.equal(ranked[0].played,3);assert.equal(ranked[0].goalsConceded,2);assert.equal(ranked[0].teams.length,1);assert.deepEqual(pending,[]);assert.equal(partial,false);
+});

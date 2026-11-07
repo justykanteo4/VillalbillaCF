@@ -5,7 +5,7 @@ import {verifyAdmin} from './free-notifications.mjs';
 import catalog from './social-candidates.json' with {type:'json'};
 import matches from './social-matches.json' with {type:'json'};
 import names from './name-search.cjs';
-const validMatches=new Set(matches),season='2026-27',categories=['team','player','trainer'];
+const validMatches=new Set(matches),season='2026-27',categories=['team','player','trainer','goalkeeper'];
 const reply=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}}),error=(text,status=400)=>Object.assign(Error(text),{status});
 const authors=new Map();
 async function author(request,uid){

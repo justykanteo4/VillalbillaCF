@@ -1,10 +1,11 @@
 {
-  "id": "2026.11.07.1",
+  "id": "2026.11.07.2",
   "date": "2026-11-07",
-  "title": "Sanciones de la resolución oficial",
+  "title": "Porteros: clasificación del club y votación",
   "changes": [
-    "Las sanciones se consultan en la resolución oficial de la federación para las 17 categorías del Villalbilla, incluidas acumulaciones y dobles amonestaciones.",
-    "Los entrenadores autorizados y administradores conservan una copia por cuenta y equipo para usarla sin conexión. Si falla la consulta, se mantiene la última resolución y se indica el problema.",
-    "Los partidos pendientes se muestran como estimación de cumplimiento; se mantiene un enlace a la resolución oficial."
+    "Nueva clasificación de porteros en Rankings del club, con porterías a cero, goles encajados y partidos jugados de todas las categorías.",
+    "Se ordena por porterías a cero; en los empates, por menos goles encajados por partido y más partidos. Los datos incompletos se identifican como parciales.",
+    "Nueva pestaña Porteros dentro de Votaciones, con fotografías y ranking por puntos.",
+    "Reparte 3, 2 y 1 punto entre tres porteros distintos. Tienes cuatro cambios en esta categoría, independientes de las demás votaciones."
   ]
 }

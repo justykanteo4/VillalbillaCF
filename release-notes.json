@@ -1,11 +1,9 @@
 {
-  "id": "2026.11.07.2",
+  "id": "2026.11.07.3",
   "date": "2026-11-07",
-  "title": "Porteros: clasificación del club y votación",
+  "title": "Ranking de porteros por coeficiente",
   "changes": [
-    "Nueva clasificación de porteros en Rankings del club, con porterías a cero, goles encajados y partidos jugados de todas las categorías.",
-    "Se ordena por porterías a cero; en los empates, por menos goles encajados por partido y más partidos. Los datos incompletos se identifican como parciales.",
-    "Nueva pestaña Porteros dentro de Votaciones, con fotografías y ranking por puntos.",
-    "Reparte 3, 2 y 1 punto entre tres porteros distintos. Tienes cuatro cambios en esta categoría, independientes de las demás votaciones."
+    "La clasificación de porteros se ordena por menor coeficiente: goles encajados divididos entre partidos jugados.",
+    "A igualdad de coeficiente, aparece primero quien ha jugado más partidos. Las porterías a cero siguen visibles como información."
   ]
 }

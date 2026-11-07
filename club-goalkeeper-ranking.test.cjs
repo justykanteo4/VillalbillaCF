@@ -3,9 +3,9 @@ const assert=require('node:assert/strict');
 const {rankClubGoalkeepers,mergeKeeperTeam}=require('./club-goalkeeper-ranking.cjs');
 const player=(id,played,cleanSheets,goalsConceded,extra={})=>({id,name:id,isGoalkeeper:true,goalkeeperPlayed:played,cleanSheets,goalsConceded,...extra});
 const team=(id,players)=>({id,name:id,category:'Cadete',players});
-test('clean sheets lead; conceded per match and appearances break ties; equal records share rank',()=>{
- const {ranked}=rankClubGoalkeepers([team('a',[player('more-clean',4,3,8),player('ratio',4,2,2),player('appearances',8,2,8),player('tie',8,2,8),player('fewer-games',4,2,4)])]);
- assert.deepEqual(ranked.map(p=>[p.id,p.rank]),[['more-clean',1],['ratio',2],['appearances',3],['tie',3],['fewer-games',5]]);
+test('coefficient leads; more appearances break ties; clean sheets do not affect position',()=>{
+ const {ranked}=rankClubGoalkeepers([team('a',[player('more-clean',4,3,8),player('ratio',4,2,2),player('appearances',8,2,8),player('tie',8,0,8),player('fewer-games',4,2,4)])]);
+ assert.deepEqual(ranked.map(p=>[p.id,p.rank]),[['ratio',1],['appearances',2],['tie',2],['fewer-games',4],['more-clean',5]]);
 });
 test('unused substitutes and unknown participation cannot lead the ranking',()=>{
  const {ranked,pending,partial}=rankClubGoalkeepers([team('a',[player('active',1,0,4),player('bench',0,0,0),player('unknown',null,null,null),{id:'outfield',name:'Outfield',played:20}])]);

@@ -42,7 +42,7 @@ async function baseApi(path,options={}){
  const {_background,...fetchOptions}=requestOptions;
  const version=cacheable?(versions.get(path)||0)+1:0;
  if(cacheable)versions.set(path,version);
- const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),/^\/api\/(goalkeepers|team-minutes)\?/.test(path)||_background?45000:25000);
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),/^\/api\/(goalkeepers|team-minutes|club-stats)\?/.test(path)||_background?45000:25000);
  const abortFromCaller=()=>controller.abort();
  if(options.signal?.aborted)controller.abort();
  else options.signal?.addEventListener('abort',abortFromCaller,{once:true});

@@ -45,7 +45,7 @@ async function data(request, env) {
   if (url.pathname === '/api/club-stats') {
     const offset=Number(p.get('offset')||0);
     if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida.'},400,0];
-    const result=await clubStats.clubStats(p.get('team'),offset);
+    const result=await clubStats.clubStats(p.get('team'),offset,env.VISITS_DB,{pending:p.has('pending')?(p.get('pending')||'').split(',').filter(id=>/^\d{1,20}$/.test(id)).slice(0,20):null});
     return result?[result,200,result.error?0:300]:[{error:'Equipo no encontrado.'},404,0];
   }
   if(url.pathname==='/api/report-membership'){const value=await reportMembership.reportMembership(p.get('team'),p.get('name'),Number(p.get('offset')||0),env.VISITS_DB);return value?[value,200,value.error?0:300]:[{error:'Consulta no válida.'},400,0]}

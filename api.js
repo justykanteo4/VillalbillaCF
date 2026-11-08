@@ -42,24 +42,25 @@ async function baseApi(path,options={}){
  const {_background,...fetchOptions}=requestOptions;
  const version=cacheable?(versions.get(path)||0)+1:0;
  if(cacheable)versions.set(path,version);
- const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),/^\/api\/(goalkeepers|team-minutes|club-stats)\?/.test(path)||_background?45000:25000);
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),path==='/api/news'?60000:/^\/api\/(goalkeepers|team-minutes|club-stats|team-calendar)\?/.test(path)||_background?45000:25000);
  const abortFromCaller=()=>controller.abort();
  if(options.signal?.aborted)controller.abort();
  else options.signal?.addEventListener('abort',abortFromCaller,{once:true});
  try{
   const fetchOptionsWithSignal={...fetchOptions,...(['reload','no-store'].includes(cacheMode)?{cache:cacheMode}:{}),headers:{...options.headers,'X-App-Platform':Platform.OS},signal:controller.signal};
-  const deltaNews=path==='/api/news'&&cached&&cached.data.teams?.some(t=>t.fixtures?.length)&&(!forceNetwork||_background),requestPath=deltaNews?path+'?current=1':path;
+  const deltaNews=path==='/api/news'&&cached&&cached.data.teams?.some(t=>t.fixtures?.length)&&(!forceNetwork||_background),requestPath=deltaNews?path+'?current=1':path==='/api/news'&&forceNetwork&&!_background?path+'?refresh=1':path;
   let r;try{r=await fetch(apiBase+requestPath,fetchOptionsWithSignal)}catch(error){if(!cacheable||controller.signal.aborted||error.name!=='TypeError')throw error;r=await fetch(apiBase+requestPath,fetchOptionsWithSignal)}
   let payload;try{payload=await r.json()}catch{throw Object.assign(Error('El servidor no ha enviado datos válidos. Vuelve a actualizar.'),{diagnosticCode:'FORMAT'})}
-  const d=limitData(path,deltaNews?mergeNews(cached.data,payload):payload);
+  let d=limitData(path,path==='/api/news'&&cached?.data?.teams?.some(t=>t.fixtures?.length)?mergeNews(cached.data,payload):payload);
   if(r.ok&&d.error)recordDiagnostic({category:/match|goalkeepers|team-minutes|report-membership/.test(path)?'actas':'conexion',code:'SOURCE',resource:path,status:r.status});
   if(!r.ok){const e=Error(d.error||'Servicio no disponible');e.status=r.status;throw e}
   if(cacheable&&version!==versions.get(path)){
    const latest=await readCopy(path).catch(()=>null);
    return latest?{...limitData(path,latest.data),fromCache:true,savedAt:latest.savedAt}:d;
   }
-  if(cacheable&&!d.error){await saveCopy(path,d).catch(()=>{});if(path.startsWith('/api/match?')&&path.includes('&refresh=1'))await saveCopy(path.replace('&refresh=1',''),d).catch(()=>{})}
+  if(cacheable&&!d.error){if(path==='/api/news'){const latest=await readCopy(path).catch(()=>null);if(latest?.data?.teams?.some(t=>t.fixtures?.length))d=mergeNews(latest.data,d)}await saveCopy(path,d).catch(()=>{});if(path.startsWith('/api/match?')&&path.includes('&refresh=1'))await saveCopy(path.replace('&refresh=1',''),d).catch(()=>{})}
   if(cacheable&&!d.error&&path.startsWith('/api/match?')&&(d.closed||d.published)&&teamIdForCache){await noteSportsRevision(teamIdForCache,d.id,reportSignature(d)).catch(()=>{});await applyLocalReport(teamIdForCache,d).catch(()=>{});}
+  if(cacheable&&!d.error&&path.split('?')[0]==='/api/team-calendar'&&teamIdForCache&&Array.isArray(d.fixtures)){const name='calendar-archive.v1.'+teamIdForCache,previous=(await readCopy(name).catch(()=>null))?.data;const calendar=mergeNews({teams:previous?[previous]:[]},{teams:[{...d,id:teamIdForCache}]}).teams.find(t=>t.id===teamIdForCache);await saveCopy(name,calendar).catch(()=>{});await noteSportsRevision(teamIdForCache,'calendar',calendarSignature(calendar.fixtures)).catch(()=>{});queueCurrentReports([calendar]);}
   if(cacheable&&!d.error&&path.split('?')[0]==='/api/news')await Promise.all((d.teams||[]).filter(t=>!t.error).map(t=>noteSportsRevision(t.id,'calendar',calendarSignature(t.fixtures)).catch(()=>{})));
   if(cacheable&&!d.error&&path.split('?')[0]==='/api/news')queueCurrentReports(d.teams||[]);
   return d;

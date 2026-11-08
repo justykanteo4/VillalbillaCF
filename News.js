@@ -3,6 +3,8 @@ import React,{useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,StyleSheet,AppState,Linking} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {api} from './api';
+import {readCopy,saveCopy} from './offline';
+import {mergeResults,refreshResults} from './results-refresh.cjs';
 import {matchWithReport} from './match-report.cjs';
 import clubTeams from './teams.json';
 import seed from './news-seed.json';
@@ -37,26 +39,27 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
   const [target,setTarget]=useState(initialMatch);
   useBackAction(()=>{setTarget(null);return true},25,!!target);
   const [news,setNews]=useState(seed),[ig,setIg]=useState({connected:false,posts:[]}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[teamIds,setTeamIds]=useState([]),[dateSelection,setDateSelection]=useState('auto');
+  const newsRef=useRef(seed),refreshController=useRef(null),persistTimer=useRef(null);
+  const persistNews=()=>{clearTimeout(persistTimer.current);const value=newsRef.current;AsyncStorage.setItem('villalbilla.public.news',JSON.stringify(value)).catch(()=>{});saveCopy('/api/news',value).catch(()=>{})};
   const alive=useRef(true),newsUpdated=useRef(false),inFlight=useRef(false);
   async function refresh(force=false){
     if(inFlight.current)return;
-    inFlight.current=true;setBusy(true);
-    const applyNews=value=>{if(alive.current){newsUpdated.current=true;setNews(value);setError(value.offline?'No se pudo actualizar. Mostramos la información guardada.':'');AsyncStorage.setItem('villalbilla.public.news',JSON.stringify(value)).catch(()=>{})}};
-    const applyInstagram=value=>{if(alive.current)setIg({...value,posts:(value.posts||[]).slice(0,8)})};
-    const failNews=()=>{if(alive.current)setError('No se pudo actualizar. Mostramos la última información disponible.')};
-    await Promise.allSettled([
-      api('/api/news',{cache:force?'reload':undefined,onUpdate:applyNews,onRefreshError:failNews}).then(applyNews).catch(failNews),
-      api('/api/instagram',{onUpdate:applyInstagram}).then(applyInstagram).catch(()=>{if(alive.current)setIg(value=>({...value,error:true}))}),
-    ]);
-    if(alive.current)setBusy(false);
+    inFlight.current=true;setBusy(true);const controller=new AbortController();refreshController.current=controller;
+    const applyNews=value=>{if(alive.current){newsUpdated.current=true;newsRef.current=mergeResults(newsRef.current,value);setNews(newsRef.current);if(newsRef.current.teams.every(t=>!t.error&&!t.offline))setError('');clearTimeout(persistTimer.current);persistTimer.current=setTimeout(persistNews,250)}};
+    setError('');
+    if(mode==='news')api('/api/instagram',{onUpdate:value=>{if(alive.current)setIg({...value,posts:(value.posts||[]).slice(0,8)})}}).then(value=>{if(alive.current)setIg({...value,posts:(value.posts||[]).slice(0,8)})}).catch(()=>{if(alive.current)setIg(value=>({...value,error:true}))});
+    const result=await refreshResults(newsRef.current.teams,{loadTeam:api,force,signal:controller.signal,onTeam:team=>applyNews({teams:[team]})});
+    if(alive.current&&result.failed)setError('Algunos equipos no se pudieron actualizar. Se conservan sus resultados guardados.');
+    if(alive.current){setBusy(false);persistNews()}
     inFlight.current=false;
   }
 
   useEffect(()=>{
     alive.current=true;
-    AsyncStorage.getItem('villalbilla.public.news').then(value=>{if(value&&alive.current){const stored=JSON.parse(value);if(Array.isArray(stored.teams)&&!newsUpdated.current)setNews(stored)}}).catch(()=>{});
+    AsyncStorage.getItem('villalbilla.public.news').then(value=>{if(value&&alive.current){const stored=JSON.parse(value);if(Array.isArray(stored.teams)&&!newsUpdated.current)setNews(newsRef.current=mergeResults(newsRef.current,stored))}}).catch(()=>{});
+    readCopy('/api/news').then(copy=>{if(alive.current&&copy?.data?.teams){newsRef.current=mergeResults(newsRef.current,copy.data);setNews(newsRef.current)}}).catch(()=>{});
     refresh();const timer=setInterval(refresh,300000),subscription=AppState.addEventListener('change',state=>{if(state==='active')refresh()});
-    return()=>{alive.current=false;clearInterval(timer);subscription.remove()};
+    return()=>{alive.current=false;persistNews();refreshController.current?.abort();clearInterval(timer);subscription.remove()};
   },[]);
 
   const favoriteSet=new Set(favoriteTeamIds),orderedTeams=[...news.teams].sort((a,b)=>Number(favoriteSet.has(b.id))-Number(favoriteSet.has(a.id))||a.category.localeCompare(b.category,'es'));

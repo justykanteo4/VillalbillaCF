@@ -1,11 +1,10 @@
 {
-  "id": "2026.11.07.8",
-  "date": "2026-11-07",
-  "title": "Reparación del registro de notificaciones",
+  "id": "2026.11.08.1",
+  "date": "2026-11-08",
+  "title": "Resultados actualizados y avisos automáticos",
   "changes": [
-    "Se renueva automáticamente el registro de los móviles con avisos activados y cuando cambia el identificador del dispositivo, sin volver a pedir permiso.",
-    "Los usuarios ya aceptados también pueden activar los avisos al entrar por primera vez en un dispositivo nuevo; se respeta la elección de no recibirlos.",
-    "Notificaciones muestra el permiso real y detecta el canal bloqueado de Android. Incluye Comprobar y reparar avisos, acceso a permisos y una prueba local del teléfono.",
-    "Los avisos del club y de accesos se envían con prioridad alta en Android. Se conserva el motivo cuando Google rechaza un envío."
+    "Los resultados se actualizan por equipo y aparecen en cuanto responde cada consulta, sin esperar a todo el club.",
+    "Se recupera el marcador confirmado del acta, incluido el 0–0 de Aficionado, y no se borra por una respuesta incompleta. Actualizar resultados vuelve a consultar la fuente.",
+    "Se añaden avisos automáticos de resultados confirmados para los equipos que sigues. Cada partido genera un solo aviso que abre su resultado; no se reenvía el historial ya incluido."
   ]
 }

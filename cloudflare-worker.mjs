@@ -12,6 +12,7 @@ import reportMembership from './server/report-membership.cjs';
 import {handleAccess,dispatchAccessNotifications} from './access-service.mjs';
 import {handleActivity} from './activity-service.mjs';
 import {handleVisits} from './visits-service.mjs';
+import {scheduledResults} from './result-alerts.mjs';
 import {handleFreeNotifications,scheduledNotifications} from './free-notifications.mjs';
 import news from './server/news.cjs';
 import clubStats from './server/club-stats.cjs';
@@ -49,8 +50,8 @@ async function data(request, env) {
     return result?[result,200,result.error?0:300]:[{error:'Equipo no encontrado.'},404,0];
   }
   if(url.pathname==='/api/report-membership'){const value=await reportMembership.reportMembership(p.get('team'),p.get('name'),Number(p.get('offset')||0),env.VISITS_DB);return value?[value,200,value.error?0:300]:[{error:'Consulta no válida.'},400,0]}
-  if (url.pathname === '/api/team-calendar') {const result=await news.teamCalendar(p.get('team'),p.get('current')==='1');return result?[result,200,result.error?0:60]:[{error:'Equipo no encontrado.'},404,0] }
-  if (url.pathname === '/api/news') {const value=await news.refreshNews({persistComments:false,db:env.VISITS_DB});return [p.get('current')==='1'?{...value,teams:value.teams.map(t=>({...t,fixtures:requireOfflineCurrent(t.fixtures)}))}:value,200,60]}
+  if (url.pathname === '/api/team-calendar') {const result=await news.teamCalendar(p.get('team'),p.get('current')==='1',{db:env.VISITS_DB,refresh:p.get('refresh')==='1'});return result?[result,200,result.error?0:60]:[{error:'Equipo no encontrado.'},404,0] }
+  if (url.pathname === '/api/news') {const value=await news.refreshNews({persistComments:false,db:env.VISITS_DB,refresh:p.get('refresh')==='1'});return [p.get('current')==='1'?{...value,teams:value.teams.map(t=>({...t,fixtures:requireOfflineCurrent(t.fixtures)}))}:value,200,60]}
   if (url.pathname === '/api/instagram') return [await news.instagram(env.INSTAGRAM_ACCESS_TOKEN, env.INSTAGRAM_FACEBOOK_ACCESS_TOKEN), 200, 60];
   if (url.pathname === '/api/calendar') {
     const response = await fetch(calendar.SOURCE, { signal: AbortSignal.timeout(20000) });
@@ -121,7 +122,7 @@ async function data(request, env) {
 }
 
 export default {
-  async scheduled(event,env,ctx){ctx.waitUntil(Promise.allSettled([scheduledNotifications(env),dispatchAccessNotifications(env),scheduledOfficialSanctions(env)]))},
+  async scheduled(event,env,ctx){ctx.waitUntil(Promise.allSettled([scheduledNotifications(env),dispatchAccessNotifications(env),scheduledOfficialSanctions(env),scheduledResults(env)]))},
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const download=await handleApkDownload(request,env.ASSETS);if(download)return download;
@@ -143,10 +144,10 @@ export default {
     if(notificationResponse)return notificationResponse;
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (request.method !== 'GET') return json({ error: 'Método no permitido.' }, 405, origin);
-    const cacheUrl=new URL(url);if(url.pathname==='/api/news')cacheUrl.searchParams.set('__source','report-scores-v1');if(url.pathname==='/api/field')cacheUrl.searchParams.set('__source','field-alias-v2');
+    const cacheUrl=new URL(url);if(url.pathname==='/api/news')cacheUrl.searchParams.set('__source','report-scores-v2');if(url.pathname==='/api/team-calendar')cacheUrl.searchParams.set('__source','team-report-scores-v1');if(url.pathname==='/api/field')cacheUrl.searchParams.set('__source','field-alias-v2');
     const cacheKey = new Request(cacheUrl.toString(), { method: 'GET' });
     try {
-      const cached = url.pathname==='/api/match'&&url.searchParams.get('refresh')==='1'?null:await caches.default.match(cacheKey);
+      const cached = ['/api/match','/api/news','/api/team-calendar'].includes(url.pathname)&&url.searchParams.get('refresh')==='1'?null:await caches.default.match(cacheKey);
       if (cached) {
         const headers = new Headers(cached.headers);
         headers.set('Access-Control-Allow-Origin', origin);

@@ -17,3 +17,10 @@ CREATE TABLE IF NOT EXISTS push_outbox (
  PRIMARY KEY(notice_id,subscription_id)
 );
 CREATE INDEX IF NOT EXISTS outbox_pending ON push_outbox(status,next_at);
+CREATE TABLE IF NOT EXISTS result_checks (
+ team_id TEXT PRIMARY KEY,
+ checked_at INTEGER NOT NULL DEFAULT 0,
+ next_at INTEGER NOT NULL DEFAULT 0,
+ lease_until INTEGER NOT NULL DEFAULT 0,
+ last_error TEXT
+);

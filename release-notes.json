@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.08.1",
-  "date": "2026-11-08",
-  "title": "Resultados actualizados y avisos automáticos",
+  "id": "2026.11.09.1",
+  "date": "2026-11-09",
+  "title": "Actualización de rankings de jugadores y porteros",
   "changes": [
-    "Los resultados se actualizan por equipo y aparecen en cuanto responde cada consulta, sin esperar a todo el club.",
-    "Se recupera el marcador confirmado del acta, incluido el 0–0 de Aficionado, y no se borra por una respuesta incompleta. Actualizar resultados vuelve a consultar la fuente.",
-    "Se añaden avisos automáticos de resultados confirmados para los equipos que sigues. Cada partido genera un solo aviso que abre su resultado; no se reenvía el historial ya incluido."
+    "Actualizar ranking consulta de nuevo la fuente y conserva la copia mientras llegan los datos. Las fichas pendientes ya se indican en pantalla.",
+    "Se corrigen los goles de jugadores que participan en varios equipos, usando los goles de la competición seleccionada.",
+    "Los porteros se actualizan sin esperar a todas las fichas de jugadores y revisan las actas recientes aunque el calendario aún no tenga marcador."
   ]
 }

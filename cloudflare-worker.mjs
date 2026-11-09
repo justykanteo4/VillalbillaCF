@@ -41,8 +41,8 @@ const json = (value, status = 200, origin = '*', maxAge = 0) => new Response(JSO
 
 async function data(request, env) {
   const url = new URL(request.url), p = url.searchParams;
-  if(url.pathname==='/api/team-minutes'){const offset=Number(p.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida'},400,0];const value=await minuteReports.minuteReports(p.get('team'),offset,env.VISITS_DB,{current:p.get('current')==='1',pending:(p.get('pending')||'').split(',').filter(id=>/^\d{1,20}$/.test(id)).slice(0,20)});return value?[value,200,value.error?0:60]:[{error:'Equipo no encontrado'},404,0]}
-  if(url.pathname==='/api/goalkeepers'){const offset=Number(p.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida'},400,0];const value=await goalkeepers.goalkeeperReports(p.get('team'),offset,env.VISITS_DB,{current:p.get('current')==='1',pending:(p.get('pending')||'').split(',').filter(id=>/^\d{1,20}$/.test(id)).slice(0,20)});return value?[value,200,value.error?0:60]:[{error:'Equipo no encontrado'},404,0]}
+  if(url.pathname==='/api/team-minutes'){const offset=Number(p.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida'},400,0];const value=await minuteReports.minuteReports(p.get('team'),offset,env.VISITS_DB,{refresh:p.get('refresh')==='1',current:p.get('current')==='1',pending:(p.get('pending')||'').split(',').filter(id=>/^\d{1,20}$/.test(id)).slice(0,20)});return value?[value,200,value.error?0:60]:[{error:'Equipo no encontrado'},404,0]}
+  if(url.pathname==='/api/goalkeepers'){const offset=Number(p.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida'},400,0];const value=await goalkeepers.goalkeeperReports(p.get('team'),offset,env.VISITS_DB,{refresh:p.get('refresh')==='1',current:p.get('current')==='1',pending:(p.get('pending')||'').split(',').filter(id=>/^\d{1,20}$/.test(id)).slice(0,20)});return value?[value,200,value.error?0:60]:[{error:'Equipo no encontrado'},404,0]}
   if (url.pathname === '/api/club-stats') {
     const offset=Number(p.get('offset')||0);
     if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida.'},400,0];
@@ -81,15 +81,15 @@ async function data(request, env) {
   }
   if (url.pathname === '/api/weather') return [await weather.weather(p.get('field'), p.get('date'), p.get('time')), 200, 1800];
   if (url.pathname === '/api/players') {
-    const result = await players.getPlayers(p.get('team'));
-    return result ? [result, 200, 1800] : [{ error: 'Equipo no encontrado.' }, 404, 0];
+    const result = await players.getPlayers(p.get('team'),{refresh:p.get('refresh')==='1'});
+    return result ? [result, 200, result.partial?30:300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/player-minutes') {
     const result = await minutes.playerMinutes(p.get('team'), p.get('player'));
-    return result ? [result, 200, 1800] : [{ error: 'Jugador no encontrado.' }, 404, 0];
+    return result ? [result, 200, result.partial?30:300] : [{ error: 'Jugador no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/team-roster') {
-    const result = await players.teamRoster(p.get('team'));
+    const result = await players.teamRoster(p.get('team'),{refresh:p.get('refresh')==='1'});
     return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/team-staff') {
@@ -97,7 +97,7 @@ async function data(request, env) {
     return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/team-ranking') {
-    const result = await players.getPlayers(p.get('team'));
+    const result = await players.getPlayers(p.get('team'),{refresh:p.get('refresh')==='1'});
     if (!result) return [{ error: 'Equipo no encontrado.' }, 404, 0];
     let minutesError = false;
     const rows = result.players.map(player => ({ ...player, minutes: null }));
@@ -145,9 +145,10 @@ export default {
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (request.method !== 'GET') return json({ error: 'Método no permitido.' }, 405, origin);
     const cacheUrl=new URL(url);if(url.pathname==='/api/news')cacheUrl.searchParams.set('__source','report-scores-v2');if(url.pathname==='/api/team-calendar')cacheUrl.searchParams.set('__source','team-report-scores-v1');if(url.pathname==='/api/field')cacheUrl.searchParams.set('__source','field-alias-v2');
+    if(['/api/players','/api/team-ranking','/api/team-roster','/api/goalkeepers'].includes(url.pathname))cacheUrl.searchParams.set('__source','rankings-v3');
     const cacheKey = new Request(cacheUrl.toString(), { method: 'GET' });
     try {
-      const cached = ['/api/match','/api/news','/api/team-calendar'].includes(url.pathname)&&url.searchParams.get('refresh')==='1'?null:await caches.default.match(cacheKey);
+      const cached = ['/api/match','/api/news','/api/team-calendar','/api/players','/api/team-ranking','/api/team-roster','/api/goalkeepers'].includes(url.pathname)&&url.searchParams.get('refresh')==='1'?null:await caches.default.match(cacheKey);
       if (cached) {
         const headers = new Headers(cached.headers);
         headers.set('Access-Control-Allow-Origin', origin);

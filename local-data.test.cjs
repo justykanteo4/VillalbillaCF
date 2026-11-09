@@ -15,9 +15,9 @@ async function client(t,fetcher,entries=[]){
   .replace("import {GOALKEEPER_VERSION,keeperRecordPending,sumGoalkeepers} from './goalkeeper-stats.cjs';","const {GOALKEEPER_VERSION,keeperRecordPending,sumGoalkeepers}=globalThis.__goalkeeperTest;").replace("import {readCopy,saveCopy} from './offline';","const {readCopy,saveCopy}=globalThis.__localDataTest;")
   .replace("import {recordDiagnostic} from './diagnostics';","const recordDiagnostic=globalThis.__diagnosticTest;")
   .replace("import {Platform,AppState} from 'react-native';","const Platform={OS:'web'},AppState={currentState:'active'};");
- const {api}=await import('data:text/javascript,'+encodeURIComponent(source+'\n// Instance '+instance++));
+ const {api,goalkeeperRanking}=await import('data:text/javascript,'+encodeURIComponent(source+'\n// Instance '+instance++));
  t.after(()=>{global.fetch=original;delete global.__localDataTest});
- return {api,copies,reads,events};
+ return {api,goalkeeperRanking,copies,reads,events};
 }
 const stale=data=>({savedAt:new Date(Date.now()-120000).toISOString(),data});
 const response=data=>({ok:true,json:async()=>data});
@@ -171,4 +171,14 @@ test('la revisión de versión conserva cifras anteriores si falla un acta y la 
  const old={records:[{id:'111',updatedAt:'2026-10-01',keepers:[{teamId:'1',playerId:'k',played:true,goalsConceded:2,cleanSheets:0}]}],players:[{playerId:'k',goalsConceded:2,cleanSheets:0}],missing:0};
  const {api,copies}=await client(t,async path=>path.includes('goalkeepers')?response({records:[{id:'111',error:true}],nextOffset:null}):response({players:[{id:'k',position:'Portero'}]}),[['goalkeeperTotals.v1.1',{data:old,savedAt:new Date().toISOString()}]]);
  const value=await api('/api/players?team=1',{cache:'reload'});assert.equal(value.players[0].goalsConceded,2);assert.equal(value.players[0].goalkeeperPartial,true);assert.equal(copies.get('goalkeeperTotals.v1.1').data.pending,1);
+});
+
+test('manual ranking reload bypasses server cache and persists the response',async t=>{
+ const paths=[];const {api,copies}=await client(t,async url=>{paths.push(String(url));return response({players:[{id:'1',goals:10}]})});
+ const result=await api('/api/players?team=846518',{cache:'reload',_keepersLocalOnly:true});
+ assert.equal(result.players[0].goals,10);assert.ok(paths[0].includes('refresh=1'));assert.equal(copies.get('/api/players?team=846518').data.players[0].goals,10);
+});
+test('keeper ranking uses roster and reports without individual player statistics',async t=>{
+ const paths=[];const {goalkeeperRanking}=await client(t,async url=>{paths.push(String(url));return response(String(url).includes('/api/team-roster')?{players:[{id:'1',name:'Portero'}]}:{records:[],nextOffset:null,error:false})});
+ await goalkeeperRanking('846518',{cache:'reload'});assert.ok(paths.some(p=>p.includes('/api/team-roster?')&&p.includes('refresh=1')));assert.ok(paths.some(p=>p.includes('/api/goalkeepers?')&&p.includes('refresh=1')));assert.ok(paths.every(p=>!p.includes('/api/players?')));
 });

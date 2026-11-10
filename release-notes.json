@@ -1,10 +1,9 @@
 {
-  "id": "2026.11.09.1",
-  "date": "2026-11-09",
-  "title": "Actualización de rankings de jugadores y porteros",
+  "id": "2026.11.10.1",
+  "date": "2026-11-10",
+  "title": "Avisos de nuevas votaciones al administrador",
   "changes": [
-    "Actualizar ranking consulta de nuevo la fuente y conserva la copia mientras llegan los datos. Las fichas pendientes ya se indican en pantalla.",
-    "Se corrigen los goles de jugadores que participan en varios equipos, usando los goles de la competición seleccionada.",
-    "Los porteros se actualizan sin esperar a todas las fichas de jugadores y revisan las actas recientes aunque el calendario aún no tenga marcador."
+    "El administrador recibe una notificación por cada elección nueva o cambio de candidato en jugadores, equipos, entrenadores y porteros.",
+    "El aviso abre Votaciones. Los reintentos del mismo voto no duplican avisos y los votos anteriores no generan notificaciones retroactivas."
   ]
 }

@@ -1,3 +1,4 @@
+import {dispatchVoteNotifications} from './vote-notifications.mjs';
 import {readPost,mediaStatements,serveMedia} from './social-media.mjs';
 import {decodeJwt} from 'jose';
 import {verifyAccessUser} from './access-service.mjs';
@@ -16,7 +17,7 @@ async function author(request,uid){
  const trainer=approved?catalog.trainer.find(p=>p.teamId===teamId&&names.matchesPersonQuery(p.name,safe)):null;const profile={name:safe,playerId:playerId||trainer?.playerId||null,teamId,photo:photo||trainer?.photo||null};if(authors.size>1000)authors.clear();authors.set(uid,{profile,until:Date.now()+300000});return profile;
 }
 async function verifySocialUser(request){const uid=await verifyAccessUser(request);const token=request.headers.get('Authorization').slice(7);if(decodeJwt(token).firebase?.sign_in_provider==='anonymous')throw error('Inicia sesión con tu cuenta para participar.',401);return uid}
-export async function handleSocial(request,env,{verify=verifySocialUser,getAuthor=author,authorize=verifyAdmin}={}){
+export async function handleSocial(request,env,{verify=verifySocialUser,getAuthor=author,authorize=verifyAdmin,ctx}={}){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/social/'))return null;
  try{
   const db=env.CHAT_DB;if(!db)throw error('La participación no está disponible.',503);
@@ -56,6 +57,7 @@ export async function handleSocial(request,env,{verify=verifySocialUser,getAutho
     try{await db.prepare('INSERT INTO social_ballots VALUES(?,?,?,?,?,?) ON CONFLICT(season,category,uid,points) DO UPDATE SET candidate_id=excluded.candidate_id,updated_at=excluded.updated_at').bind(season,category,uid,points,data.candidateId,Date.now()).run()}catch(e){if(/UNIQUE/.test(e.message))throw error('No puedes repetir candidato en la misma votación.',409);throw e}
    }
    if(request.method==='DELETE')await db.prepare('DELETE FROM social_ballots WHERE season=? AND category=? AND uid=? AND points=?').bind(season,category,uid,points).run();
+   if(request.method==='POST')ctx?.waitUntil?.(dispatchVoteNotifications(env).catch(()=>{}));
    const mine=uid?await db.prepare('SELECT candidate_id AS id,points FROM social_ballots WHERE season=? AND category=? AND uid=? ORDER BY points DESC').bind(season,category,uid).all():{results:[]},rows=await db.prepare('SELECT candidate_id AS id,SUM(points) AS points,COUNT(*) AS votes FROM social_ballots WHERE season=? AND category=? GROUP BY candidate_id ORDER BY points DESC,candidate_id').bind(season,category).all();let rank=0,last=null;const top=rows.results.map((r,i)=>{if(r.points!==last)rank=i+1;last=r.points;return {...catalog[category].find(c=>c.id===r.id),...r,rank}});
    const quota=uid?await db.prepare('SELECT changes,seen_mask FROM social_ballot_limits WHERE season=? AND category=? AND uid=?').bind(season,category,uid).first():null;
    return reply({season,changeLimit:4,changesUsed:quota?.changes||0,changesRemaining:4-(quota?.changes||0),initializedPoints:[1,2,3].filter(p=>((quota?.seen_mask||0)&(1<<p))!==0),myVote:mine.results.find(r=>r.points===1)?.id||null,myBallot:mine.results.map(r=>({...catalog[category].find(c=>c.id===r.id),...r})),top,candidates:catalog[category].filter(c=>names.matchesPersonQuery(c.name,(url.searchParams.get('q')||'').slice(0,100))).slice(0,30)});

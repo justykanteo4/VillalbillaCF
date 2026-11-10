@@ -1,3 +1,4 @@
+import {dispatchVoteNotifications} from './vote-notifications.mjs';
 import {handlePrivateSanctions} from './private-sanctions-service.mjs';
 import {scheduledOfficialSanctions} from './server/official-source.mjs';
 import {handleSocial} from './social-service.mjs';
@@ -122,7 +123,7 @@ async function data(request, env) {
 }
 
 export default {
-  async scheduled(event,env,ctx){ctx.waitUntil(Promise.allSettled([scheduledNotifications(env),dispatchAccessNotifications(env),scheduledOfficialSanctions(env),scheduledResults(env)]))},
+  async scheduled(event,env,ctx){ctx.waitUntil(Promise.allSettled([dispatchVoteNotifications(env),scheduledNotifications(env),dispatchAccessNotifications(env),scheduledOfficialSanctions(env),scheduledResults(env)]))},
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const download=await handleApkDownload(request,env.ASSETS);if(download)return download;
@@ -134,7 +135,7 @@ export default {
     } });
     if(url.pathname.startsWith('/api/chats/'))return Response.json({error:'El chat se ha eliminado.'},{status:410,headers:{'Cache-Control':'no-store'}});
     const privateSanctions=await handlePrivateSanctions(request,env,ctx);if(privateSanctions)return privateSanctions;
-    const socialResponse=await handleSocial(request,env);if(socialResponse)return socialResponse;
+    const socialResponse=await handleSocial(request,env,{ctx});if(socialResponse)return socialResponse;
     const diagnosticResponse=await handleDiagnostics(request,env);if(diagnosticResponse)return diagnosticResponse;
     const accessResponse=await handleAccess(request,env,ctx);if(accessResponse)return accessResponse;
     const activityResponse=await handleActivity(request,env);if(activityResponse)return activityResponse;

@@ -1,9 +1,10 @@
 {
-  "id": "2026.11.10.1",
+  "id": "2026.11.10.2",
   "date": "2026-11-10",
-  "title": "Avisos de nuevas votaciones al administrador",
+  "title": "Ajustes de goles encajados para entrenadores",
   "changes": [
-    "El administrador recibe una notificación por cada elección nueva o cambio de candidato en jugadores, equipos, entrenadores y porteros.",
-    "El aviso abre Votaciones. Los reintentos del mismo voto no duplican avisos y los votos anteriores no generan notificaciones retroactivas."
+    "Los entrenadores de un equipo pueden añadir o quitar goles encajados desde la ficha de sus porteros y desde el ranking del club.",
+    "Los ajustes se comparten entre los entrenadores autorizados y recalculan el coeficiente del ranking. Se conservan al actualizar las actas y no cambian los partidos ni las porterías a cero.",
+    "Se mantienen los avisos al administrador por nuevas elecciones o cambios de voto en Votaciones."
   ]
 }

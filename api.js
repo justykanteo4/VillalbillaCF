@@ -6,7 +6,7 @@ import {readCopy,saveCopy} from './offline';
 import {GOALKEEPER_VERSION,keeperRecordPending,sumGoalkeepers} from './goalkeeper-stats.cjs';
 import {Platform,AppState} from 'react-native';
 export const apiBase=Platform.OS==='web'?'':(process.env.EXPO_PUBLIC_API_URL||'');
-const PUBLIC_DATA=/^\/api\/(?:news|report-membership|team-calendar|team-minutes|goalkeepers|club-stats|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather|notifications)(?:\?|$)/;
+const PUBLIC_DATA=/^\/api\/(?:news|report-membership|team-calendar|team-minutes|goalkeepers|goalkeeper-adjustments|club-stats|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather|notifications)(?:\?|$)/;
 const refreshing=new Map(),versions=new Map(),MAX_AGE=60000;
 const limitData=(path,data)=>path.split('?')[0]==='/api/instagram'?{...data,posts:(Array.isArray(data.posts)?data.posts:[]).slice(0,8)}:data;
 async function baseApi(path,options={}){

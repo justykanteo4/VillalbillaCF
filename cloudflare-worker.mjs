@@ -1,3 +1,4 @@
+import {handleKeeperAdjustments} from './goalkeeper-adjustments-service.mjs';
 import {dispatchVoteNotifications} from './vote-notifications.mjs';
 import {handlePrivateSanctions} from './private-sanctions-service.mjs';
 import {scheduledOfficialSanctions} from './server/official-source.mjs';
@@ -135,6 +136,7 @@ export default {
     } });
     if(url.pathname.startsWith('/api/chats/'))return Response.json({error:'El chat se ha eliminado.'},{status:410,headers:{'Cache-Control':'no-store'}});
     const privateSanctions=await handlePrivateSanctions(request,env,ctx);if(privateSanctions)return privateSanctions;
+    const keeperAdjustmentResponse=await handleKeeperAdjustments(request,env);if(keeperAdjustmentResponse)return keeperAdjustmentResponse;
     const socialResponse=await handleSocial(request,env,{ctx});if(socialResponse)return socialResponse;
     const diagnosticResponse=await handleDiagnostics(request,env);if(diagnosticResponse)return diagnosticResponse;
     const accessResponse=await handleAccess(request,env,ctx);if(accessResponse)return accessResponse;

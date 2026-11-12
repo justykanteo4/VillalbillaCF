@@ -1,5 +1,5 @@
 const teams=require('./teams.json');
-const sections=[['news','Noticias','Noticias'],['results','Resultados','Resultados'],['standings','Clasificaciones','Clasificaciones'],['scorers','Goleadores club','Goleadores'],['rankings','Ranking de jugadores','Rankings'],['goalkeepers','Ranking de porteros','Rankings'],['calendar','Calendario','Calendario'],['votes','Votaciones','Votaciones'],['goalkeeper-votes','Votación a mejor portero','Votaciones']];
+const sections=[['fantasy','VillalbillaFantasy','VillalbillaFantasy'],['news','Noticias','Noticias'],['results','Resultados','Resultados'],['standings','Clasificaciones','Clasificaciones'],['scorers','Goleadores club','Goleadores'],['rankings','Ranking de jugadores','Rankings'],['goalkeepers','Ranking de porteros','Rankings'],['calendar','Calendario','Calendario'],['votes','Votaciones','Votaciones'],['goalkeeper-votes','Votación a mejor portero','Votaciones']];
 const teamIds=new Set(teams.map(t=>t.id)),defaultDestination={type:'section',section:'news'};
 function normalizeDestination(value){
  if(!value||typeof value!=='object'||Array.isArray(value))return null;

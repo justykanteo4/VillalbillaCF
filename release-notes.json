@@ -1,10 +1,8 @@
 {
-  "id": "2026.11.12.2",
+  "id": "2026.11.12.3",
   "date": "2026-11-12",
-  "title": "Estadísticas de los refuerzos con el equipo superior",
+  "title": "Icono de VBFantasy en la cabecera",
   "changes": [
-    "Los jugadores de categorías inferiores muestran goles, amarillas, rojas, partidos y convocatorias obtenidos únicamente con el equipo al que suben.",
-    "Se habilitan los minutos confirmados en las actas del equipo superior y se conservan las entradas manuales compartidas.",
-    "La copia local anterior de refuerzos se renueva para sustituir las estadísticas vacías, sin mezclar datos del equipo de origen. Los datos incompletos se señalan como pendientes."
+    "Se añade el icono de VBFantasy junto a «Ir a noticias», con los colores de Villalbilla C.F."
   ]
 }

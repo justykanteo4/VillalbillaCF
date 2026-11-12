@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.12.1",
+  "id": "2026.11.12.2",
   "date": "2026-11-12",
-  "title": "Cuerpo técnico en votaciones y refuerzos en plantilla",
+  "title": "Estadísticas de los refuerzos con el equipo superior",
   "changes": [
-    "La votación de entrenadores incluye delegados, auxiliares y cuerpo técnico, con su función visible y conservando los votos anteriores.",
-    "Si un jugador de categoría inferior participa como titular o entra como sustituto en un acta cerrada, se añade a la plantilla del equipo con el que juega.",
-    "Los refuerzos aparecen al final con su categoría de origen en cualquier orden de plantilla y quedan disponibles para la gestión del equipo. Las comprobaciones se guardan en el dispositivo."
+    "Los jugadores de categorías inferiores muestran goles, amarillas, rojas, partidos y convocatorias obtenidos únicamente con el equipo al que suben.",
+    "Se habilitan los minutos confirmados en las actas del equipo superior y se conservan las entradas manuales compartidas.",
+    "La copia local anterior de refuerzos se renueva para sustituir las estadísticas vacías, sin mezclar datos del equipo de origen. Los datos incompletos se señalan como pendientes."
   ]
 }

@@ -11,3 +11,9 @@ Los jugadores confirmados se incorporan al espacio del equipo con su identificad
 # Entrenadores y cuerpo técnico en Votaciones
 
 La categoría interna sigue siendo `trainer`. Incluye entrenadores, delegados, auxiliares y miembros del cuerpo técnico publicados en fichas de equipo o actas. Una persona ocupa una sola candidatura aunque tenga varias funciones o equipos. Se conserva su identificador anterior para mantener los votos y el límite de cuatro cambios por categoría. Se descartan marcadores como «No presenta» y personal de equipos rivales.
+
+# Estadísticas con el equipo superior
+
+Los registros de refuerzos con `statisticsVersion: 2` incluyen las convocatorias de jugadores de categoría inferior, también cuando no entran al campo. La ficha solo se añade tras una participación confirmada y suma únicamente las actas de ese equipo: goles personales (sin propia puerta), amarillas, rojas, convocatorias y partidos jugados. Las segundas amarillas cuentan también como expulsión. Cada acta se cuenta una vez. Si no se pueden identificar los autores de los goles o el listado no cuadra con el marcador, los goles quedan pendientes en lugar de inventar un cero.
+
+La ficha permite mostrar los minutos públicos de las actas de fútbol 11 del equipo superior, conservando los minutos manuales ya compartidos. Los registros antiguos sin estadísticas se recalculan a partir de las actas guardadas; no reemplazan una copia nueva con estadísticas. Si falta conexión se conserva la identidad de los refuerzos anteriores y se indican los datos pendientes. Una ficha agregada de temporada de un jugador con varios equipos no sustituye estos totales por equipo.

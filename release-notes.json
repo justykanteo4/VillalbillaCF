@@ -1,8 +1,9 @@
 {
-  "id": "2026.11.12.3",
+  "id": "2026.11.12.4",
   "date": "2026-11-12",
-  "title": "Icono de VBFantasy en la cabecera",
+  "title": "Liga VBFantasy",
   "changes": [
-    "Se añade el icono de VBFantasy junto a «Ir a noticias», con los colores de Villalbilla C.F."
+    "Abre VBFantasy desde el icono de la cabecera.",
+    "Crea y edita equipos de 11 jugadores del club y compara sus puntos de temporada en la clasificación local."
   ]
 }

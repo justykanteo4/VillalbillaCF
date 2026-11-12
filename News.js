@@ -1,3 +1,4 @@
+import FantasyNewsAccess from './FantasyNewsAccess';
 import {useBackAction} from './useBackNavigation';
 import React,{useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,StyleSheet,AppState,Linking} from 'react-native';
@@ -35,7 +36,7 @@ export function NotificationMatch({target,onClose}){
  return <View style={{gap:14}}><Text style={s.kicker}>Partido del aviso</Text><Pressable accessibilityRole="button" onPress={onClose} style={s.chip}><Text style={s.white}>Ver todos los resultados</Text></Pressable>{!!error&&<Text style={s.warning}>{error}</Text>}{match?<UpcomingMatchCard key={target.teamId+':'+target.matchId} match={match} initialExpanded/>:<Text style={s.muted}>{busy?'Buscando el partido del aviso…':'No hay información disponible de este partido.'}</Text>}<Pressable accessibilityRole="button" disabled={busy} onPress={()=>setRetry(n=>n+1)} style={s.chip}><Text style={s.white}>{busy?'Comprobando partido…':'Volver a consultar el partido'}</Text></Pressable></View>;
 }
 
-export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[],favoritesOnly=false,initialMatch=null}){
+export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[],favoritesOnly=false,initialMatch=null,onOpenFantasy=null}){
   const [target,setTarget]=useState(initialMatch);
   useBackAction(()=>{setTarget(null);return true},25,!!target);
   const [news,setNews]=useState(seed),[ig,setIg]=useState({connected:false,posts:[]}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[teamIds,setTeamIds]=useState([]),[dateSelection,setDateSelection]=useState('auto');
@@ -81,6 +82,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
   return <View style={{gap:18}}>
     {mode==='results'?<><Text style={s.title}>Resultados</Text>{target?<NotificationMatch target={target} onClose={()=>setTarget(null)}/>:results}</>:<>
       <ClubNewsSummary teams={news.teams}/>
+      {onOpenFantasy&&<FantasyNewsAccess onPress={onOpenFantasy}/>}
       {instagram}
       {!!error&&<Text style={s.warning}>{error}</Text>}
       <FavoritePlayers favoritePlayerIds={favoritePlayerIds}/>

@@ -1,4 +1,4 @@
-const labels={player:'mejor jugador',team:'mejor equipo',trainer:'mejor entrenador',goalkeeper:'mejor portero'};
+const labels={player:'mejor jugador',team:'mejor equipo',trainer:'entrenadores y cuerpo técnico',goalkeeper:'mejor portero'};
 // Ballot triggers commit events atomically. Delivery never changes a ballot.
 export async function dispatchVoteNotifications(env,{send=fetch,now=Date.now()}={}){
  const db=env.CHAT_DB,privateDb=env.VISITS_DB;if(!db||!privateDb)return;

@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.10.2",
-  "date": "2026-11-10",
-  "title": "Ajustes de goles encajados para entrenadores",
+  "id": "2026.11.12.1",
+  "date": "2026-11-12",
+  "title": "Cuerpo técnico en votaciones y refuerzos en plantilla",
   "changes": [
-    "Los entrenadores de un equipo pueden añadir o quitar goles encajados desde la ficha de sus porteros y desde el ranking del club.",
-    "Los ajustes se comparten entre los entrenadores autorizados y recalculan el coeficiente del ranking. Se conservan al actualizar las actas y no cambian los partidos ni las porterías a cero.",
-    "Se mantienen los avisos al administrador por nuevas elecciones o cambios de voto en Votaciones."
+    "La votación de entrenadores incluye delegados, auxiliares y cuerpo técnico, con su función visible y conservando los votos anteriores.",
+    "Si un jugador de categoría inferior participa como titular o entra como sustituto en un acta cerrada, se añade a la plantilla del equipo con el que juega.",
+    "Los refuerzos aparecen al final con su categoría de origen en cualquier orden de plantilla y quedan disponibles para la gestión del equipo. Las comprobaciones se guardan en el dispositivo."
   ]
 }

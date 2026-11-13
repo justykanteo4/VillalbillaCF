@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.13.7",
+  "id": "2026.11.13.8",
   "date": "2026-11-13",
-  "title": "Navegación propia para VillalbillaFantasy",
+  "title": "Fantasy: 40 millones y aportación semanal",
   "changes": [
-    "Dentro de Fantasy la barra inferior muestra solo Plantilla, 11 inicial y Mercado. Al salir se recupera la navegación del club.",
-    "El icono, el nombre VillalbillaFantasy y los ajustes se trasladan a la cabecera, junto a Ir a noticias, sin duplicar el bloque en el contenido.",
-    "Mercado permite consultar los precios de la liga elegida. La edición del once y los fichajes siguen en preparación."
+    "El presupuesto inicial de las ligas clásicas pasa a 40 millones, también en las ligas ya creadas. Las personalizadas parten de 40 millones y conservan el presupuesto elegido por su creador.",
+    "Cada participante acumula 2 millones adicionales cada lunes a las 00:00 de Madrid desde su entrada en la liga, aunque no abra la app.",
+    "Los detalles y el Mercado muestran el presupuesto acumulado. Los precios automáticos se ajustan para poder completar un once con 40 millones, respetando los precios manuales de administradores."
   ]
 }

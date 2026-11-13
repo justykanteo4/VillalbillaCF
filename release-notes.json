@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.13.10",
+  "id": "2026.11.13.11",
   "date": "2026-11-13",
-  "title": "Detalle de votantes exclusivo de administradores",
+  "title": "Votaciones: acceso temporal de miembros aprobados",
   "changes": [
-    "Los administradores pueden ver quién ha dado los votos, a qué candidatura y cuántos puntos, en jugadores, porteros, equipos y entrenadores y cuerpo técnico.",
-    "Cada candidatura del ranking permite abrir sus votantes. También se puede consultar el detalle de toda la categoría, con páginas y fecha de última actualización.",
-    "Los nombres se consultan por una ruta privada que comprueba el permiso de administrador en cada petición. No se incluyen en el ranking público ni se guardan en la caché del dispositivo."
+    "Los hinchas del club no pueden votar ni modificar elecciones por ahora. Pueden seguir consultando las clasificaciones de votaciones.",
+    "Solo pueden votar jugadores y cuerpo técnico con acceso aprobado, además de administradores. El permiso se comprueba en el servidor en cada operación, también para APK anteriores.",
+    "La pantalla muestra el aviso y desactiva Dar y Retirar cuando no hay permiso. Los votos anteriores se conservan y el detalle privado de administradores sigue disponible."
   ]
 }

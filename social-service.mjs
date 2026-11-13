@@ -1,3 +1,4 @@
+import {votingAccess} from './vote-access.mjs';
 import {adminVotes,voterIdentity} from './admin-votes.mjs';
 import {dispatchVoteNotifications} from './vote-notifications.mjs';
 import {readPost,mediaStatements,serveMedia} from './social-media.mjs';
@@ -18,7 +19,7 @@ async function author(request,uid){
  const trainer=approved?catalog.trainer.find(p=>p.teamId===teamId&&names.matchesPersonQuery(p.name,safe)):null;const profile={name:safe,playerId:playerId||trainer?.playerId||null,teamId,photo:photo||trainer?.photo||null};if(authors.size>1000)authors.clear();authors.set(uid,{profile,until:Date.now()+300000});return profile;
 }
 async function verifySocialUser(request){const uid=await verifyAccessUser(request);const token=request.headers.get('Authorization').slice(7);if(decodeJwt(token).firebase?.sign_in_provider==='anonymous')throw error('Inicia sesión con tu cuenta para participar.',401);return uid}
-export async function handleSocial(request,env,{verify=verifySocialUser,getAuthor=author,authorize=verifyAdmin,getVoterIdentity=voterIdentity,ctx}={}){
+export async function handleSocial(request,env,{verify=verifySocialUser,getAuthor=author,authorize=verifyAdmin,getVoterIdentity=voterIdentity,voteAccess=votingAccess,ctx}={}){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/social/'))return null;
  try{
   const db=env.CHAT_DB;if(!db)throw error('La participación no está disponible.',503);
@@ -27,6 +28,7 @@ export async function handleSocial(request,env,{verify=verifySocialUser,getAutho
   if(!['GET','POST','DELETE'].includes(request.method))return reply({error:'Método no permitido.'},405);
   if(url.pathname==='/api/social/admin/votes'){await authorize(request,env);if(request.method!=='GET')return reply({error:'Método no permitido.'},405);return reply(await adminVotes({request,db,category:url.searchParams.get('category'),season,catalog,getIdentity:getVoterIdentity}))}
   const write=request.method!=='GET',uid=write||request.headers.has('Authorization')?await verify(request):null;
+  if(url.pathname==='/api/social/vote-access'){if(request.method!=='GET')return reply({error:'Método no permitido.'},405);return reply(uid?await voteAccess(request,uid,env,authorize):{canVote:false,reason:'Los hinchas del club no pueden votar por ahora.'})}
   let data={};if(write&&request.method!=='DELETE')data=await readPost(request);
   const match=url.searchParams.get('match'),category=url.searchParams.get('category');
   if(url.pathname==='/api/social/match'){
@@ -50,6 +52,7 @@ export async function handleSocial(request,env,{verify=verifySocialUser,getAutho
   }
   if(url.pathname==='/api/social/votes'){
    if(!categories.includes(category))throw error('Votación no válida.');
+   if(write){const access=await voteAccess(request,uid,env,authorize);if(access.canVote!==true)throw error(access.reason||'No tienes permiso para votar.',403)}
    const points=request.method==='DELETE'?Number(url.searchParams.get('points')||1):Number(data.points??1);
    if(write&&![1,2,3].includes(points))throw error('Elige 3, 2 o 1 punto.');
    if(request.method==='POST'){

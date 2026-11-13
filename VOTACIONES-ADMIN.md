@@ -12,10 +12,22 @@ Los nombres de otros votantes solo se consultan al abrir el detalle privado. El 
 
 ## Restricción temporal para hinchas
 
-Los hinchas y cuentas sin acceso aprobado pueden consultar rankings y sus elecciones anteriores, pero no emitir, sustituir ni retirar votos por ahora. No se borran elecciones anteriores ni se alteran sus puntos. Los comentarios y me gusta de partidos conservan sus permisos anteriores.
+Los hinchas y cuentas sin acceso aprobado pueden consultar rankings y sus elecciones anteriores, pero no emitir, sustituir ni retirar votos por ahora. La retirada de elecciones anteriores de hinchas se gestiona por la tarea administrativa descrita a continuación. Los comentarios y me gusta de partidos conservan sus permisos anteriores.
 
 vote-access.mjs permite votar a perfiles approved con teamId y rol player o trainer. Conserva compatibilidad con entrenadores aprobados antiguos sin campo role. Para cuentas sin ese acceso, comprueba verifyAdmin; el estado admin escrito en un perfil por sí solo no sustituye esa autorización. Pendientes, rechazados, hinchas y cuentas sin asignar no pueden votar. La consulta de perfil usa el token del usuario y una máscara limitada a status, claim.role y claim.teamId, sin caché de permisos.
 
 Cada POST y DELETE de /api/social/votes vuelve a comprobar este permiso en el servidor antes de tocar votos, cuotas o avisos. Los clientes antiguos tampoco pueden saltarlo enviando un rol o estado en el cuerpo. GET /api/social/vote-access devuelve únicamente el permiso de la sesión actual y su explicación, con no-store. No acepta seleccionar el UID de otra cuenta.
 
 useVoteAccess comprueba el permiso al entrar, volver al primer plano o actualizar votos; mientras no haya confirmación bloquea Dar y Retirar. No guarda permisos en AsyncStorage. Un cambio de cuenta invalida el resultado anterior. El detalle privado de administradores sigue exigiendo verifyAdmin y permanece disponible para ellos.
+
+## Limpieza solicitada de votos de hinchas
+
+El usuario autorizó retirar los votos anteriores de hinchas. vote-cleanup-schema.sql crea una cola privada, un arrendamiento para impedir ejecuciones simultáneas y copias de recuperación de papeletas, votos antiguos y cuotas. La tarea se activa expresamente desde el entorno para la temporada actual; no crea tareas arbitrarias por una petición de la app.
+
+La base D1 no contiene los roles. Se requiere el token de una sesión administradora para consultar los perfiles privados de Firestore. Al abrir Votaciones, /api/social/vote-access detecta una tarea pendiente y, tras comprobar verifyAdmin, la ejecuta en segundo plano. El nuevo cliente también consulta el progreso por la ruta privada /api/social/admin/remove-fan-votes; un cliente anterior con comprobación de permiso puede activar igualmente el primer lote. La autorización no se sustituye por acceso de despliegue a D1.
+
+Antes de borrar se obtiene la lista completa de clubAdmins y se protegen los administradores principales, los dinámicos, el UID que ejecuta y los miembros aprobados. Solo se consideran hinchas los perfiles con rol explícito fan/hincha/supporter o cuentas sin asignar sin rol ni equipo. Pendientes de aprobación, perfiles ausentes o casos dudosos se dejan por revisar; un error de red no se convierte en prueba de que alguien sea hincha. Correos y perfiles se utilizan solo en memoria, no se devuelven ni se escriben en los registros de progreso.
+
+Cada retirada utiliza un lote atómico: guarda un respaldo privado, permite retirar hasta tres elecciones por categoría aunque el usuario agotara cuatro cambios, elimina las papeletas activas y su voto antiguo de esa temporada, y restaura exactamente los contadores previos. No desactiva los triggers ni modifica cuotas de miembros del club. Repetir la tarea no duplica recuentos. Solo se notifica éxito cuando la base confirma la operación. Los respaldos permanecen fuera del ranking público y del paquete sin conexión.
+
+La tarea debe verificarse con los contadores de D1 antes de afirmar que terminó. Si falta la sesión de administrador, queda pendiente y hay que abrir Votaciones en la app; publicar la función no equivale a haber retirado los votos.

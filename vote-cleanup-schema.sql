@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS vote_cleanup_tasks(id TEXT PRIMARY KEY,season TEXT NOT NULL,created_at INTEGER NOT NULL,lease_until INTEGER NOT NULL DEFAULT 0,lease_id TEXT);
+CREATE TABLE IF NOT EXISTS vote_cleanup_users(task_id TEXT NOT NULL,uid TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,ballots_removed INTEGER NOT NULL DEFAULT 0,points_removed INTEGER NOT NULL DEFAULT 0,legacy_removed INTEGER NOT NULL DEFAULT 0,checked_at INTEGER,PRIMARY KEY(task_id,uid));
+CREATE TABLE IF NOT EXISTS vote_cleanup_ballots(task_id TEXT NOT NULL,season TEXT NOT NULL,category TEXT NOT NULL,uid TEXT NOT NULL,points INTEGER NOT NULL,candidate_id TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(task_id,season,category,uid,points));
+CREATE TABLE IF NOT EXISTS vote_cleanup_legacy(task_id TEXT NOT NULL,season TEXT NOT NULL,category TEXT NOT NULL,uid TEXT NOT NULL,candidate_id TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(task_id,season,category,uid));
+CREATE TABLE IF NOT EXISTS vote_cleanup_limits(task_id TEXT NOT NULL,season TEXT NOT NULL,category TEXT NOT NULL,uid TEXT NOT NULL,changes INTEGER NOT NULL,seen_mask INTEGER NOT NULL,PRIMARY KEY(task_id,season,category,uid));
+CREATE INDEX IF NOT EXISTS vote_cleanup_pending ON vote_cleanup_users(task_id,status,uid);

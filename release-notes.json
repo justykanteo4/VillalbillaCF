@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.13.11",
+  "id": "2026.11.13.12",
   "date": "2026-11-13",
-  "title": "Votaciones: acceso temporal de miembros aprobados",
+  "title": "Retirada de votos de hinchas verificados",
   "changes": [
-    "Los hinchas del club no pueden votar ni modificar elecciones por ahora. Pueden seguir consultando las clasificaciones de votaciones.",
-    "Solo pueden votar jugadores y cuerpo técnico con acceso aprobado, además de administradores. El permiso se comprueba en el servidor en cada operación, también para APK anteriores.",
-    "La pantalla muestra el aviso y desactiva Dar y Retirar cuando no hay permiso. Los votos anteriores se conservan y el detalle privado de administradores sigue disponible."
+    "Se prepara una limpieza de los votos anteriores de hinchas para retirarlos del recuento de jugadores, porteros, equipos y cuerpo técnico.",
+    "La limpieza se ejecuta con una sesión de administrador al abrir Votaciones y comprueba cada perfil. Conserva los votos de miembros aprobados y administradores y no borra cuentas que no pueda identificar con seguridad.",
+    "Los administradores ven el progreso y el número de votos retirados. La eliminación no consume cambios de otros usuarios ni modifica comentarios, me gusta o votaciones Fantasy."
   ]
 }

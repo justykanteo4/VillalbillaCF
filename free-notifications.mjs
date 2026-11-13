@@ -4,7 +4,7 @@ import destinations from './notification-destination.cjs';
 import webpush from 'web-push';
 
 const googleKeys=createRemoteJWKSet(new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'));
-const ADMIN_EMAILS=['albaresfernandez@gmail.com','appvillalbilla@gmail.com'];
+export const ADMIN_EMAILS=['albaresfernandez@gmail.com','appvillalbilla@gmail.com'];
 export const FREE_LIMITS={subscriptions:1000,noticesPerDay:20,batch:10};
 const reply=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 const error=(message,status=400)=>Object.assign(Error(message),{status});

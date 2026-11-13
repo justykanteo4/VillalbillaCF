@@ -1,3 +1,4 @@
+import {cleanupSummary,runVoteCleanup,scheduleVoteCleanup} from './vote-cleanup.mjs';
 import {votingAccess} from './vote-access.mjs';
 import {adminVotes,voterIdentity} from './admin-votes.mjs';
 import {dispatchVoteNotifications} from './vote-notifications.mjs';
@@ -19,16 +20,17 @@ async function author(request,uid){
  const trainer=approved?catalog.trainer.find(p=>p.teamId===teamId&&names.matchesPersonQuery(p.name,safe)):null;const profile={name:safe,playerId:playerId||trainer?.playerId||null,teamId,photo:photo||trainer?.photo||null};if(authors.size>1000)authors.clear();authors.set(uid,{profile,until:Date.now()+300000});return profile;
 }
 async function verifySocialUser(request){const uid=await verifyAccessUser(request);const token=request.headers.get('Authorization').slice(7);if(decodeJwt(token).firebase?.sign_in_provider==='anonymous')throw error('Inicia sesión con tu cuenta para participar.',401);return uid}
-export async function handleSocial(request,env,{verify=verifySocialUser,getAuthor=author,authorize=verifyAdmin,getVoterIdentity=voterIdentity,voteAccess=votingAccess,ctx}={}){
+export async function handleSocial(request,env,{verify=verifySocialUser,getAuthor=author,authorize=verifyAdmin,getVoterIdentity=voterIdentity,voteAccess=votingAccess,cleanupOptions,ctx}={}){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/social/'))return null;
  try{
   const db=env.CHAT_DB;if(!db)throw error('La participación no está disponible.',503);
   if(url.pathname==='/api/social/media'&&['GET','HEAD'].includes(request.method))return serveMedia(request,db);
   const origin=request.headers.get('Origin');if(origin&&origin!==url.origin)throw error('Origen no permitido.',403);
   if(!['GET','POST','DELETE'].includes(request.method))return reply({error:'Método no permitido.'},405);
+  if(url.pathname==='/api/social/admin/remove-fan-votes'){const admin=await authorize(request,env);if(request.method==='GET')return reply({cleanup:await cleanupSummary(db)});if(request.method==='POST')return reply({cleanup:await runVoteCleanup(request,db,admin,cleanupOptions)});return reply({error:'Método no permitido.'},405)}
   if(url.pathname==='/api/social/admin/votes'){await authorize(request,env);if(request.method!=='GET')return reply({error:'Método no permitido.'},405);return reply(await adminVotes({request,db,category:url.searchParams.get('category'),season,catalog,getIdentity:getVoterIdentity}))}
   const write=request.method!=='GET',uid=write||request.headers.has('Authorization')?await verify(request):null;
-  if(url.pathname==='/api/social/vote-access'){if(request.method!=='GET')return reply({error:'Método no permitido.'},405);return reply(uid?await voteAccess(request,uid,env,authorize):{canVote:false,reason:'Los hinchas del club no pueden votar por ahora.'})}
+  if(url.pathname==='/api/social/vote-access'){if(request.method!=='GET')return reply({error:'Método no permitido.'},405);const access=uid?await voteAccess(request,uid,env,authorize):{canVote:false,reason:'Los hinchas del club no pueden votar por ahora.'};const cleanup=uid&&access.canVote?await scheduleVoteCleanup(request,env,uid,authorize,ctx,cleanupOptions):null;return reply({...access,...(cleanup?{cleanup}:{})})}
   let data={};if(write&&request.method!=='DELETE')data=await readPost(request);
   const match=url.searchParams.get('match'),category=url.searchParams.get('category');
   if(url.pathname==='/api/social/match'){

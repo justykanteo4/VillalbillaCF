@@ -4,7 +4,7 @@ El acceso está en la cabecera pública y en Noticias, debajo del resumen del cl
 
 Al entrar aparece Crear liga con dos opciones:
 
-- Jugar con tu equipo: jugadores de un equipo del club y ajustes clásicos.
+- Jugar con tu equipo: jugadores de un equipo del club y ajustes clásicos. Nombre automático según categoría y letra del equipo, por ejemplo «Liga de Infantil C»; las ligas clásicas anteriores se muestran también con este nombre.
 - Crear liga personalizada: jugadores de un equipo, una categoría o todo el club. El creador elige presupuesto, máximo de participantes, fichajes por jornada, hora de cierre del viernes y puntuaciones.
 
 Las ligas y participantes se guardan en las tablas privadas `fantasy_leagues` y `fantasy_members` de CHAT_DB, creadas por `fantasy-schema.sql`. Cada liga genera un código aleatorio de ocho caracteres para invitar. Mis ligas recupera las membresías de la cuenta; los detalles y precios exigen pertenecer a la liga. No se publican identificadores de usuario ni datos de ligas en el paquete sin conexión. Las respuestas usan no-store. Una solicitud repetida no duplica la liga y la base de datos impide superar el aforo, incluso con entradas simultáneas. Durante las pruebas se permiten hasta 25 ligas por creador.

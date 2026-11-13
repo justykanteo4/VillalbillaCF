@@ -1,11 +1,9 @@
 {
-  "id": "2026.11.13.4",
+  "id": "2026.11.13.5",
   "date": "2026-11-13",
-  "title": "Crear ligas Fantasy e invitar por código",
+  "title": "Nombre automático de las ligas clásicas",
   "changes": [
-    "Al entrar en Fantasy aparece Crear liga, con las opciones Jugar con tu equipo con ajustes clásicos o Crear una liga personalizada.",
-    "Las ligas personalizadas permiten configurar presupuesto, participantes, fichajes, cierre y puntuaciones. Se guardan en la nube con un código de invitación y un máximo de 15 participantes.",
-    "Se pueden consultar jugadores y precios iniciales calculados con goles, victorias, participación y porterías a cero, con una valoración superior para los destacados.",
-    "La creación y unión de ligas continúa reservada a administradores durante las pruebas. Los fichajes, alineaciones y puntuación jugable siguen en preparación."
+    "Jugar con tu equipo nombra la liga automáticamente según la categoría y la letra del equipo: por ejemplo, Liga de Infantil C.",
+    "Las ligas personalizadas conservan el nombre elegido por su creador."
   ]
 }

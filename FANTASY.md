@@ -1,13 +1,22 @@
-# VillalbillaFantasy — primera publicación
+# VillalbillaFantasy — ligas en pruebas
 
-El acceso está en la cabecera pública, entre el nombre del club e «Ir a noticias», tal como se indicó en la captura. Se adapta a pantallas estrechas sin añadir otro botón a la navegación inferior.
+El acceso está en la cabecera pública y en Noticias, debajo del resumen del club. Jugadores, entrenadores, aficionados y usuarios sin sesión siguen viendo «Está en construcción. ¡Ya queda poco!». Solo los administradores pueden probar las ligas. La autorización del servidor se comprueba en todas las rutas `/api/fantasy` y `/api/fantasy/*`.
 
-Jugadores, entrenadores, aficionados y usuarios sin sesión ven «Está en construcción» y «¡Ya queda poco!». No hacen peticiones al API privado del Fantasy. Los administradores abren una vista previa de las reglas acordadas, después de verificar su sesión en el servidor. No se publican ligas, mercado ni alineaciones jugables en esta primera fase: la pantalla lo indica expresamente.
+Al entrar aparece Crear liga con dos opciones:
 
-Todas las rutas `/api/fantasy` y `/api/fantasy/*` comprueban `verifyAdmin`. Solo hay lecturas de la vista previa; las escrituras siguen deshabilitadas. No se almacenan respuestas privadas en la copia pública ni en la caché del dispositivo. El rol mostrado por el cliente no permite saltarse la autorización del servidor.
+- Jugar con tu equipo: jugadores de un equipo del club y ajustes clásicos.
+- Crear liga personalizada: jugadores de un equipo, una categoría o todo el club. El creador elige presupuesto, máximo de participantes, fichajes por jornada, hora de cierre del viernes y puntuaciones.
 
-Las reglas de la vista previa están en `fantasy-config.cjs`: 15 participantes, 100 millones, once titular, dos fichajes por jornada, viernes 23:59 de Madrid, resultado 6/5/4, gol +1, portería a cero del portero que completa +1, MVP +1, once ideal +1, capitán un único +1, amarilla −1, doble amarilla −3 en total, roja directa −4 y propia puerta −1. MVP: tres jugadores por equipo ganador, elegidos por administradores; el once ideal sale de esos MVP.
+Las ligas y participantes se guardan en las tablas privadas `fantasy_leagues` y `fantasy_members` de CHAT_DB, creadas por `fantasy-schema.sql`. Cada liga genera un código aleatorio de ocho caracteres para invitar. Mis ligas recupera las membresías de la cuenta; los detalles y precios exigen pertenecer a la liga. No se publican identificadores de usuario ni datos de ligas en el paquete sin conexión. Las respuestas usan no-store. Una solicitud repetida no duplica la liga y la base de datos impide superar el aforo, incluso con entradas simultáneas. Durante las pruebas se permiten hasta 25 ligas por creador.
 
-El icono exclusivo está en `assets/villalbilla-fantasy-icon.png` y se conserva en su resolución original. `FantasyIcon` lo reutiliza en la cabecera, la noticia destacada y las pantallas de acceso. Noticias muestra `FantasyNewsAccess` debajo del resumen del club; su botón abre la misma sección que el icono superior y respeta el mismo control de acceso. No aparece en el listado de Resultados.
+Los ajustes clásicos son 15 participantes, 100 millones, once titular, dos fichajes por jornada, viernes 23:59 de Madrid, resultado 6/5/4, gol +1, portería a cero del portero que completa +1, MVP +1, once ideal +1, capitán un único +1, amarilla −1, doble amarilla −3 en total, roja directa −4 y propia puerta −1. Los administradores eligen tres MVP de cada equipo ganador y el once ideal entre esos MVP. Un jugador puede estar en varios equipos Fantasy para evitar la escasez al jugar con una sola plantilla.
 
-La zona Fantasy usa exclusivamente `fantasy-theme.cjs` para su identidad de fondo azul celeste (#87CEEB), superficies violetas, texto crema y detalles dorados. El contenedor de pantalla, la cabecera «ZONA FANTASY», las tarjetas y la barra inferior cambian al entrar; al salir se restaura la paleta azul del club. El acceso superior y el anuncio de Noticias anticipan esa identidad. El icono aprobado conserva sus colores originales.
+La liga personalizada admite 33–1000 millones, 2–15 participantes, 0–10 fichajes y puntuaciones enteras de −20 a 20. Antes de crear se exige que haya al menos once jugadores y presupuesto suficiente para los once más baratos. Los ajustes quedan guardados al crear la liga; esta fase no incluye edición posterior.
+
+Los precios iniciales se calculan en `fantasy-leagues.cjs`, con estadísticas públicas de actas de los equipos elegidos. `scripts/prepare-fantasy-players.cjs` genera `fantasy-players.json` durante prepare:release-data. No suma al equipo receptor los goles de la categoría de origen: cuenta las participaciones confirmadas en cada equipo. La pantalla muestra la fecha y marca los datos parciales.
+
+El rendimiento para identificar el 10 % superior es goles × 3 + victorias × 2 + partidos × 0,4 + porterías a cero × 2 − rojas × 0,5. Los empates en el corte comparten la etiqueta TOP. El precio parte de 3 M y añade goles (0,6, máximo 6), victorias (0,5, máximo 4), partidos (0,15, máximo 2), porterías a cero (0,4, máximo 3) y 2 M para TOP. Se redondea a medio millón, entre 3 y 20 M. Si los once más baratos superan los 100 M, se rebajan todos por pasos de 0,5 M, sin bajar de 3 M, para que la modalidad clásica siga siendo viable. Es una valoración inicial actualizada con las publicaciones del catálogo, no una cotización de mercado en tiempo real.
+
+La creación, la invitación y la consulta de participantes y precios ya persisten. Los fichajes, alineaciones y cálculo jugable de puntos siguen en preparación; la interfaz lo indica expresamente. No se habilita el juego al público con esta publicación.
+
+El icono exclusivo `assets/villalbilla-fantasy-icon.png` conserva su resolución y colores originales. La zona Fantasy usa `fantasy-theme.cjs`: fondo celeste (#87CEEB), superficies violetas, texto crema y detalles dorados. Al salir se restaura la paleta del club.

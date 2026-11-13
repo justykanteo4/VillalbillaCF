@@ -1,9 +1,9 @@
 {
-  "id": "2026.11.13.2",
+  "id": "2026.11.13.3",
   "date": "2026-11-13",
-  "title": "Fantasy en azul celeste y verde fosforescente",
+  "title": "Fantasy en celeste y violeta",
   "changes": [
-    "La zona Fantasy combina fondo azul celeste con tarjetas, cabecera y barra inferior en verde fosforescente.",
-    "Se retira la paleta violeta y se usa texto oscuro para mantener el contraste sobre el verde brillante. El anuncio de Noticias adopta la misma identidad."
+    "Las tarjetas, la cabecera y la barra inferior de Fantasy vuelven al violeta, con texto crema y detalles dorados.",
+    "Se mantiene el fondo azul celeste y se retira el verde fosforescente, también del acceso destacado de Noticias."
   ]
 }

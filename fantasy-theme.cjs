@@ -1,2 +1,2 @@
-// Fantasy uses a sky-blue background and fluorescent green surfaces.
-module.exports={background:'#87CEEB',surfaceText:'#10251A',header:'#39FF14',panel:'#39FF14',border:'#177A28',text:'#10251A',muted:'#24452A',accent:'#123B22',negative:'#9F1239',button:'#164C2B',buttonText:'#F4FFF1',navigation:'#39FF14'};
+// Fantasy uses a sky-blue background with violet surfaces and gold highlights.
+module.exports={background:'#87CEEB',surfaceText:'#281034',header:'#351047',panel:'#3C1952',border:'#9761AC',text:'#FFF3D8',muted:'#E8D5F2',accent:'#FFC857',negative:'#FFB0C4',button:'#FFC857',buttonText:'#281034',navigation:'#351047'};

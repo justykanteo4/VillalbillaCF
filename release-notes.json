@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.13.6",
+  "id": "2026.11.13.7",
   "date": "2026-11-13",
-  "title": "Ajustes de Fantasy y precios de administradores",
+  "title": "Navegación propia para VillalbillaFantasy",
   "changes": [
-    "Nuevo engranaje de ajustes en Fantasy con búsqueda de jugadores y filtro por equipo.",
-    "Los administradores pueden fijar precios de 1 a 100 millones, en pasos de medio millón, para todas las ligas y restaurar el cálculo automático.",
-    "Los precios manuales se guardan en la nube y se conservan al actualizar estadísticas. Se avisa si otro administrador cambia el mismo precio antes de guardarlo."
+    "Dentro de Fantasy la barra inferior muestra solo Plantilla, 11 inicial y Mercado. Al salir se recupera la navegación del club.",
+    "El icono, el nombre VillalbillaFantasy y los ajustes se trasladan a la cabecera, junto a Ir a noticias, sin duplicar el bloque en el contenido.",
+    "Mercado permite consultar los precios de la liga elegida. La edición del once y los fichajes siguen en preparación."
   ]
 }

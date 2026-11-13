@@ -136,7 +136,7 @@ export default {
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
     if(url.pathname.startsWith('/api/chats/'))return Response.json({error:'El chat se ha eliminado.'},{status:410,headers:{'Cache-Control':'no-store'}});
-    const fantasyResponse=await handleFantasy(request,env);if(fantasyResponse)return fantasyResponse;
+    const fantasyResponse=await handleFantasy(request,env,{ctx});if(fantasyResponse)return fantasyResponse;
     const privateSanctions=await handlePrivateSanctions(request,env,ctx);if(privateSanctions)return privateSanctions;
     const keeperAdjustmentResponse=await handleKeeperAdjustments(request,env);if(keeperAdjustmentResponse)return keeperAdjustmentResponse;
     const socialResponse=await handleSocial(request,env,{ctx});if(socialResponse)return socialResponse;

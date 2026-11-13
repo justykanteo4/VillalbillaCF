@@ -1,10 +1,11 @@
 {
-  "id": "2026.11.13.12",
+  "id": "2026.11.13.13",
   "date": "2026-11-13",
-  "title": "Retirada de votos de hinchas verificados",
+  "title": "Fantasy: compañeros del equipo y jugadores de todo el club",
   "changes": [
-    "Se prepara una limpieza de los votos anteriores de hinchas para retirarlos del recuento de jugadores, porteros, equipos y cuerpo técnico.",
-    "La limpieza se ejecuta con una sesión de administrador al abrir Votaciones y comprueba cada perfil. Conserva los votos de miembros aprobados y administradores y no borra cuentas que no pueda identificar con seguridad.",
-    "Los administradores ven el progreso y el número de votos retirados. La eliminación no consume cambios de otros usuarios ni modifica comentarios, me gusta o votaciones Fantasy."
+    "Las ligas Fantasy solo admiten compañeros del mismo equipo asignado y aprobado en su perfil; el código no permite entrar desde otro equipo.",
+    "El mercado y el catálogo de jugadores incluyen a todo el club, tanto en ligas clásicas como personalizadas.",
+    "Los precios automáticos combinan estadísticas y puntos de las votaciones de jugadores y porteros, con una subida del 80 %. Los precios manuales anteriores también suben una sola vez el 80 %.",
+    "Se admiten décimas de millón para aplicar los precios con precisión. Los importes de fichajes anteriores y el presupuesto de 40 M más 2 M semanales se conservan. El acceso sigue en pruebas para administradores."
   ]
 }

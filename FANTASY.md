@@ -20,3 +20,9 @@ El rendimiento para identificar el 10 % superior es goles × 3 + victorias × 2 
 La creación, la invitación y la consulta de participantes y precios ya persisten. Los fichajes, alineaciones y cálculo jugable de puntos siguen en preparación; la interfaz lo indica expresamente. No se habilita el juego al público con esta publicación.
 
 El icono exclusivo `assets/villalbilla-fantasy-icon.png` conserva su resolución y colores originales. La zona Fantasy usa `fantasy-theme.cjs`: fondo celeste (#87CEEB), superficies violetas, texto crema y detalles dorados. Al salir se restaura la paleta del club.
+
+## Ajustes y precios manuales
+
+El engranaje dentro de Fantasy abre los ajustes de administradores: catálogo con fotos, búsqueda por nombre, filtro por equipo, precio automático de referencia, precio vigente y fecha del último ajuste. Cada jugador admite un precio global manual entre 1 y 100 M, en pasos de 0,5 M, o restaurar su cálculo automático. El precio manual prevalece en todos los equipos y ligas de ese jugador, sin alterar presupuestos ni reglas existentes. La creación de nuevas ligas comprueba el presupuesto con estos precios vigentes.
+
+`fantasy_player_prices` de CHAT_DB almacena precio (null si automático), revisión, fecha y UID del administrador que hizo el último cambio. Son datos privados y no se exportan en el paquete público. Los GET privados omiten UID. El guardado exige la revisión leída para impedir sobrescrituras silenciosas entre administradores; restaurar automático incrementa también la revisión. Todas las rutas de ajustes verifican verifyAdmin, origen en escrituras y no-store. Actualizar las estadísticas no borra estas filas. El precio automático de referencia depende del conjunto de equipos elegido; el manual es global.

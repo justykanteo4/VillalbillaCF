@@ -5,3 +5,4 @@ CREATE INDEX IF NOT EXISTS fantasy_member_user ON fantasy_members(uid,league_id)
 CREATE TRIGGER IF NOT EXISTS fantasy_members_capacity BEFORE INSERT ON fantasy_members WHEN NOT EXISTS(SELECT 1 FROM fantasy_members WHERE league_id=NEW.league_id AND uid=NEW.uid) BEGIN
  SELECT CASE WHEN (SELECT COUNT(*) FROM fantasy_members WHERE league_id=NEW.league_id)>=CAST(json_extract((SELECT settings_json FROM fantasy_leagues WHERE id=NEW.league_id),'$.maxMembers') AS INTEGER) THEN RAISE(ABORT,'FANTASY_FULL') END;
 END;
+CREATE TABLE IF NOT EXISTS fantasy_player_prices(player_id TEXT PRIMARY KEY,price REAL,revision INTEGER NOT NULL DEFAULT 1,updated_at INTEGER NOT NULL,changed_by TEXT NOT NULL,CHECK(price IS NULL OR (price>=1 AND price<=100 AND price*2=CAST(price*2 AS INTEGER))));

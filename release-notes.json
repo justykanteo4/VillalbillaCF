@@ -1,10 +1,11 @@
 {
-  "id": "2026.11.13.8",
+  "id": "2026.11.13.9",
   "date": "2026-11-13",
-  "title": "Fantasy: 40 millones y aportación semanal",
+  "title": "Fantasy: mercado diario, fichajes y ofertas",
   "changes": [
-    "El presupuesto inicial de las ligas clásicas pasa a 40 millones, también en las ligas ya creadas. Las personalizadas parten de 40 millones y conservan el presupuesto elegido por su creador.",
-    "Cada participante acumula 2 millones adicionales cada lunes a las 00:00 de Madrid desde su entrada en la liga, aunque no abra la app.",
-    "Los detalles y el Mercado muestran el presupuesto acumulado. Los precios automáticos se ajustan para poder completar un once con 40 millones, respetando los precios manuales de administradores."
+    "El mercado incorpora 2 jugadores por día si quedan libres, mantiene como máximo 10 anuncios y retira los más antiguos cuando falta espacio. La permanencia máxima es de una semana.",
+    "Se pueden comprar jugadores y hacer ofertas a otros equipos de la misma liga. El vendedor puede aceptar o rechazar y el comprador cancelar sus ofertas.",
+    "Cada jugador tiene un único dueño dentro de una liga y puede estar en otras ligas. Las operaciones actualizan jugador y dinero juntos, respetando el saldo y el límite de fichajes.",
+    "Plantilla muestra los jugadores adquiridos; Mercado incluye saldo, otros equipos y ofertas. Las alineaciones y el cálculo de puntos siguen en preparación y el acceso continúa reservado a administradores."
   ]
 }

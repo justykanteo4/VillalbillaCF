@@ -13,6 +13,8 @@ UPDATE fantasy_leagues SET settings_json=json_set(settings_json,'$.budget',ROUND
 CREATE TABLE IF NOT EXISTS fantasy_participant_teams(uid TEXT NOT NULL,team_id TEXT NOT NULL,verified_at INTEGER NOT NULL,PRIMARY KEY(uid,team_id));
 CREATE TABLE IF NOT EXISTS fantasy_official_leagues(team_id TEXT PRIMARY KEY,league_id TEXT NOT NULL UNIQUE,FOREIGN KEY(league_id) REFERENCES fantasy_leagues(id));
 INSERT OR IGNORE INTO fantasy_official_leagues SELECT g.team_id,l.id FROM fantasy_leagues l JOIN fantasy_league_groups g ON g.league_id=l.id WHERE l.mode='classic' ORDER BY l.created_at,l.id;
+-- Las clásicas tenían 40 M efectivos aunque un registro antiguo guardase otro valor.
+UPDATE fantasy_leagues SET settings_json=json_set(settings_json,'$.budget',52) WHERE mode='classic';
 INSERT OR IGNORE INTO fantasy_policy_migrations VALUES('prices-and-budget-30');
 DROP TRIGGER IF EXISTS fantasy_trade_guard;
 DROP TRIGGER IF EXISTS fantasy_trade_settle;

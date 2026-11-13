@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.12.4",
-  "date": "2026-11-12",
-  "title": "Icono exclusivo y acceso a Fantasy desde Noticias",
+  "id": "2026.11.13.1",
+  "date": "2026-11-13",
+  "title": "Identidad visual propia para VillalbillaFantasy",
   "changes": [
-    "VillalbillaFantasy estrena su icono exclusivo con el escudo del club, conservando el archivo original de alta calidad.",
-    "El nuevo icono aparece en el acceso superior y en la pantalla de VillalbillaFantasy.",
-    "Noticias incorpora un anuncio destacado con el icono y un acceso directo. Se mantiene la vista previa exclusiva para administradores y el mensaje de construcción para el resto."
+    "Fantasy estrena una paleta violeta, dorada y crema, distinta del azul de la aplicación del club.",
+    "Al entrar cambian el fondo de la pantalla, las tarjetas, los botones, la cabecera y la barra inferior. La cabecera indica Zona Fantasy.",
+    "El anuncio de Noticias y el acceso superior adoptan los colores propios de Fantasy. Se conserva el icono exclusivo y el acceso privado de administradores."
   ]
 }

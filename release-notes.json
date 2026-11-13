@@ -1,10 +1,9 @@
 {
-  "id": "2026.11.13.1",
+  "id": "2026.11.13.2",
   "date": "2026-11-13",
-  "title": "Identidad visual propia para VillalbillaFantasy",
+  "title": "Fantasy en azul celeste y verde fosforescente",
   "changes": [
-    "Fantasy estrena una paleta violeta, dorada y crema, distinta del azul de la aplicación del club.",
-    "Al entrar cambian el fondo de la pantalla, las tarjetas, los botones, la cabecera y la barra inferior. La cabecera indica Zona Fantasy.",
-    "El anuncio de Noticias y el acceso superior adoptan los colores propios de Fantasy. Se conserva el icono exclusivo y el acceso privado de administradores."
+    "La zona Fantasy combina fondo azul celeste con tarjetas, cabecera y barra inferior en verde fosforescente.",
+    "Se retira la paleta violeta y se usa texto oscuro para mantener el contraste sobre el verde brillante. El anuncio de Noticias adopta la misma identidad."
   ]
 }

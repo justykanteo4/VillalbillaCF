@@ -21,8 +21,21 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  try{const uid=await authorize(request,env),currentTime=clock();if(request.method!=='GET'){const origin=request.headers.get('Origin');if(origin&&origin!==url.origin)throw fail('Origen no permitido.',403)}
  let admin=false;try{admin=(await adminAuthorize(request,env))===uid}catch(e){if(e.status!==401&&e.status!==403)throw e}
  const db=env.CHAT_DB;let allowed;
+ const access=db?await db.prepare('SELECT disabled,revision,updated_at FROM fantasy_access_settings WHERE id=1').first():null;
+ const accessSettings={disabled:access?!!access.disabled:true,revision:access?.revision||0,updatedAt:access?.updated_at||null};
+ if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ if(path==='/api/fantasy/admin/access'){
+ if(!db)throw fail('No se pudo consultar el acceso de Fantasy.',503);
+ if(request.method==='GET')return reply(accessSettings);
+ if(request.method!=='POST')throw fail('Método no permitido.',405);
+ const value=await body(request);if(typeof value?.disabled!=='boolean'||!Number.isSafeInteger(value.revision)||value.revision<0)throw fail('Actualiza el ajuste antes de guardarlo.');
+ const saved=await db.prepare('UPDATE fantasy_access_settings SET disabled=?,revision=revision+1,updated_at=? WHERE id=1 AND revision=? RETURNING disabled,revision,updated_at').bind(value.disabled?1:0,currentTime,value.revision).first();
+ if(!saved)throw fail('Otro administrador ha cambiado el acceso. Actualiza el ajuste antes de guardar.',409);
+ return reply({disabled:!!saved.disabled,revision:saved.revision,updatedAt:saved.updated_at});
+ }
+ if(accessSettings.disabled&&!admin){if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path))return reply({rules:config.rules,canPlay:false,isAdmin:false,disabled:true,features:{leagues:false,prices:false,market:false,offers:false,play:false}});throw fail('Fantasy está deshabilitado temporalmente. Acceso reservado a administradores.',403)}
  const allowedTeams=async()=>{if(allowed)return allowed;allowed=(await getTeams(request,uid,{isAdmin:admin})).filter(id=>teams.some(t=>t.id===id));if(db)await db.batch([db.prepare('DELETE FROM fantasy_participant_teams WHERE uid=?').bind(uid),...allowed.map(id=>db.prepare('INSERT INTO fantasy_participant_teams VALUES(?,?,?)').bind(uid,id,currentTime))]);return allowed};
- if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path)){if(admin)await scheduleVoteCleanup(request,env,uid,async()=>uid,ctx);return reply({rules:config.rules,canPlay:(await allowedTeams()).length>0,isAdmin:admin,features:{leagues:false,prices:true,market:true,offers:true,play:false}})}
+ if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path)){if(admin)await scheduleVoteCleanup(request,env,uid,async()=>uid,ctx);return reply({rules:config.rules,canPlay:(await allowedTeams()).length>0,isAdmin:admin,disabled:accessSettings.disabled,features:{leagues:false,prices:true,market:true,offers:true,play:false}})}
  if(!['GET','POST'].includes(request.method))return reply({error:'Método no permitido.'},405);
  if(!db)throw fail('No se pudo conectar con las ligas.',503);
  if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);

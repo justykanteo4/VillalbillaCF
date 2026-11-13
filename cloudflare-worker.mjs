@@ -1,3 +1,4 @@
+import {scheduledFantasy,syncFantasySports} from './fantasy-jobs.mjs';
 import {handleFantasy} from './fantasy-service.mjs';
 import {handleKeeperAdjustments} from './goalkeeper-adjustments-service.mjs';
 import {dispatchVoteNotifications} from './vote-notifications.mjs';
@@ -125,7 +126,7 @@ async function data(request, env) {
 }
 
 export default {
-  async scheduled(event,env,ctx){ctx.waitUntil(Promise.allSettled([dispatchVoteNotifications(env),scheduledNotifications(env),dispatchAccessNotifications(env),scheduledOfficialSanctions(env),scheduledResults(env)]))},
+  async scheduled(event,env,ctx){ctx.waitUntil(Promise.allSettled([scheduledFantasy(env),syncFantasySports(env),dispatchVoteNotifications(env),scheduledNotifications(env),dispatchAccessNotifications(env),scheduledOfficialSanctions(env),scheduledResults(env)]))},
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const download=await handleApkDownload(request,env.ASSETS);if(download)return download;

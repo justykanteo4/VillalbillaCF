@@ -1,10 +1,15 @@
 {
-  "id": "2026.11.13.16",
+  "id": "2026.11.13.17",
   "date": "2026-11-13",
-  "title": "Visitas en cada entrada a la APK y la web",
+  "title": "Fantasy: entrenador, plantilla, once, mercado y clasificación",
   "changes": [
-    "El contador compartido suma cada apertura de la APK y cada entrada o recarga de la web.",
-    "Volver desde segundo plano suma una nueva visita, sin esperar treinta minutos. Cambiar de pantalla dentro de la app no suma.",
-    "Se conservan el total histórico y las visitas pendientes sin conexión. Los reintentos no duplican visitas y las pestañas web guardan sus entradas de forma independiente."
+    "Antes de jugar se explica la dinámica del entrenador. Se incluyen entrenadores, cuerpo técnico y delegados del club. Los sueldos quedan pendientes de fijar; se calcularán con estadísticas, votaciones y equipos a cargo.",
+    "Al elegir entrenador se reparten gratis 14 jugadores de valor bajo y sin TOP, con presentación y estadísticas al pulsar su foto. Se conservan los 52 M iniciales; la plantilla admite entre 12 y 16 jugadores.",
+    "Nuevo campo para guardar once titulares y capitán. El capitán duplica puntos positivos, negativos y premios; debe esperar seis jornadas antes de repetir.",
+    "Los administradores eligen tres MVP de cada equipo ganador (+1) y once ideales únicamente entre esos MVP (+1 adicional).",
+    "Mercado de hasta ocho futbolistas, dos nuevos al día y hasta una semana. Búsqueda con valor y puntos, favoritos con avisos y una oferta al día a otros participantes.",
+    "Nueva clasificación con puntos totales y desglose por jornada. Los resultados y premios usan actas cerradas y conservan la jornada de los aplazados.",
+    "Saldo disponible en cabecera; al pulsarlo se consultan presupuesto, aportaciones, compras, ventas y sueldos. Reglas en Ajustes.",
+    "Fantasy sigue reservado a administradores. No se han fijado ni cobrado sueldos reales en las ligas."
   ]
 }

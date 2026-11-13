@@ -16,10 +16,10 @@ export async function handleVisits(request,env){
   const raw=await request.text();
   if(raw.length>12000)return reply({error:'Solicitud demasiado grande.'},413);
   let body;try{body=JSON.parse(raw)}catch{return reply({error:'Solicitud no válida.'},400)}
-  if(!Array.isArray(body.events)||!body.events.length||body.events.length>50||body.events.some(event=>!event||!/^[a-f0-9]{64}$/.test(event.id)||!['android','ios'].includes(event.platform)))return reply({error:'Visitas no válidas.'},400);
+  if(!Array.isArray(body.events)||!body.events.length||body.events.length>50||body.events.some(event=>!event||!/^[a-f0-9]{64}$/.test(event.id)||!['android','ios','web'].includes(event.platform)))return reply({error:'Visitas no válidas.'},400);
   const events=[...new Map(body.events.map(event=>[event.id,event])).values()];
   const results=await db.batch([
-   ...events.map(event=>db.prepare('INSERT OR IGNORE INTO apk_visit_events(id,platform,created_at) VALUES(?,?,?)').bind(event.id,event.platform,Date.now())),
+   ...events.map(event=>db.prepare(event.platform==='web'?'INSERT OR IGNORE INTO web_visit_events(id,platform,created_at) SELECT ?,?,? WHERE NOT EXISTS(SELECT 1 FROM apk_visit_events WHERE id=?)':'INSERT OR IGNORE INTO apk_visit_events(id,platform,created_at) SELECT ?,?,? WHERE NOT EXISTS(SELECT 1 FROM web_visit_events WHERE id=?)').bind(event.id,event.platform,Date.now(),event.id)),
    db.prepare('SELECT total FROM apk_visit_totals WHERE id=1'),
   ]);
   const total=results.at(-1)?.results?.[0]?.total;

@@ -5,7 +5,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {createRequire} from 'node:module';
 import {handleVisits} from './visits-service.mjs';
 const require=createRequire(import.meta.url);
-const {createVisitsClient}=require('./visits-client.cjs');
+const {createVisitsClient,createVisitsLifecycle}=require('./visits-client.cjs');
 const {instagramPostUrl}=require('./instagram-post.cjs');
 const id=n=>n.toString(16).padStart(64,'0');
 function database(t){
@@ -15,7 +15,7 @@ function database(t){
 }
 const post=(events,headers={})=>new Request('https://app.test/api/visits',{method:'POST',headers:{'Content-Type':'application/json',...headers},body:JSON.stringify({events})});
 async function total(env){return (await (await handleVisits(new Request('https://app.test/api/visits'),env)).json()).total}
-function memory(){const map=new Map();return {map,getItem:async key=>map.get(key)||null,setItem:async(key,value)=>map.set(key,value)}}
+function memory(){const map=new Map();return {map,getItem:async key=>map.get(key)||null,setItem:async(key,value)=>map.set(key,value),getAllKeys:async()=>[...map.keys()],removeItem:async key=>map.delete(key)}}
 function bridge(env){return async(path,options={})=>{const response=await handleVisits(new Request('https://app.test'+path,options),env);const data=await response.json();if(!response.ok)throw Error(data.error);return data}}
 
 test('el contador compartido suma aperturas distintas y no duplica reintentos',async t=>{
@@ -25,9 +25,9 @@ test('el contador compartido suma aperturas distintas y no duplica reintentos',a
  await handleVisits(post([{id:id(3),platform:'android'}]),env);
  assert.equal(await total(env),3);assert.equal(await total(env),3);
 });
-test('rechaza visitas malformadas, tráfico web y orígenes ajenos sin modificar el contador',async t=>{
+test('rechaza visitas malformadas, plataformas desconocidas y orígenes ajenos sin modificar el contador',async t=>{
  const env=database(t);
- for(const events of [[],[{id:'invalid',platform:'android'}],[{id:id(1),platform:'web'}],Array.from({length:51},(_,n)=>({id:id(n),platform:'android'}))])assert.equal((await handleVisits(post(events),env)).status,400);
+ for(const events of [[],[{id:'invalid',platform:'android'}],[{id:id(1),platform:'bot'}],Array.from({length:51},(_,n)=>({id:id(n),platform:'android'}))])assert.equal((await handleVisits(post(events),env)).status,400);
  assert.equal((await handleVisits(post([{id:id(1),platform:'android'}],{Origin:'https://other.test'}),env)).status,403);
  assert.equal(await total(env),0);
  assert.equal((await handleVisits(new Request('https://app.test/api/visits'),{})).status,503);
@@ -39,12 +39,12 @@ test('el Worker conecta el contador antes de la caché y permite el POST de la a
  const response=await worker.fetch(post([{id:id(1),platform:'android'}]),env,ctx);
  assert.equal(response.status,200);assert.equal((await response.json()).total,1);assert.equal(response.headers.get('Cache-Control'),'no-store');
 });
-test('cuenta todos los móviles y una sola apertura por proceso, aunque se monte la pantalla varias veces',async t=>{
+test('cuenta móviles y web, sin duplicar el inicio aunque se monte varias veces',async t=>{
  const env=database(t);let sequence=0;const request=bridge(env),randomId=async()=>id(++sequence);
  const first=createVisitsClient({storage:memory(),request,randomId,platform:'android'}),second=createVisitsClient({storage:memory(),request,randomId,platform:'android'});
  await Promise.all([first.start(),first.start()]);await second.start();
  await first.getTotal();await first.getTotal();assert.equal(await total(env),2);
- const web=createVisitsClient({storage:memory(),request,randomId,platform:'web'});await web.start();await web.getTotal();await web.resume(31*60*1000);assert.equal(await total(env),2);
+ const web=createVisitsClient({storage:memory(),request,randomId,platform:'web'});await web.start();await web.getTotal();await web.resume();assert.equal(await total(env),4);
 });
 test('conserva visitas sin conexión y un acuse perdido no las vuelve a contar al reiniciar',async t=>{
  const env=database(t),storage=memory(),server=bridge(env);let online=false,loseReply=false,sequence=0;
@@ -55,11 +55,12 @@ test('conserva visitas sin conexión y un acuse perdido no las vuelve a contar a
  const restarted=create();await restarted.start();assert.equal(await total(env),2);assert.equal((await restarted.readCached()).total,2);
  await restarted.flush();assert.equal(await total(env),2);
 });
-test('volver brevemente no suma otra visita; tras treinta minutos empieza una nueva',async t=>{
- const env=database(t);let sequence=0;
- const client=createVisitsClient({storage:memory(),request:bridge(env),randomId:async()=>id(++sequence),platform:'android'});
- await client.start();await client.resume(1000);await client.resume(29*60*1000);assert.equal(await total(env),1);
- await client.resume(30*60*1000);assert.equal(await total(env),2);
+test('cada entrada desde segundo plano suma incluso tras un segundo; active repetido e inactive no suman',async t=>{
+ const env=database(t);let sequence=0;const client=createVisitsClient({storage:memory(),request:bridge(env),randomId:async()=>id(++sequence),platform:'android'}),onState=createVisitsLifecycle(client);
+ await Promise.all([client.start(),client.start()]);assert.equal(await total(env),1);
+ for(const state of ['active','inactive','active','active'])await onState(state);assert.equal(await total(env),1);
+ for(const state of ['background','inactive','active','active'])await onState(state);assert.equal(await total(env),2);
+ for(const state of ['background','active'])await onState(state);assert.equal(await total(env),3);
 });
 test('un envío vacío de primer plano no pierde la apertura que se acaba de guardar',async t=>{
  const env=database(t),base=memory();let release,started,persisted;
@@ -91,3 +92,6 @@ test('la publicación OTA solo permite las bases nativas verificadas y no altera
   process.env.VILLALBILLA_UPDATE_RUNTIME='0.1.11';process.env.EAS_BUILD='true';assert.throws(()=>configure({config}));
  }finally{if(previous===undefined)delete process.env.VILLALBILLA_UPDATE_RUNTIME;else process.env.VILLALBILLA_UPDATE_RUNTIME=previous;if(build===undefined)delete process.env.EAS_BUILD;else process.env.EAS_BUILD=build}
 });
+
+test('web y APK comparten el total histórico, una migración repetida no cuenta visitas y los IDs se deduplican entre plataformas',async t=>{const env=database(t);await handleVisits(post([{id:id(901),platform:'android'}]),env);await env.VISITS_DB.batch([]);const before=await total(env);const events=[{id:id(902),platform:'web'},{id:id(901),platform:'web'},{id:id(903),platform:'ios'}];assert.equal((await(await handleVisits(post(events),env)).json()).total,before+2);assert.equal((await(await handleVisits(post(events),env)).json()).total,before+2);assert.equal((await(await handleVisits(post([{id:id(902),platform:'android'}]),env)).json()).total,before+2);const sql=new DatabaseSync(':memory:');t.after(()=>sql.close());sql.exec(readFileSync('visit-schema.sql','utf8'));sql.prepare('UPDATE apk_visit_totals SET total=123').run();sql.exec(readFileSync('visit-web-schema.sql','utf8'));sql.exec(readFileSync('visit-web-schema.sql','utf8'));assert.equal(sql.prepare('SELECT total FROM apk_visit_totals').get().total,123)});
+test('dos pestañas web simultáneas conservan todas las entradas sin red y un reinicio reenvía sin duplicados',async t=>{const env=database(t),storage=memory(),server=bridge(env);let sequence=100,online=false,loseReply=true;const request=async(...args)=>{if(!online)throw Error('Sin red');const r=await server(...args);if(loseReply){loseReply=false;throw Error('Acuse perdido')}return r},create=()=>createVisitsClient({storage,request,platform:'web',randomId:async()=>id(++sequence)});const a=create(),b=create();await Promise.allSettled([a.start(),b.start()]);await Promise.allSettled([a.resume(),b.resume()]);assert.equal((await storage.getAllKeys()).filter(k=>k.includes('.event.')).length,4);online=true;await Promise.allSettled([a.flush(),b.flush()]);await a.flush();assert.equal(await total(env),4);const reloaded=create();await reloaded.start();assert.equal(await total(env),5);assert.equal((await storage.getAllKeys()).filter(k=>k.includes('.event.')).length,0)});

@@ -1,11 +1,10 @@
 {
-  "id": "2026.11.13.9",
+  "id": "2026.11.13.10",
   "date": "2026-11-13",
-  "title": "Fantasy: mercado diario, fichajes y ofertas",
+  "title": "Detalle de votantes exclusivo de administradores",
   "changes": [
-    "El mercado incorpora 2 jugadores por día si quedan libres, mantiene como máximo 10 anuncios y retira los más antiguos cuando falta espacio. La permanencia máxima es de una semana.",
-    "Se pueden comprar jugadores y hacer ofertas a otros equipos de la misma liga. El vendedor puede aceptar o rechazar y el comprador cancelar sus ofertas.",
-    "Cada jugador tiene un único dueño dentro de una liga y puede estar en otras ligas. Las operaciones actualizan jugador y dinero juntos, respetando el saldo y el límite de fichajes.",
-    "Plantilla muestra los jugadores adquiridos; Mercado incluye saldo, otros equipos y ofertas. Las alineaciones y el cálculo de puntos siguen en preparación y el acceso continúa reservado a administradores."
+    "Los administradores pueden ver quién ha dado los votos, a qué candidatura y cuántos puntos, en jugadores, porteros, equipos y entrenadores y cuerpo técnico.",
+    "Cada candidatura del ranking permite abrir sus votantes. También se puede consultar el detalle de toda la categoría, con páginas y fecha de última actualización.",
+    "Los nombres se consultan por una ruta privada que comprueba el permiso de administrador en cada petición. No se incluyen en el ranking público ni se guardan en la caché del dispositivo."
   ]
 }

@@ -89,3 +89,11 @@ report-cache-policy.cjs valida actas completas y cerradas de esquema 5 y versió
 Clasificación Fantasy incluye todos los jugadores de todas las categorías que constan en el catálogo. Se identifica el total de jugadores y cuántos se están mostrando; la presentación gradual y la búsqueda completa conservan la rapidez. Las pruebas verifican que ninguna categoría del catálogo con jugadores quede excluida.
 
 Validación: 396 pruebas correctas y prueba de interfaz móvil para modificar, mostrar autor privado, restaurar y ocultar al retirar el rol de administrador. Ejecutar result-edits-schema.sql sobre VISITS_DB antes de publicar el Worker. Sin nuevos módulos nativos; mantener ambos runtimes Android.
+
+## MVP desde los resultados de Noticias (2026.11.14.17)
+
+Ver detalles de un partido ganado por el equipo del club muestra Elegir MVP · Administración exclusivamente a administradores. La ventana consulta solo al abrir, enseña fotografías de los participantes confirmados de la victoria, limita a tres seleccionados y exige los tres para guardar. Carga los premios ya elegidos para poder revisarlos. Si el acta todavía no está incorporada a Fantasy, explica que la selección estará disponible al incorporarla; no inventa participaciones ni permite premiar empates/derrotas.
+
+Reutiliza /api/fantasy/admin/awards y fantasy_awards: no existe una segunda puntuación ni otro registro de MVP. La consulta admite team y match, valida los identificadores y devuelve únicamente ese partido y sus premios, conservando el GET completo para Ajustes Fantasy. Los POST siguen comprobando administrador vigente, tres IDs distintos que jugaron y ganaron y revisión actual. Cada MVP suma el +1 configurado; el once ideal añade el otro +1 y conserva sus reglas. La misma revisión impide que dos administradores pisen cambios. Guardar de nuevo no duplica premios. El acceso administrativo funciona aunque Fantasy esté cerrada al resto de usuarios.
+
+Validación: 397 pruebas correctas. La prueba de interfaz móvil comprueba que no se consulta hasta abrir, guardar queda deshabilitado con dos jugadores, no admite un cuarto, persiste los IDs del partido correcto y oculta el acceso a usuarios normales y en empates. No se han concedido MVP reales ni enviado notificaciones como prueba. Sin migración de base de datos ni módulos nativos nuevos.

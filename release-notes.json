@@ -1,11 +1,11 @@
 {
-  "id": "2026.11.14.16",
+  "id": "2026.11.14.17",
   "date": "2026-11-14",
-  "title": "Resultados editables y actas guardadas",
+  "title": "Noticias: selección administrativa de MVP",
   "changes": [
-    "Solo administradores pueden corregir marcadores desde Resultados y consultar quién hizo cada modificación, con fecha e historial privado.",
-    "Los marcadores corregidos se muestran en noticias y resultados sin publicar la identidad del administrador; se puede restaurar el dato oficial.",
-    "Las actas cerradas completas y vigentes se guardan en dispositivo y servidor y se reutilizan sin descargarlas otra vez; las pendientes e incompletas continúan actualizándose.",
-    "La clasificación Fantasy de jugadores incluye todas las categorías del club y reutiliza los datos deportivos guardados."
+    "Los administradores pueden elegir los tres MVP desde Ver detalles de un resultado ganador en Noticias o Resultados.",
+    "La selección muestra fotografías y solo admite jugadores que participaron en la victoria según el acta incorporada.",
+    "Se guardan los mismos premios de Fantasy: +1 por MVP y posibilidad de otro +1 al formar el once ideal; sin duplicar puntos al guardar de nuevo.",
+    "La consulta carga únicamente el partido elegido y conserva el control de cambios simultáneos entre administradores."
   ]
 }

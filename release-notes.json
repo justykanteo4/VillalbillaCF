@@ -1,10 +1,8 @@
 {
-  "id": "2026.11.14.9",
+  "id": "2026.11.14.10",
   "date": "2026-11-14",
-  "title": "Fantasy: venta desde la ficha del jugador en Plantilla",
+  "title": "Fantasy: confirmación de venta más limpia",
   "changes": [
-    "Vender jugador se muestra en Plantilla al pulsar cada jugador y abrir sus datos. Se retira la opción de 11 inicial.",
-    "La advertencia identifica al jugador y muestra el importe con el descuento del 8 %, con Cancelar y Confirmar venta.",
-    "Después de vender se actualizan la plantilla, el saldo y las transacciones. Se conservan el mínimo de 12 jugadores y las jornadas cerradas."
+    "Se elimina la frase Descuento de venta: 8 % de la confirmación. Se mantienen el valor de mercado, el importe a recibir y los botones Confirmar venta y Cancelar."
   ]
 }

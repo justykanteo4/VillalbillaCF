@@ -51,3 +51,7 @@ El mercado muestra arriba un contador actualizado cada segundo hasta las 23:59 d
 Los premios son 10 M al primero, 8 M al segundo, 6 M al tercero y 5 M al resto; los empates comparten puesto. Sustituyen la aportación fija desde la semana del 16 de noviembre. Se espera la selección de MVP y once ideal cuando corresponde; los resultados pendientes pueden producir premios provisionales. Cada jornada tiene un asiento único y las correcciones registran solo diferencias.
 
 Aplicar fantasy-rewards-schema.sql y después fantasy-auction-schema.sql, sin volver a aplicar los triggers antiguos de compraventa. Las pujas y sus propietarios permanecen privados en D1.
+
+## Alineación y formación
+
+Aplica `fantasy-formation-migration.sql` una vez en `CHAT_DB` antes de desplegar la actualización. Las alineaciones anteriores se muestran en 4-4-2. Al cerrar una jornada, el 11 inicial pasa a la siguiente.

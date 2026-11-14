@@ -1,3 +1,4 @@
+import systems from './lineup-systems.cjs';
 import {economyPolicy,weeklyCredit} from './fantasy-economy.mjs';
 import {queueFavouriteNotices} from './fantasy-favourites.mjs';
 import {startsAt} from './fantasy-sports.cjs';
@@ -24,7 +25,44 @@ export async function gameRoute({db,league,uid,now,action,method,readBody,player
  if(action==='favourites'&&method==='POST'){await ensureManager(db,league,uid);const value=await readBody();if(!directory.some(p=>p.id===value?.playerId)||typeof value?.favourite!=='boolean')throw fail('Favorito no válido.');if(value.favourite)await db.prepare('INSERT OR IGNORE INTO fantasy_favourites VALUES(?,?,?,?)').bind(league.id,uid,value.playerId,now).run();else await db.prepare('DELETE FROM fantasy_favourites WHERE league_id=? AND uid=? AND player_id=?').bind(league.id,uid,value.playerId).run();await queueFavouriteNotices(db,league.id,now,uid);return {saved:true}}
  if(action==='alerts'&&method==='GET')return {alerts:await all(db.prepare('SELECT id,title,body,created_at AS createdAt,seen FROM fantasy_market_notices WHERE league_id=? AND uid=? ORDER BY created_at DESC LIMIT 30').bind(league.id,uid))};
  if(action==='alerts'&&method==='POST'){await db.prepare('UPDATE fantasy_market_notices SET seen=1 WHERE league_id=? AND uid=?').bind(league.id,uid).run();return {saved:true}}
- if(action==='lineup'){const m=await ensureManager(db,league,uid),week=policy.weekKey(now),closesAt=policy.deadline(week,s.schedule),current=await db.prepare('SELECT * FROM fantasy_lineups WHERE league_id=? AND uid=? AND week=?').bind(league.id,uid,week).first(),roster=await all(db.prepare('SELECT player_id FROM fantasy_roster WHERE league_id=? AND uid=?').bind(league.id,uid));const history=await all(db.prepare('SELECT week,captain_id FROM fantasy_lineups WHERE league_id=? AND uid=? AND week<?').bind(league.id,uid,week)),roundWeeks=[...new Set(s.schedule.map(f=>f.week))].sort((a,b)=>a-b),blockedCaptains=[...new Set(history.filter(h=>roundWeeks.filter(w=>w>h.week&&w<=week).length<6).map(h=>h.captain_id))];if(method==='GET')return {blockedCaptains,week,closesAt,locked:now>=closesAt,players:roster.map(r=>directory.find(p=>p.id===r.player_id)).filter(Boolean),selected:current?parse(current.players_json):[],captainId:current?.captain_id||'',revision:current?.revision||0};if(method!=='POST')throw fail('Método no permitido.',405);if(now>=closesAt)throw fail('La jornada está cerrada: no se puede cambiar el once ni el capitán.',409);const v=await readBody(),ids=v?.playerIds;if(!Array.isArray(ids)||ids.length!==11||new Set(ids).size!==11||ids.some(id=>!roster.some(r=>r.player_id===id))||!ids.includes(v.captainId))throw fail('Elige once jugadores distintos de tu plantilla y un capitán entre ellos.');if(blockedCaptains.includes(v.captainId))throw fail('Este jugador debe esperar 6 jornadas desde su última capitanía.',409);if(!Number.isSafeInteger(v.revision)||!current&&v.revision!==0)throw fail('Actualiza la alineación.');const saved=await db.prepare('INSERT INTO fantasy_lineups VALUES(?,?,?,?,?,?,?,?,1) ON CONFLICT(league_id,uid,week) DO UPDATE SET players_json=excluded.players_json,captain_id=excluded.captain_id,coach_id=excluded.coach_id,deadline_at=excluded.deadline_at,updated_at=excluded.updated_at,revision=fantasy_lineups.revision+1 WHERE fantasy_lineups.revision=? RETURNING revision').bind(league.id,uid,week,JSON.stringify(ids),v.captainId,m.coach_id,closesAt,now,v.revision).first();if(!saved||!current&&v.revision!==0)throw fail('La alineación cambió en otro dispositivo. Actualiza antes de guardar.',409);return {saved:true,revision:saved.revision}}
+ if(action==='lineup'){
+  const m=await ensureManager(db,league,uid);
+  const currentWeek=policy.weekKey(now);
+  const week=now>=policy.deadline(currentWeek,s.schedule)?currentWeek+1:currentWeek;
+  const closesAt=policy.deadline(week,s.schedule);
+  const current=await db.prepare('SELECT * FROM fantasy_lineups WHERE league_id=? AND uid=? AND week=?').bind(league.id,uid,week).first();
+  const roster=await all(db.prepare('SELECT player_id FROM fantasy_roster WHERE league_id=? AND uid=?').bind(league.id,uid));
+  const history=await all(db.prepare('SELECT week,captain_id FROM fantasy_lineups WHERE league_id=? AND uid=? AND week<?').bind(league.id,uid,week));
+  const roundWeeks=[...new Set(s.schedule.map(f=>f.week))];
+  const blockedCaptains=[...new Set(history.filter(h=>roundWeeks.filter(w=>w>h.week&&w<=week).length<6).map(h=>h.captain_id))];
+  if(method==='GET')return {blockedCaptains,week,closesAt,locked:now>=closesAt,upcoming:week!==currentWeek,
+   players:roster.map(r=>directory.find(p=>p.id===r.player_id)).filter(Boolean),
+   selected:current?parse(current.players_json):[],captainId:current?.captain_id||'',
+   formation:current?.formation||'4-4-2',revision:current?.revision||0};
+  if(method!=='POST')throw fail('Método no permitido.',405);
+  const value=await readBody(),ids=value?.playerIds;
+  if(now>=closesAt||(value?.week??currentWeek)!==week)throw fail('La jornada ha cambiado. Actualiza la alineación antes de guardar.',409);
+  if(!Array.isArray(ids)||ids.length!==11||new Set(ids).size!==11||ids.some(id=>!roster.some(r=>r.player_id===id))||!ids.includes(value.captainId))
+   throw fail('Elige once jugadores distintos de tu plantilla y un capitán entre ellos.');
+  if(blockedCaptains.includes(value.captainId))throw fail('Este jugador debe esperar 6 jornadas desde su última capitanía.',409);
+  if(!Number.isSafeInteger(value.revision)||!current&&value.revision!==0)throw fail('Actualiza la alineación.');
+  let formation;
+  try{formation=systems.makeSystem(value.formation??current?.formation??'4-4-2').name}
+  catch{throw fail('Elige una formación válida de once jugadores.')}
+  const saved=await db.prepare(`INSERT INTO fantasy_lineups
+   (league_id,uid,week,players_json,captain_id,coach_id,deadline_at,updated_at,revision,formation)
+   SELECT ?,?,?,?,?,?,?,?,1,?
+   WHERE (SELECT COUNT(*) FROM fantasy_roster WHERE league_id=? AND uid=?
+          AND player_id IN (SELECT value FROM json_each(?)))=11
+   ON CONFLICT(league_id,uid,week) DO UPDATE SET players_json=excluded.players_json,
+   captain_id=excluded.captain_id,coach_id=excluded.coach_id,deadline_at=excluded.deadline_at,
+   updated_at=excluded.updated_at,formation=excluded.formation,revision=fantasy_lineups.revision+1
+   WHERE fantasy_lineups.revision=? RETURNING revision`)
+   .bind(league.id,uid,week,JSON.stringify(ids),value.captainId,m.coach_id,closesAt,now,formation,
+    league.id,uid,JSON.stringify(ids),value.revision).first();
+  if(!saved)throw fail('La alineación o la plantilla cambió. Actualiza antes de guardar.',409);
+  return {saved:true,revision:saved.revision,formation};
+ }
  if(action==='table'&&method==='GET'){const board=await leagueStandings(db,league,now);const prizeState=await db.prepare('SELECT status_json FROM fantasy_prize_state WHERE league_id=?').bind(league.id).first(),mine=await all(db.prepare('SELECT week,position,amount_cents,provisional FROM fantasy_weekly_prizes WHERE league_id=? AND uid=?').bind(league.id,uid));return {...board,prizeStatus:prizeState?parse(prizeState.status_json):[],myPrizes:mine.map(p=>({...p,amount:p.amount_cents/100})),rows:board.rows.map(({uid:actor,...r})=>({...r,me:actor===uid}))}}
  throw fail('Apartado no disponible.',404)
 }

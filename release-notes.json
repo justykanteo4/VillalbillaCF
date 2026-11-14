@@ -1,8 +1,10 @@
 {
-  "id": "2026.11.14.1",
+  "id": "2026.11.14.2",
   "date": "2026-11-14",
-  "title": "Fantasy: pujas, contador y premios semanales",
+  "title": "Fantasy: alineación y formaciones",
   "changes": [
+    "Elige jugadores tocando el campo, cambia de formación y guarda el once con tu capitán. Al cerrar la jornada puedes preparar la siguiente.",
+    "El Mercado conserva el contador y las pujas con menos texto.",
     "Contador de horas, minutos y segundos arriba de Mercado hasta el cierre diario a las 23:59 de Madrid.",
     "Mercado por pujas: gana la más alta válida; en empate gana la primera. Las pujas reservan saldo y los anuncios sin pujas siguen activos hasta siete días.",
     "Sueldos de entrenadores entre 0,25 y 2 M semanales, calculados con votaciones (60 %), resultados (40 %) y equipos a cargo.",

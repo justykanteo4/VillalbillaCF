@@ -69,3 +69,11 @@ El nombre de la liga activa es un selector con las ligas de esa cuenta. Se cambi
 Al entrar desde el club o volver a abrir Fantasy se muestra la pantalla Tus ligas. Cada tarjeta abre una liga existente de esa cuenta. Crear nueva liga está desactivado y marcado En construcción; la interfaz ya no ofrece crear ni incorporarse a ligas nuevas. Las ligas existentes se mantienen. No se solicita la plantilla ni se muestran saldo o pestañas de juego hasta elegir una liga.
 
 Dentro de la liga se muestra una franja de cabecera de ancho completo con borde dorado, LIGA ACTUAL, su nombre y Cambiar. El menú permite alternar entre ligas existentes o volver a Tus ligas; su opción de crear también está desactivada. Se sustituye la apertura automática de la última liga por la elección explícita solicitada.
+
+## Venta inmediata desde 11 inicial (14/11/2026, revisión 8)
+
+Vender jugador abre la plantilla de esa liga. Seleccionar uno consulta un importe actual al servidor y muestra ¿Quieres vender a [nombre]?, valor de mercado, descuento del 8 %, importe a recibir y Cancelar/Confirmar venta. Consultar o cancelar nunca ejecuta la venta. El servidor vuelve a comprobar propiedad, liga, precio y mínimo de 12. Se paga el 92 %, redondeado a céntimos de millón. Un precio distinto requiere volver a consultar y confirmar.
+
+fantasy-sales-schema.sql añade el registro y los triggers de venta sin sustituir los de subastas. Un INSERT liquida la venta de forma atómica: libera la propiedad, abona la cartera, cancela ofertas y retira al jugador únicamente de alineaciones todavía abiertas, incrementando sus revisiones. Cada propiedad tiene una sola venta; la clave de solicitud y la propiedad hacen idempotentes los reintentos. Las jornadas cerradas y sus puntos se conservan. El jugador queda libre para futuras rotaciones normales de mercado, sin crear anuncios extra ni consumir fichajes de compra semanales.
+
+Las transacciones muestran Venta al mercado con el importe efectivamente abonado. La copia privada de la cuenta se invalida como en cualquier otra operación; la alineación y el saldo se vuelven a consultar tras vender. Aplicar únicamente fantasy-sales-schema.sql antes de desplegar esta revisión.

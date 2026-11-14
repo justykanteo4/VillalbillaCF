@@ -1,11 +1,11 @@
 {
-  "id": "2026.11.14.7",
+  "id": "2026.11.14.8",
   "date": "2026-11-14",
-  "title": "Fantasy: entrada con tus ligas y selector destacado",
+  "title": "Fantasy: vender jugadores desde el once inicial",
   "changes": [
-    "Al entrar en Fantasy aparece primero la pantalla Tus ligas, con tarjetas grandes para elegir una de tus ligas disponibles.",
-    "Crear nueva liga aparece desactivado y claramente marcado En construcción, también en el menú de cabecera.",
-    "Dentro de cada liga, una franja con borde dorado muestra la liga actual y el botón Cambiar. Permite cambiar de liga o volver a ver todas tus ligas.",
-    "La pantalla de elección no carga la plantilla ni muestra los menús de juego hasta entrar en una liga. Se conservan las mejoras de arranque rápido."
+    "El once inicial incluye Vender jugador. Antes de vender aparece la advertencia ¿Quieres vender a este jugador?, con su nombre, valor de mercado y el importe exacto que recibirás.",
+    "La venta al mercado paga el 92 % del valor vigente, con un descuento del 8 %. Solo se realiza al pulsar Confirmar venta; Cancelar no cambia la plantilla ni el saldo.",
+    "El abono queda registrado en transacciones. Los reintentos no duplican la venta, se mantiene el mínimo de 12 jugadores y se cancelan las ofertas pendientes sobre el jugador.",
+    "Las alineaciones abiertas se actualizan para revisar el once. Las jornadas cerradas conservan su alineación y sus puntos."
   ]
 }

@@ -77,3 +77,7 @@ Vender jugador abre la plantilla de esa liga. Seleccionar uno consulta un import
 fantasy-sales-schema.sql añade el registro y los triggers de venta sin sustituir los de subastas. Un INSERT liquida la venta de forma atómica: libera la propiedad, abona la cartera, cancela ofertas y retira al jugador únicamente de alineaciones todavía abiertas, incrementando sus revisiones. Cada propiedad tiene una sola venta; la clave de solicitud y la propiedad hacen idempotentes los reintentos. Las jornadas cerradas y sus puntos se conservan. El jugador queda libre para futuras rotaciones normales de mercado, sin crear anuncios extra ni consumir fichajes de compra semanales.
 
 Las transacciones muestran Venta al mercado con el importe efectivamente abonado. La copia privada de la cuenta se invalida como en cualquier otra operación; la alineación y el saldo se vuelven a consultar tras vender. Aplicar únicamente fantasy-sales-schema.sql antes de desplegar esta revisión.
+
+## Ubicación de la venta (revisión 9)
+
+La venta se encuentra en Plantilla: pulsar un jugador abre sus datos y su botón Vender jugador. El botón abre directamente la confirmación de ese jugador, sin un segundo selector. Se retira de 11 inicial. La operación y sus garantías del 8 % se mantienen; tras confirmar se refrescan plantilla y saldo, y el servidor conserva la limpieza de los onces abiertos.

@@ -1,11 +1,10 @@
 {
-  "id": "2026.11.14.8",
+  "id": "2026.11.14.9",
   "date": "2026-11-14",
-  "title": "Fantasy: vender jugadores desde el once inicial",
+  "title": "Fantasy: venta desde la ficha del jugador en Plantilla",
   "changes": [
-    "El once inicial incluye Vender jugador. Antes de vender aparece la advertencia ¿Quieres vender a este jugador?, con su nombre, valor de mercado y el importe exacto que recibirás.",
-    "La venta al mercado paga el 92 % del valor vigente, con un descuento del 8 %. Solo se realiza al pulsar Confirmar venta; Cancelar no cambia la plantilla ni el saldo.",
-    "El abono queda registrado en transacciones. Los reintentos no duplican la venta, se mantiene el mínimo de 12 jugadores y se cancelan las ofertas pendientes sobre el jugador.",
-    "Las alineaciones abiertas se actualizan para revisar el once. Las jornadas cerradas conservan su alineación y sus puntos."
+    "Vender jugador se muestra en Plantilla al pulsar cada jugador y abrir sus datos. Se retira la opción de 11 inicial.",
+    "La advertencia identifica al jugador y muestra el importe con el descuento del 8 %, con Cancelar y Confirmar venta.",
+    "Después de vender se actualizan la plantilla, el saldo y las transacciones. Se conservan el mínimo de 12 jugadores y las jornadas cerradas."
   ]
 }

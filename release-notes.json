@@ -1,11 +1,12 @@
 {
-  "id": "2026.11.14.4",
+  "id": "2026.11.14.5",
   "date": "2026-11-14",
-  "title": "Carga local más rápida de actas y plantillas",
+  "title": "Arranque más rápido y prioridad a tu equipo",
   "changes": [
-    "Las consultas de actualización reutilizan enseguida el acta guardada en el dispositivo; la copia se conserva con una sola clave para volver a abrirla sin descargarla otra vez.",
-    "La plantilla se muestra con sus datos locales mientras las estadísticas de porteros se comprueban en segundo plano.",
-    "Se mantienen las copias de actas, calendarios, plantillas, estadísticas y fotos ya consultadas en el dispositivo, actualizándolas cuando hay novedades.",
-    "Clasificación Fantasy sin el bloque introductorio señalado. Las reglas siguen disponibles en Ajustes."
+    "Al abrir, se muestran datos públicos guardados mientras se comprueba la sesión. Se recuerda la última sección y el equipo de trabajo, validando los permisos antes de entrar.",
+    "La importación de datos da prioridad a noticias y al equipo seleccionado, y cede tiempo entre lotes para mantener la pantalla fluida.",
+    "La descarga completa de los demás equipos y la comprobación automática de actualizaciones empiezan después de mostrar la pantalla.",
+    "Las consultas públicas simultáneas comparten una sola descarga. Las imágenes de noticias se cargan cuando se acercan a la pantalla.",
+    "Las dos consultas de verificación de sesión se realizan en paralelo, conservando las comprobaciones de acceso."
   ]
 }

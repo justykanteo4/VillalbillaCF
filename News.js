@@ -13,7 +13,7 @@ import VenueDirections from './VenueDirections';
 import MatchWeather from './MatchWeather';
 import FavoritePlayers from './FavoritePlayers';
 import ClubNewsSummary from './ClubNewsSummary';
-import CachedImage from './CachedImage';
+import CachedImage from './ViewportImage';
 import {instagramPostUrl} from './instagram-post.cjs';
 import MatchEvents from './MatchEvents';
 import {datePeriod,periodEnd,resultDateOptions,matchesByDate,toggleResultTeam,hasResult,resultTeamName} from './result-dates.cjs';

@@ -53,10 +53,11 @@ async function getProfileOnline(user) {
   if (!db || !user) throw Error('Firebase todavía no está conectado.');
   const email = (user.email || '').trim().toLowerCase();
   const verifiedIdentity = user.emailVerified || user.providerData?.some(provider => provider.providerId === 'google.com');
-  const dynamicAdmin = email && verifiedIdentity
-    ? (await getDoc(doc(db, 'clubAdmins', email))).exists()
-    : false;
-  const ref = doc(db, 'trainerProfiles', user.uid), snap = await getDoc(ref);
+  const ref = doc(db, 'trainerProfiles', user.uid);
+  const [dynamicAdmin,snap] = await Promise.all([
+    email && verifiedIdentity ? getDoc(doc(db, 'clubAdmins', email)).then(value=>value.exists()) : Promise.resolve(false),
+    getDoc(ref),
+  ]);
   if (!snap.exists()) {
     const profile = {
       uid: user.uid,

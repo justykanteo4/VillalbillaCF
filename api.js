@@ -9,7 +9,15 @@ export const apiBase=Platform.OS==='web'?'':(process.env.EXPO_PUBLIC_API_URL||''
 const PUBLIC_DATA=/^\/api\/(?:news|report-membership|team-calendar|team-minutes|goalkeepers|goalkeeper-adjustments|club-stats|instagram|calendar|standings|scorers|league-scorers|players|team-roster|team-ranking|team-staff|player-minutes|match|sanctions|field|weather|notifications)(?:\?|$)/;
 const refreshing=new Map(),versions=new Map(),MAX_AGE=60000;
 const limitData=(path,data)=>path.split('?')[0]==='/api/instagram'?{...data,posts:(Array.isArray(data.posts)?data.posts:[]).slice(0,8)}:data;
-async function baseApi(path,options={}){
+// Comparte lecturas de pantalla simultáneas; las recargas y cancelaciones siguen independientes.
+const screenReads=new Map();
+function baseApi(path,options={}){
+ if((options.method||'GET')!=='GET'||!PUBLIC_DATA.test(path)||options.signal||options.headers||options.onRefreshError||options.cache||/[?&]refresh=/.test(path))return fetchBaseApi(path,options);
+ let entry=screenReads.get(path);
+ if(!entry){entry={listeners:new Set()};entry.promise=Promise.resolve().then(()=>fetchBaseApi(path,{...options,onUpdate:value=>{for(const fn of entry.listeners)fn(value)}})).finally(()=>{if(screenReads.get(path)===entry)screenReads.delete(path)});screenReads.set(path,entry)}
+ if(options.onUpdate)entry.listeners.add(options.onUpdate);return entry.promise;
+}
+async function fetchBaseApi(path,options={}){
  if(Platform.OS!=='web'&&!apiBase)throw Error('Servicio pendiente de configurar para móvil');
  if(options.signal?.aborted)throw Object.assign(Error('Consulta cancelada'),{name:'AbortError'});
  const {onUpdate,onRefreshError,cache:cacheMode,...requestOptions}=options;

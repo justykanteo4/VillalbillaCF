@@ -1,3 +1,4 @@
+import {backgroundTurn} from './startup-work';
 import {recordDiagnostic} from './diagnostics';
 import React,{useEffect,useRef,useState} from 'react';
 import {AppState,View,Text,StyleSheet,Pressable,Keyboard,Modal} from 'react-native';
@@ -9,11 +10,11 @@ export default function InternetUpdates(){
  const update=Updates.useUpdates(),pending=useRef(false),[status,setStatus]=useState({phase:'idle'});pending.current=!!update.isUpdatePending;
  useEffect(()=>{
   if(!Updates.isEnabled)return;
-  let mounted=true,editing=!!Keyboard.isVisible?.();
+  const abort=new AbortController();let automaticReady=false,mounted=true,editing=!!Keyboard.isVisible?.();
   const tick=createAutoUpdater(Updates,{isActive:()=>mounted&&AppState.currentState==='active',isEditing:()=>editing,canReload,beforeReload:finishLocalSaves,hasPending:()=>pending.current,onStatus:value=>{if(mounted)setStatus(value)},onError:()=>recordDiagnostic({category:'actualizaciones',code:'UPDATE'})});controller=tick;
-  void tick(true);const timer=setInterval(()=>void tick(),1000);
-  const app=AppState.addEventListener('change',state=>{void tick(state==='active')}),show=Keyboard.addListener('keyboardDidShow',()=>{editing=true}),hide=Keyboard.addListener('keyboardDidHide',()=>{editing=false;void tick()});
-  return()=>{mounted=false;if(controller===tick)controller=null;clearInterval(timer);app.remove();show.remove();hide.remove()};
+  const start=async()=>{if(!await backgroundTurn({delay:6000,signal:abort.signal})||!mounted)return;automaticReady=true;void tick(true)};void start();const timer=setInterval(()=>{if(automaticReady)void tick()},1000);
+  const app=AppState.addEventListener('change',state=>{if(state==='active'){automaticReady=false;void start()}else automaticReady=false}),show=Keyboard.addListener('keyboardDidShow',()=>{editing=true}),hide=Keyboard.addListener('keyboardDidHide',()=>{editing=false;if(automaticReady)void tick()});
+  return()=>{mounted=false;abort.abort();if(controller===tick)controller=null;clearInterval(timer);app.remove();show.remove();hide.remove()};
  },[]);
  if(!['ready','installing','retry'].includes(status.phase))return null;
  const installing=status.phase==='installing';

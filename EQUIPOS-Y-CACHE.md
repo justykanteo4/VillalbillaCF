@@ -23,3 +23,11 @@ Las consultas con refresh=1 comparten la clave de almacenamiento con la consulta
 Plantillas y rankings que escuchan onUpdate presentan los datos locales antes de esperar a las actas de porteros. Sus acumulados se completan en segundo plano y se guardan al terminar. Los consumidores que necesitan esperar una consulta completa y la preparación offline conservan su comportamiento.
 
 En Android las copias deportivas se almacenan en archivos dentro de documentDirectory/datos-guardados, con índice y archivo anterior para recuperación, y las imágenes remotas consultadas por CachedImage en Paths.document/club-images. Persisten al cerrar y volver a abrir la app; no son archivos temporales de caché. Los datos privados mantienen sus ámbitos de cuenta/equipo y no se incluyen en el paquete público.
+
+## Prioridad de arranque (14/11/2026, revisión 5)
+
+El arranque ofrece una vista de resultados públicos guardados mientras se valida la sesión; nunca usa esa vista como permiso para áreas privadas. Después restaura una sección permitida y, en gestión, el equipo y la pestaña de esa cuenta. La consulta de perfil y la de administrador verificado se realizan en paralelo, esperando ambas antes de decidir el acceso.
+
+startup-work coordina tareas tras el primer render y las interacciones. Importación pública: 1,2 segundos de tranquilidad y lotes de ocho entradas, con noticias y el equipo visible primero. Actualizaciones automáticas: después de seis segundos; la comprobación manual sigue disponible. Descarga de toda la biblioteca: después de quince segundos; el orden de equipos se vuelve a consultar entre equipos para priorizar el seleccionado. Las tareas se pausan al salir de la app y conservan el progreso.
+
+Las pantallas que consultan a la vez un recurso público comparten la descarga inicial. Las recargas explícitas, peticiones con autenticación o cancelación y las escrituras conservan su flujo independiente. Las imágenes de noticias conservan su espacio y solo se solicitan cerca del área visible; una vez cargadas se mantienen las copias locales habituales.

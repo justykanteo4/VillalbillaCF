@@ -51,3 +51,6 @@ test('tras una puja muestra las ligas guardadas sin exponer saldo anterior mient
  const f=fixture();await f.request('a','/preview',{},async()=>({canPlay:true}));await f.request('a','/leagues',{},async()=>({leagues:[{id:'x',name:'Liga X',finance:{balance:52}}]}));await f.request('a','/leagues/x/bid',{method:'POST'},async()=>({saved:true}));
  let finish,shown;const job=createFantasyCache(f.deps)('a','/leagues',{onCached:d=>shown=d},()=>new Promise(r=>finish=r));await new Promise(r=>setImmediate(r));assert.equal(shown.leagues[0].name,'Liga X');assert.equal(shown.leagues[0].finance,undefined);finish({leagues:[{id:'x',name:'Liga X',finance:{balance:39}}]});assert.equal((await job).leagues[0].finance.balance,39);
 });
+test('ranking de jugadores ordena puntos, comparte puesto en empate y conserva precios y estadísticas',()=>{
+ const {rankFantasyPlayers}=require('./fantasy-player-ranking.cjs'),source=[{id:'a',name:'A',fantasyPoints:5,price:12,stats:{goals:2}},{id:'b',name:'B',fantasyPoints:10},{id:'c',name:'C',fantasyPoints:10},{id:'d',name:'D',fantasyPoints:-4}];const rows=rankFantasyPlayers(source);assert.deepEqual(rows.map(p=>[p.id,p.rank]),[['b',1],['c',1],['a',3],['d',4]]);assert.equal(rows[2].stats.goals,2);assert.equal(rows[2].price,12);assert.equal(source[0].id,'a');
+});

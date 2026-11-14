@@ -1,0 +1,2 @@
+function rankFantasyPlayers(players){let rank=0,previous;return [...players].sort((a,b)=>(Number.isFinite(b.fantasyPoints)?b.fantasyPoints:-Infinity)-(Number.isFinite(a.fantasyPoints)?a.fantasyPoints:-Infinity)||a.name.localeCompare(b.name,'es')).map((player,index)=>{if(index===0||player.fantasyPoints!==previous)rank=index+1;previous=player.fantasyPoints;return {...player,rank}})}
+module.exports={rankFantasyPlayers};

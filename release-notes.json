@@ -1,10 +1,11 @@
 {
-  "id": "2026.11.14.14",
+  "id": "2026.11.14.15",
   "date": "2026-11-14",
-  "title": "Fantasy: menos esperas en todas las secciones",
+  "title": "Fantasy: mercado más fluido y ranking de jugadores",
   "changes": [
-    "La identidad guardada se conserva tras ventas, pujas y cambios del once; las denegaciones y los cambios de permisos siguen invalidando el acceso.",
-    "La app prepara en segundo plano la identidad, las ligas y la plantilla para tenerlas listas antes de entrar en Fantasy.",
-    "Mercado, once, clasificación y movimientos abren sus propios datos sin esperar a cargar toda la plantilla. Las copias se reutilizan también en memoria."
+    "Clasificación incorpora las pestañas Liga y Jugadores, ordenados por puntos con puestos compartidos en los empates.",
+    "Al pulsar un jugador se abre su ficha con valor de mercado y estadísticas confirmadas: partidos, goles, tarjetas, victorias, porterías a cero y premios.",
+    "La clasificación de la liga evita cálculos de precios innecesarios y las consultas independientes se ejecutan en paralelo. Mercado y clasificación se preparan en segundo plano.",
+    "El contador del mercado se actualiza sin volver a dibujar cada segundo todas las tarjetas y fotografías."
   ]
 }

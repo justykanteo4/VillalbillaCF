@@ -51,3 +51,11 @@ El mercado muestra arriba un contador actualizado cada segundo hasta las 23:59 d
 Los premios son 10 M al primero, 8 M al segundo, 6 M al tercero y 5 M al resto; los empates comparten puesto. Sustituyen la aportación fija desde la semana del 16 de noviembre. Se espera la selección de MVP y once ideal cuando corresponde; los resultados pendientes pueden producir premios provisionales. Cada jornada tiene un asiento único y las correcciones registran solo diferencias.
 
 Aplicar fantasy-rewards-schema.sql y después fantasy-auction-schema.sql, sin volver a aplicar los triggers antiguos de compraventa. Las pujas y sus propietarios permanecen privados en D1.
+
+## Diseño, once y copias locales (14 de noviembre, revisión 2)
+
+Toda la zona Fantasy usa fondos oscuros, superficies antracita y acentos dorados. Mercado usa pestañas, tarjetas con foto, puntos, valor y puja; las reglas completas permanecen en ajustes.
+
+El once permite siete formaciones (4-4-2, 4-3-3, 4-5-1, 3-5-2, 3-4-3, 5-3-2 y 5-4-1). Cualquier jugador de la plantilla puede ocupar cualquier puesto; elegir uno ya alineado intercambia los puestos. El selector es una ventana desplazable. Tras el cierre se prepara la semana siguiente sin modificar los puntos ni el once de la actual. El servidor valida semana, revisión, propiedad, once distintos y rotación de capitán. Aplicar fantasy-lineup-schema.sql antes de desplegar.
+
+Las copias de Fantasy se guardan en AsyncStorage por UID y recurso, separadas del archivo público y exportaciones de copias deportivas. Se presentan antes de consultar red; las recientes se reutilizan durante 15 segundos. Mercado y actualización del once fuerzan consulta; cada mutación invalida todas las copias de esa cuenta, también tras reiniciar. Las denegaciones no se sustituyen por copias offline; el servidor sigue autorizando toda operación.

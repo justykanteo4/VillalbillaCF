@@ -35,3 +35,4 @@ CREATE TABLE IF NOT EXISTS fantasy_market_policy(league_id TEXT PRIMARY KEY,vers
 CREATE INDEX IF NOT EXISTS fantasy_favourite_player ON fantasy_favourites(league_id,player_id);
 CREATE INDEX IF NOT EXISTS fantasy_notice_user ON fantasy_market_notices(league_id,uid,created_at);
 CREATE INDEX IF NOT EXISTS fantasy_push_queue ON fantasy_market_push_jobs(status,next_at);
+CREATE TABLE IF NOT EXISTS fantasy_lineup_formations(league_id TEXT NOT NULL,uid TEXT NOT NULL,week INTEGER NOT NULL,formation TEXT NOT NULL,revision INTEGER NOT NULL,PRIMARY KEY(league_id,uid,week),FOREIGN KEY(league_id,uid,week) REFERENCES fantasy_lineups(league_id,uid,week));

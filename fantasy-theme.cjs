@@ -1,2 +1,2 @@
-// Fantasy uses a sky-blue background with violet surfaces and gold highlights.
-module.exports={background:'#87CEEB',surfaceText:'#281034',header:'#351047',panel:'#3C1952',border:'#9761AC',text:'#FFF3D8',muted:'#E8D5F2',accent:'#FFC857',negative:'#FFB0C4',button:'#FFC857',buttonText:'#281034',navigation:'#351047'};
+// Paleta común de toda la zona Fantasy.
+module.exports={background:'#090B13',surfaceText:'#F5F1E8',header:'#111321',panel:'#202131',border:'#464052',text:'#F5F1E8',muted:'#AAA8B8',accent:'#E8BE65',negative:'#FF7D87',button:'#E8BE65',buttonText:'#16131C',navigation:'#111321'};

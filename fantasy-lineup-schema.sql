@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS fantasy_lineup_formations(league_id TEXT NOT NULL,uid TEXT NOT NULL,week INTEGER NOT NULL,formation TEXT NOT NULL,revision INTEGER NOT NULL,PRIMARY KEY(league_id,uid,week),FOREIGN KEY(league_id,uid,week) REFERENCES fantasy_lineups(league_id,uid,week));

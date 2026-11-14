@@ -1,11 +1,8 @@
 {
-  "id": "2026.11.14.2",
+  "id": "2026.11.14.3",
   "date": "2026-11-14",
-  "title": "Fantasy: once editable, formaciones y nuevo diseño",
+  "title": "Fantasy: clasificación más limpia",
   "changes": [
-    "Once inicial: selector de jugadores visible, intercambio de puestos y siete formaciones. Si la jornada está cerrada se prepara la siguiente, conservando el once cerrado.",
-    "Nueva paleta oscura con detalles dorados en toda la zona Fantasy, incluidas cabecera, navegación y ajustes.",
-    "Mercado con pestañas, tarjetas compactas, fotos grandes, puntos destacados y botón de puja. Se eliminan los textos señalados y se mantiene el contador de cierre.",
-    "Copias privadas por cuenta en el dispositivo para mostrar enseguida los datos cargados. Las operaciones invalidan las copias anteriores y los saldos se vuelven a consultar al actualizar."
+    "Se retira de Clasificación el bloque introductorio de título, puntuación y premios. Las reglas completas siguen disponibles en Ajustes."
   ]
 }

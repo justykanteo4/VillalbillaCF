@@ -57,3 +57,13 @@ La comprobación /preview se guarda en AsyncStorage por usuario y contexto de es
 fantasyRequest lee las copias locales antes de solicitar el token; comprueba la cuenta antes y después de la red para descartar resultados de una sesión cambiada. La caché privada existente conserva ligas, plantilla, mercado, búsqueda, avisos, once, clasificación y transacciones, y admite también entrenadores y directorio. Las transacciones presentan copia al montar. Las escrituras invalidan las copias financieras anteriores. No se añaden datos privados al paquete público.
 
 Mercado → Mis operaciones incluye Ventas realizadas con foto y nombre, importe histórico cobrado, fecha/hora, destino, valor de mercado histórico cuando consta, saldo tras operación y referencia. Lee el registro de transacciones existente; no vuelve a vender ni recalcula ventas antiguas con precios actuales. Las ventas al mercado y los traspasos vendidos se identifican por su tipo; se conserva compatibilidad con copias antiguas. No incluye sueldos o premios entre las ventas.
+
+## Fantasy: eliminar esperas encadenadas (revisión 2026.11.14.14)
+
+Se corrigió una invalidación excesiva: cada escritura financiera borraba también la utilidad de la identidad guardada. El acceso tiene ahora su propia versión; las ventas, pujas y cambios de once invalidan los importes anteriores sin obligar a repetir la pantalla inicial. Las denegaciones 401/403 y los ajustes de acceso invalidan ambos ámbitos, también tras reiniciar. La migración parte de la versión anterior para no recuperar permisos ya invalidados.
+
+Las copias privadas se reutilizan en memoria durante la sesión, con lecturas de almacenamiento concurrentes compartidas. Volver diez veces a una consulta reciente no añade lecturas del dispositivo ni red en la prueba. Al validar la cuenta se prepara, después de dos segundos y en segundo plano, la identidad, la lista de ligas y la primera plantilla permitida. Nunca se usa una cuenta distinta; los errores no bloquean la pantalla del club. No se anticipan escrituras.
+
+Once, mercado, clasificación y movimientos montan sus consultas propias sin esperar al resultado de toda la plantilla. La elección de entrenador sigue mostrándose cuando se confirma que falta; las API mantienen sus requisitos. La prueba de interfaz mantiene la consulta de plantilla sin resolver y comprueba que las cuatro secciones pueden abrir. Se han verificado 387 pruebas y exportaciones web/Android antes de publicar. Las mediciones de pruebas son locales; no se atribuye una duración concreta a un móvil real.
+
+Después de una operación financiera, la lista guardada de ligas sigue disponible para entrar, pero omite los saldos invalidados hasta recibir los importes nuevos. Una denegación invalida también esta lista.

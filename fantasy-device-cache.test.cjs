@@ -26,3 +26,28 @@ test('la consulta real muestra copia antes de renovar token y descarta una sesi�
  let shown=false;const load=request('/preview',{onCached:()=>shown=true});await new Promise(r=>setImmediate(r));assert.equal(shown,true);assert.equal(network,0);
  auth.currentUser={uid:'b'};resolveToken('test-token');await assert.rejects(load,/cuenta ha cambiado/);assert.equal(network,0);
 });
+test('ventas y pujas conservan identidad tras reiniciar, sin reutilizar saldo anterior',async()=>{
+ const f=fixture();await f.request('a','/preview',{},async()=>({canPlay:true}));await f.request('a','/leagues/x/squad',{},async()=>({balance:52}));
+ for(const action of ['sell','bid','lineup'])await f.request('a','/leagues/x/'+action,{method:'POST'},async()=>({saved:true}));f.advance(16000);
+ const restarted=createFantasyCache(f.deps);let identity=false,squad=false;await restarted('a','/preview',{onCached:()=>identity=true},async()=>({canPlay:true}));assert(identity);
+ await restarted('a','/leagues/x/squad',{onCached:()=>squad=true},async()=>({balance:39}));assert(!squad);
+});
+test('cambiar acceso o recibir una denegación invalida identidad y datos privados',async()=>{
+ for(const denial of [false,true]){const f=fixture();await f.request('a','/preview',{},async()=>({canPlay:true}));await f.request('a','/leagues',{},async()=>({leagues:[]}));
+ if(denial)await assert.rejects(f.request('a','/leagues/x/sell',{method:'POST'},async()=>{throw Object.assign(Error('sin permiso'),{status:403})}));else await f.request('a','/admin/access',{method:'POST'},async()=>({disabled:true}));
+ let shown=false;await createFantasyCache(f.deps)('a','/preview',{onCached:()=>shown=true},async()=>({canPlay:false}));assert(!shown);
+ }
+});
+test('la migración no recupera una identidad invalidada por versiones anteriores',async()=>{
+ const f=fixture();f.rows.set('fantasy.private.v1.a./preview',{data:{canPlay:true},savedAt:new Date(10000).toISOString()});f.rows.set('fantasy.private.version.a',{data:{at:20000}});
+ let shown=false;await f.request('a','/preview',{onCached:()=>shown=true},async()=>({canPlay:false}));assert(!shown);
+});
+test('volver entre pestañas reutiliza memoria sin repetir lecturas del dispositivo',async()=>{
+ const f=fixture();let reads=0;const c=createFantasyCache({...f.deps,read:async key=>{reads++;return f.rows.get(key)}});
+ await c('a','/leagues',{},async()=>({leagues:[]}));const first=reads;
+ for(let i=0;i<10;i++)await c('a','/leagues',{},()=>{throw Error('No debe ir a red')});assert.equal(reads,first);
+});
+test('tras una puja muestra las ligas guardadas sin exponer saldo anterior mientras actualiza',async()=>{
+ const f=fixture();await f.request('a','/preview',{},async()=>({canPlay:true}));await f.request('a','/leagues',{},async()=>({leagues:[{id:'x',name:'Liga X',finance:{balance:52}}]}));await f.request('a','/leagues/x/bid',{method:'POST'},async()=>({saved:true}));
+ let finish,shown;const job=createFantasyCache(f.deps)('a','/leagues',{onCached:d=>shown=d},()=>new Promise(r=>finish=r));await new Promise(r=>setImmediate(r));assert.equal(shown.leagues[0].name,'Liga X');assert.equal(shown.leagues[0].finance,undefined);finish({leagues:[{id:'x',name:'Liga X',finance:{balance:39}}]});assert.equal((await job).leagues[0].finance.balance,39);
+});

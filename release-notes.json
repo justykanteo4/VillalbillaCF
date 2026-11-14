@@ -1,11 +1,10 @@
 {
-  "id": "2026.11.14.13",
+  "id": "2026.11.14.14",
   "date": "2026-11-14",
-  "title": "Fantasy: apertura rápida e historial de ventas",
+  "title": "Fantasy: menos esperas en todas las secciones",
   "changes": [
-    "La comprobación de identidad de Fantasy se guarda por cuenta y equipo para abrir con la copia local y actualizar en segundo plano.",
-    "Las ligas, plantillas, mercado, alineaciones, clasificación y transacciones muestran primero los datos guardados, sin esperar a renovar la sesión.",
-    "Las comprobaciones periódicas se espacian a cinco minutos y al volver a la app. Los cambios de cuenta y las denegaciones invalidan el acceso guardado; las operaciones siguen verificándose en el servidor.",
-    "Mercado → Mis operaciones muestra las ventas realizadas con jugador, importe recibido, fecha, valor al vender, saldo y referencia."
+    "La identidad guardada se conserva tras ventas, pujas y cambios del once; las denegaciones y los cambios de permisos siguen invalidando el acceso.",
+    "La app prepara en segundo plano la identidad, las ligas y la plantilla para tenerlas listas antes de entrar en Fantasy.",
+    "Mercado, once, clasificación y movimientos abren sus propios datos sin esperar a cargar toda la plantilla. Las copias se reutilizan también en memoria."
   ]
 }

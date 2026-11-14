@@ -3,6 +3,7 @@ import StartupPreview from './StartupPreview';
 import {prioritizeScreen} from './startup-work';
 import fantasyTheme from './fantasy-theme.cjs';
 import FantasyScreen from './FantasyScreen';
+import {fantasyRequest} from './FantasyLeagues';
 import FantasyNavigation from './FantasyNavigation';
 import PublicClubHeader from './PublicClubHeader';
 import useTeamReinforcements from './useTeamReinforcements';
@@ -119,6 +120,14 @@ export function PublicApp(){
 const [area,setArea,resetArea]=useScreenHistory('Usuario'),[account,setAccount]=useState(null),[authReady,setAuthReady]=useState(false),[loginRole,setLoginRole]=useState(null),[loginTeam,setLoginTeam]=useState(''),[notificationReady,setNotificationReady]=useState(false);
 const [fantasySection,setFantasySection]=useState('plantilla'),[fantasyFinance,setFantasyFinance]=useState(null),[fantasyLeagueTarget,setFantasyLeagueTarget]=useState('home');
 useEffect(()=>{setFantasyFinance(null);setFantasyLeagueTarget('home')},[account?.id]);
+useEffect(()=>{
+ if(!authReady||!account?.id||!['approved','admin'].includes(account.status))return;
+ let active=true,started=false;const uid=account.id,scope=JSON.stringify([uid,account.status,account.claim?.teamId,account.claim?.role]);
+ const warm=data=>{if(started||!active||auth?.currentUser?.uid!==uid||!data.canPlay||data.disabled&&account.status!=='admin')return;started=true;let warmed=false;const leagues=d=>{if(warmed||!active||auth?.currentUser?.uid!==uid)return;const league=d.leagues?.[0];if(!league)return;warmed=true;fantasyRequest('/leagues/'+league.id+'/squad').catch(()=>{})};fantasyRequest('/leagues',{onCached:leagues}).then(leagues).catch(()=>{})};
+ const timer=setTimeout(()=>{if(active&&AppState.currentState==='active')fantasyRequest('/preview',{scope,onCached:warm}).then(warm).catch(()=>{})},2000);
+ return()=>{active=false;clearTimeout(timer)};
+},[authReady,account?.id,account?.status,account?.claim?.teamId,account?.claim?.role]);
+
 useEffect(()=>{contentScroll.current?.scrollTo({y:0,animated:false});if(area!=='VillalbillaFantasy'){setFantasySection('plantilla');setFantasyLeagueTarget('home')}},[area,fantasySection]);
 useEffect(()=>{notificationPreferences().then(value=>setNotificationReady(value!==null)).catch(()=>setNotificationReady(false))},[]);
 

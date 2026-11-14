@@ -1,11 +1,11 @@
 {
-  "id": "2026.11.14.12",
+  "id": "2026.11.14.13",
   "date": "2026-11-14",
-  "title": "Fantasy: valor de plantilla en cabecera",
+  "title": "Fantasy: apertura rápida e historial de ventas",
   "changes": [
-    "La cabecera de VillalbillaFantasy muestra junto al saldo el valor de mercado de tu plantilla de la liga seleccionada, actualizado tras fichajes y ventas.",
-    "Ajustes → Administración → Administradores permite retirar permisos de los administradores añadidos, con confirmación y opción Cancelar.",
-    "Las cuentas principales quedan protegidas. La retirada conserva la cuenta y los equipos asignados.",
-    "Las sesiones abiertas actualizan el rol al cambiar la lista de administradores. Se retiran los avisos privados de administración y se reintenta la limpieza si falla la conexión."
+    "La comprobación de identidad de Fantasy se guarda por cuenta y equipo para abrir con la copia local y actualizar en segundo plano.",
+    "Las ligas, plantillas, mercado, alineaciones, clasificación y transacciones muestran primero los datos guardados, sin esperar a renovar la sesión.",
+    "Las comprobaciones periódicas se espacian a cinco minutos y al volver a la app. Los cambios de cuenta y las denegaciones invalidan el acceso guardado; las operaciones siguen verificándose en el servidor.",
+    "Mercado → Mis operaciones muestra las ventas realizadas con jugador, importe recibido, fecha, valor al vender, saldo y referencia."
   ]
 }

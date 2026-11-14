@@ -49,3 +49,11 @@ Actualización publicada de retirada de administradores: reglas Firebase despleg
 ## Valor de plantilla en Fantasy
 
 La cabecera junto al saldo muestra Plantilla con la suma de los valores de mercado actuales de todos los jugadores de la liga seleccionada. Se suman céntimos de millón para evitar errores de coma flotante; no incluye saldo, entrenador ni pujas pendientes. Durante la carga se muestra —, sin usar la plantilla de otra liga. Las actualizaciones habituales de plantilla, compras, ventas y precios recalculan la suma; se conserva el acceso a transacciones al pulsar Saldo. La fila se adapta a móviles estrechos. Comprobada con interfaz real a 320, 390 y 545 px.
+
+## Fantasy: identidad persistente y ventas en Mis operaciones
+
+La comprobación /preview se guarda en AsyncStorage por usuario y contexto de estado/equipo/rol. FantasyScreen muestra esa copia mientras revalida en segundo plano al entrar, al volver y cada cinco minutos; la primera consulta sin copia requiere conexión. Una respuesta denegada invalida las copias privadas incluso tras reiniciar. Un cambio de cuenta/contexto no presenta la identidad anterior. La caché no concede permisos: todas las API conservan sus comprobaciones y cada escritura exige servidor.
+
+fantasyRequest lee las copias locales antes de solicitar el token; comprueba la cuenta antes y después de la red para descartar resultados de una sesión cambiada. La caché privada existente conserva ligas, plantilla, mercado, búsqueda, avisos, once, clasificación y transacciones, y admite también entrenadores y directorio. Las transacciones presentan copia al montar. Las escrituras invalidan las copias financieras anteriores. No se añaden datos privados al paquete público.
+
+Mercado → Mis operaciones incluye Ventas realizadas con foto y nombre, importe histórico cobrado, fecha/hora, destino, valor de mercado histórico cuando consta, saldo tras operación y referencia. Lee el registro de transacciones existente; no vuelve a vender ni recalcula ventas antiguas con precios actuales. Las ventas al mercado y los traspasos vendidos se identifican por su tipo; se conserva compatibilidad con copias antiguas. No incluye sueldos o premios entre las ventas.

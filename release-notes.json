@@ -1,8 +1,9 @@
 {
-  "id": "2026.11.14.5",
+  "id": "2026.11.14.6",
   "date": "2026-11-14",
-  "title": "Arranque más rápido y prioridad a tu equipo",
+  "title": "Arranque rápido y selector de ligas Fantasy",
   "changes": [
+    "La cabecera de Fantasy muestra la liga activa. Al pulsarla puedes cambiar entre tus ligas o entrar y empezar la liga de otro equipo autorizado; la creación personalizada sigue en Próximamente.",
     "Al abrir, se muestran datos públicos guardados mientras se comprueba la sesión. Se recuerda la última sección y el equipo de trabajo, validando los permisos antes de entrar.",
     "La importación de datos da prioridad a noticias y al equipo seleccionado, y cede tiempo entre lotes para mantener la pantalla fluida.",
     "La descarga completa de los demás equipos y la comprobación automática de actualizaciones empiezan después de mostrar la pantalla.",

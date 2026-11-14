@@ -11,3 +11,5 @@ Expo descarga el recurso público junto a la actualización compatible. ReleaseS
 Las revisiones iniciales evitan interpretar datos incluidos como un cambio nuevo y descargarlos otra vez. Web usa CacheStorage cuando está disponible; Android emplea el almacenamiento local y los módulos expo-asset y expo-file-system existentes. No se cambia el runtime ni se añade un módulo nativo.
 
 Antes de publicar: actualizar novedades, ejecutar npm run prepare:release-data y npm run check:release, completar pruebas y exportaciones. AGENTS.md conserva ese procedimiento. Las pruebas verifican datos permitidos, importación única, fechas, fallo de disco, reintento y escritura de datos nuevos concurrente con la importación.
+
+Si la fuente va lenta durante una actualización de interfaz, RELEASE_REUSE_RECENT_DATA=1 permite reutilizar entradas consultadas hace menos de una hora. Conserva savedAt y collectedFor originales y las registra como reused en pendientes, sin presentarlas como una consulta nueva ni cerrar actas. Las entradas ausentes o antiguas siguen el proceso normal de consulta y respaldo.

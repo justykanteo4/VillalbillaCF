@@ -72,24 +72,17 @@ async function getProfileOnline(user) {
   }
   const profile = { id: snap.id, ...snap.data() };
   if (isAdminEmail(user.email) || dynamicAdmin) profile.status = 'admin';
+  else if(profile.status==='admin')profile.status=profile.claim?.teamId?'approved':'unassigned';
   return profile;
 }
 
 export function watchProfile(user, callback, onError) {
-  if (!db || !user) return () => {};
-  return onSnapshot(doc(db, 'trainerProfiles', user.uid), async snapshot => {
-    if (!snapshot.exists()) {
-      try { callback(await getProfile(user)); } catch (error) { onError?.(error); }
-      return;
-    }
-    const profile = { id: snapshot.id, ...snapshot.data() };
-    if (isAdminEmail(user.email)) profile.status = 'admin';
-    else if(user.email&&(user.emailVerified||user.providerData?.some(provider=>provider.providerId==='google.com'))){
-     try{if((await getDoc(doc(db,'clubAdmins',user.email.toLowerCase()))).exists())profile.status='admin'}catch{}
-    }
-    AsyncStorage.setItem('villalbilla.profile.'+user.uid,JSON.stringify(profile)).catch(()=>{});
-    callback(profile);
-  }, onError);
+ if(!db||!user)return()=>{};
+ let active=true,base=null,admin=isAdminEmail(user.email),adminReady=admin||!user.email||!(user.emailVerified||user.providerData?.some(p=>p.providerId==='google.com'));
+ const publish=()=>{if(!active||!base||!adminReady)return;const profile={...base};if(admin)profile.status='admin';else if(profile.status==='admin')profile.status=profile.claim?.teamId?'approved':'unassigned';AsyncStorage.setItem('villalbilla.profile.'+user.uid,JSON.stringify(profile)).catch(()=>{});callback(profile)};
+ const stopProfile=onSnapshot(doc(db,'trainerProfiles',user.uid),snapshot=>{if(!active)return;if(snapshot.exists()){base={id:snapshot.id,...snapshot.data()};publish()}else getProfile(user).then(profile=>{if(active){base=profile;publish()}}).catch(error=>onError?.(error))},error=>onError?.(error));
+ const stopAdmin=adminReady?()=>{}:onSnapshot(doc(db,'clubAdmins',user.email.toLowerCase()),snapshot=>{admin=snapshot.exists();adminReady=true;publish()},error=>{admin=false;adminReady=true;publish();onError?.(error)});
+ return()=>{active=false;stopProfile();stopAdmin()};
 }
 
 export function watchProfiles(callback, onError) {
@@ -125,9 +118,9 @@ export async function listClubAccounts(){
 export async function listClubAdmins(includeNames=true){
  if(!db)throw Error('Firebase todavía no está conectado.');
  const [snapshot,profiles]=await Promise.all([getDocs(collection(db,'clubAdmins')),includeNames?listClubAccounts():Promise.resolve([])]);
- const names=new Map(profiles.map(p=>[p.email,p.name]));
+ const names=new Map(profiles.map(p=>[p.email,p.name])),ids=new Map(profiles.map(p=>[p.email,p.id]));
  const admins=new Map(ADMIN_EMAILS.map(email=>[email,{email,name:names.get(email)||'',primary:true}]));
- snapshot.docs.forEach(item=>{const email=(item.data().email||item.id).trim().toLowerCase();if(email)admins.set(email,{email,name:names.get(email)||'',primary:false})});
+ snapshot.docs.forEach(item=>{const email=(item.data().email||item.id).trim().toLowerCase();if(email)admins.set(email,{email,name:names.get(email)||'',profileId:ids.get(email)||null,profileIds:profiles.filter(p=>p.email===email).map(p=>p.id),primary:isAdminEmail(email)})});
  return [...admins.values()].sort((a,b)=>(a.name||a.email).localeCompare(b.name||b.email,'es'));
 }
 
@@ -146,6 +139,17 @@ export async function addClubAdmin(value) {
   });
   return email;
 }
+
+export async function removeClubAdmin(value,profileIds){
+ if(!db||!auth?.currentUser)throw Error('Inicia sesión como administrador para continuar.');
+ const email=(value||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error('Correo no válido.');if(isAdminEmail(email))throw Error('Los administradores principales están protegidos.');
+ const user=auth.currentUser,ids=[...new Set((Array.isArray(profileIds)?profileIds:profileIds?[profileIds]:[]).filter(id=>typeof id==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(id)))],ref=doc(db,'clubAdmins',email),profileRefs=ids.map(id=>doc(db,'trainerProfiles',id));
+ await runTransaction(db,async tx=>{const member=await tx.get(ref);if(!member.exists())return;const profiles=await Promise.all(profileRefs.map(ref=>tx.get(ref)));profiles.forEach((profile,index)=>{if(profile.exists()){const data=profile.data();if((data.email||'').trim().toLowerCase()!==email)throw Error('La cuenta ha cambiado. Actualiza la lista antes de continuar.');if(data.status==='admin')tx.update(profileRefs[index],{status:data.claim?.teamId?'approved':'unassigned',updatedAt:Date.now()})}});tx.delete(ref)});
+ let noticesCleaned=true;
+ for(const profileId of ids){const actor=user.uid,key='villalbilla.admin-revocations.'+actor;try{const pending=JSON.parse(await AsyncStorage.getItem(key)||'[]');if(!pending.includes(profileId))pending.push(profileId);await AsyncStorage.setItem(key,JSON.stringify(pending))}catch{}try{const token=await user.getIdToken();await api('/api/access/admin-revoked',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({uid:profileId})});const pending=JSON.parse(await AsyncStorage.getItem(key)||'[]');await AsyncStorage.setItem(key,JSON.stringify(pending.filter(id=>id!==profileId)))}catch{noticesCleaned=false}}
+ return {email,noticesCleaned};
+}
+export async function flushAdminRevocations(){const user=auth?.currentUser;if(!user)return;const key='villalbilla.admin-revocations.'+user.uid,pending=JSON.parse(await AsyncStorage.getItem(key)||'[]');for(const uid of pending){if(auth.currentUser?.uid!==user.uid)return;try{const token=await user.getIdToken();await api('/api/access/admin-revoked',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({uid})});const latest=JSON.parse(await AsyncStorage.getItem(key)||'[]');await AsyncStorage.setItem(key,JSON.stringify(latest.filter(id=>id!==uid)))}catch{}}}
 
 export async function claimTeam(user, team, name, assignments=[]) {
   if (!db || !user || !team || !name?.trim()) throw Error('Indica tu equipo y tu nombre.');

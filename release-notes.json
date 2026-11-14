@@ -1,8 +1,10 @@
 {
-  "id": "2026.11.14.10",
+  "id": "2026.11.14.11",
   "date": "2026-11-14",
-  "title": "Fantasy: confirmación de venta más limpia",
+  "title": "Administración: retirar permisos de administrador",
   "changes": [
-    "Se elimina la frase Descuento de venta: 8 % de la confirmación. Se mantienen el valor de mercado, el importe a recibir y los botones Confirmar venta y Cancelar."
+    "Ajustes → Administración → Administradores permite retirar permisos de los administradores añadidos, con confirmación y opción Cancelar.",
+    "Las cuentas principales quedan protegidas. La retirada conserva la cuenta y los equipos asignados.",
+    "Las sesiones abiertas actualizan el rol al cambiar la lista de administradores. Se retiran los avisos privados de administración y se reintenta la limpieza si falla la conexión."
   ]
 }

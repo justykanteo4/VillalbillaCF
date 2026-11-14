@@ -2,7 +2,7 @@ import {useAccessRequestSelection} from './access-request-selection';
 import React,{useEffect,useRef,useState} from 'react';
 import {Modal,View,Text,Pressable,ScrollView,AppState} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {auth,onAuthStateChanged,getProfile,watchProfile,watchProfiles,getProfiles,decideRequest,queueAccessApproval,queueAccessRequest} from './firebase';
+import {auth,onAuthStateChanged,getProfile,watchProfile,watchProfiles,getProfiles,decideRequest,queueAccessApproval,queueAccessRequest,flushAdminRevocations} from './firebase';
 import {registerAccessPush} from './access-notifications';
 import {IdentitySummary} from './AccessIdentityPicker';
 const text={color:'#dce6f2',lineHeight:22},button={padding:14,backgroundColor:'#1b2e69',borderRadius:12};
@@ -10,6 +10,7 @@ export default function AccessLifecycle(){
  const selectedRequest=useAccessRequestSelection();
  const [profile,sp]=useState(null),[rows,sr]=useState([]),[notice,sn]=useState(null),[error,se]=useState(''),[busy,sb]=useState(false);const pendingScroll=useRef(null),current=useRef([]);current.current=rows;
  useEffect(()=>{if(!auth)return;let active=true,generation=0,stopProfile=()=>{};const stop=onAuthStateChanged(auth,async user=>{const turn=++generation;stopProfile();sp(null);sn(null);sr([]);if(user&&!user.isAnonymous){try{const p=await getProfile(user);if(active&&turn===generation)sp(p)}catch{}if(active&&turn===generation)stopProfile=watchProfile(user,p=>{if(active&&turn===generation)sp(p)},()=>{})}});return()=>{active=false;stopProfile();stop()}},[]);
+ useEffect(()=>{if(!profile?.id)return;const flush=()=>flushAdminRevocations().catch(()=>{});flush();const timer=setInterval(flush,60000),sub=AppState.addEventListener('change',state=>{if(state==='active')flush()});return()=>{clearInterval(timer);sub.remove()}},[profile?.id]);
  useEffect(()=>{if(profile?.status!=='admin'){sr([]);return}return watchProfiles(sr,e=>se(e.message))},[profile?.id,profile?.status]);
  useEffect(()=>{
   if(profile?.status!=='admin')return;let active=true,running=false;

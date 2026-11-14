@@ -1,7 +1,7 @@
 import {matchesPersonQuery,displayPersonName} from './name-search.cjs';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
-import { addClubAdmin, listClubAdmins, listClubAccounts } from './firebase';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { Pressable, Text, TextInput, View, Modal } from 'react-native';
+import { addClubAdmin, listClubAdmins, listClubAccounts, removeClubAdmin, flushAdminRevocations, auth } from './firebase';
 
 const styles = {
   card: { padding: 20, borderRadius: 20, backgroundColor: '#151f2d', borderWidth: 1, borderColor: '#2c3e54', gap: 13 },
@@ -22,12 +22,12 @@ export default function AdminManagement() {
   const [query,setQuery]=useState(''),[accounts,setAccounts]=useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState(''),[target,setTarget]=useState(null);const locked=useRef(false);
 
   const refresh = useCallback(async () => {
     setBusy(true);
     setError('');
-    try { const [list,people]=await Promise.all([listClubAdmins(),listClubAccounts()]);setAdmins(list);setAccounts(people); }
+    try { await flushAdminRevocations();const [list,people]=await Promise.all([listClubAdmins(),listClubAccounts()]);setAdmins(list);setAccounts(people); }
     catch (e) { setError(e.message || 'No se pudo cargar la lista de administradores.'); }
     finally { setBusy(false); }
   }, []);
@@ -50,6 +50,7 @@ export default function AdminManagement() {
     }
   };
 
+  const remove=async()=>{if(!target||locked.current)return;locked.current=true;setBusy(true);setError('');setNotice('');try{const result=await removeClubAdmin(target.email,target.profileIds||target.profileId);setTarget(null);setNotice(result.noticesCleaned?'Permisos de administrador retirados.':'Permisos retirados. Los avisos de administrador se actualizarán al recuperar la conexión.');if(auth?.currentUser?.email?.toLowerCase()!==result.email)setAdmins(await listClubAdmins());else setAdmins(rows=>rows.filter(a=>a.email!==result.email))}catch(e){setError(e.message||'No se pudieron retirar los permisos.')}finally{locked.current=false;setBusy(false)}};
   return <View style={styles.card}>
     <Text style={styles.title}>Administradores del club</Text>
     <Text style={styles.text}>Añade un correo verificado para darle acceso de administrador a toda la app. Solo los administradores actuales pueden gestionar esta lista.</Text>
@@ -75,7 +76,8 @@ export default function AdminManagement() {
     {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     {!!notice && <Text style={styles.success}>{notice}</Text>}
     <Text style={styles.title}>Cuentas con acceso</Text>
-    {admins.filter(admin=>matchesPersonQuery(admin.name+' '+admin.email,query)).map(admin => <Text key={admin.email} style={styles.admin}>{admin.name?displayPersonName(admin.name)+' · ':''}{admin.email}{admin.primary ? ' · Administrador principal' : ''}</Text>)}
+    {admins.filter(admin=>matchesPersonQuery(admin.name+' '+admin.email,query)).map(admin=><View key={admin.email} style={{gap:10}}><Text style={styles.admin}>{admin.name?displayPersonName(admin.name)+' · ':''}{admin.email}</Text>{admin.primary?<Text style={styles.text}>Administrador principal · Protegido</Text>:<Pressable accessibilityRole="button" accessibilityLabel={'Retirar permisos a '+admin.email} disabled={busy} onPress={()=>setTarget(admin)} style={[styles.button,{backgroundColor:'#40202b',opacity:busy?0.5:1}]}><Text style={{...styles.buttonText,color:'#ffc1c9'}}>Retirar permisos de administrador</Text></Pressable>}</View>)}
+    <Modal visible={!!target} transparent animationType="fade" onRequestClose={()=>{if(!busy)setTarget(null)}}><View style={{flex:1,justifyContent:'center',backgroundColor:'#000a',padding:20}}><View style={styles.card}><Text style={styles.title}>¿Retirar permisos de administrador?</Text><Text style={{color:'#fff',fontWeight:'700'}}>{target?.name?displayPersonName(target.name):target?.email}</Text><Text style={styles.text}>{target?.email}</Text><Text style={styles.text}>Perderá el acceso a Administración. Su cuenta y los equipos que tenga asignados se mantendrán.</Text><Pressable accessibilityRole="button" disabled={busy} onPress={remove} style={styles.button}><Text style={styles.buttonText}>{busy?'Retirando permisos…':'Confirmar retirada'}</Text></Pressable><Pressable accessibilityRole="button" disabled={busy} onPress={()=>setTarget(null)} style={{padding:14}}><Text style={styles.secondary}>Cancelar</Text></Pressable>{error&&<Text accessibilityRole="alert" style={styles.error}>{error}</Text>}</View></View></Modal>
     <Pressable accessibilityRole="button" disabled={busy} onPress={refresh}>
       <Text style={styles.secondary}>{busy ? 'Actualizando…' : 'Actualizar lista'}</Text>
     </Pressable>

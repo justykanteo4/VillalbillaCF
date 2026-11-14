@@ -105,7 +105,8 @@ service cloud.firestore {
         && request.resource.data.email == email
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.createdAt is timestamp;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isAdmin() && !(email in ['albaresfernandez@gmail.com', 'appvillalbilla@gmail.com']);
     }
   }
 }

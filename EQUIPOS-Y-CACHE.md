@@ -31,3 +31,15 @@ El arranque ofrece una vista de resultados públicos guardados mientras se valid
 startup-work coordina tareas tras el primer render y las interacciones. Importación pública: 1,2 segundos de tranquilidad y lotes de ocho entradas, con noticias y el equipo visible primero. Actualizaciones automáticas: después de seis segundos; la comprobación manual sigue disponible. Descarga de toda la biblioteca: después de quince segundos; el orden de equipos se vuelve a consultar entre equipos para priorizar el seleccionado. Las tareas se pausan al salir de la app y conservan el progreso.
 
 Las pantallas que consultan a la vez un recurso público comparten la descarga inicial. Las recargas explícitas, peticiones con autenticación o cancelación y las escrituras conservan su flujo independiente. Las imágenes de noticias conservan su espacio y solo se solicitan cerca del área visible; una vez cargadas se mantienen las copias locales habituales.
+
+## Retirar administradores
+
+Ajustes → Administración → Administradores ofrece Retirar permisos para las cuentas añadidas, con Cancelar y Confirmar retirada. Los dos correos principales de arranque permanecen protegidos tanto en el cliente como en firestore.rules. La lista muestra esta protección aunque exista también su documento clubAdmins.
+
+removeClubAdmin elimina el documento clubAdmins en una transacción. Si había perfiles con estado admin para ese correo, los devuelve a approved cuando conservan equipo o a unassigned cuando no lo tienen; los estados normales, las cuentas, los equipos y sus datos no se borran. watchProfile observa perfil y pertenencia a clubAdmins, y no eleva el rol por una bandera admin antigua cuando ya no existe esa pertenencia. Las API administrativas comprueban la lista en cada solicitud.
+
+/api/access/admin-revoked permite al propio interesado, o a un administrador vigente, limpiar los dispositivos y trabajos privados de avisos tras comprobar en Firestore que el permiso realmente ha desaparecido. Mantiene activos los avisos normales del club. Los reintentos pendientes se guardan por cuenta y se revisan al regresar y cada minuto.
+
+Antes de publicar esta función hay que desplegar firestore.rules, que permite borrar exclusivamente administradores añadidos. Validación de reglas: iniciar el emulador demo-villalbilla en 127.0.0.1:8185 y ejecutar scripts/check-admin-revocation.cjs y scripts/check-team-permissions.cjs. No retirar ningún administrador real como prueba.
+
+Estado de la revisión 2026.11.14.11: preparada, pendiente de autenticar Firebase y publicar sus reglas antes del despliegue de la interfaz. Verificadas 379 pruebas, confirmación de retirada/cancelación con interfaz web y las reglas con el emulador local; exportaciones web y Android 0.1.11/0.1.12 completadas. No se han retirado permisos a cuentas reales.

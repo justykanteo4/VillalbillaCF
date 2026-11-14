@@ -15,3 +15,11 @@ Plantilla muestra avisos disciplinarios solo si hay datos para ello, después el
 Validación: `npm test`; exportaciones Expo Android/web; reglas compiladas y publicadas en Firebase; comprobación con Firestore Emulator y prueba de interfaz con Playwright. Para comprobar permisos sin producción, arrancar el emulador Firestore del proyecto demo-villalbilla en 127.0.0.1:8185 con estas reglas y ejecutar `node scripts/check-team-permissions.cjs`. El script solo usa ese emulador local; valida equipos múltiples, datos compartidos, aislamiento, perfiles antiguos, pendientes, revocados y jugadores.
 
 No hay dependencias nativas nuevas. Conservar APK 0.1.12/código 18. Exportar y publicar OTA a production para runtimes 0.1.11 y 0.1.12 usando `VILLALBILLA_UPDATE_RUNTIME` y el procedimiento de ACTUALIZACIONES-ANDROID.md. El teléfono debe descargar la actualización y volver a abrirse para aplicarla. No se han enviado avisos reales como prueba.
+
+## Apertura local y actualización en segundo plano (14/11/2026)
+
+Las consultas con refresh=1 comparten la clave de almacenamiento con la consulta normal. Al actualizar un acta se presenta de inmediato su copia local mediante onUpdate y después llega la respuesta de red; no se crea un archivo separado que oculte el anterior. Las versiones concurrentes se comparan sobre la misma clave para que una respuesta anterior no pise la actualización más reciente. Los parámetros de páginas, jornada y generación se conservan: una página incremental no sustituye al historial completo.
+
+Plantillas y rankings que escuchan onUpdate presentan los datos locales antes de esperar a las actas de porteros. Sus acumulados se completan en segundo plano y se guardan al terminar. Los consumidores que necesitan esperar una consulta completa y la preparación offline conservan su comportamiento.
+
+En Android las copias deportivas se almacenan en archivos dentro de documentDirectory/datos-guardados, con índice y archivo anterior para recuperación, y las imágenes remotas consultadas por CachedImage en Paths.document/club-images. Persisten al cerrar y volver a abrir la app; no son archivos temporales de caché. Los datos privados mantienen sus ámbitos de cuenta/equipo y no se incluyen en el paquete público.

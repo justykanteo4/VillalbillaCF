@@ -34,7 +34,7 @@ test('muestra la copia antes de que responda la red, actualiza la pantalla y ded
  assert.equal((await api('/api/news')).teams[0].id,'new');assert.equal(calls,1);
 });
 test('una recarga explícita y las actas en directo esperan el resultado nuevo',async t=>{
- const {api}=await client(t,async(_url,options)=>{assert.equal(options.cache,'no-store');return response({score:2})},[['/api/match?team=a&match=b&refresh=1',stale({score:1})]]);
+ const {api}=await client(t,async(_url,options)=>{assert.equal(options.cache,'no-store');return response({score:2})},[['/api/match?team=a&match=b',stale({score:1})]]);
  const cached=[];const result=await api('/api/match?team=a&match=b&refresh=1',{cache:'no-store',onUpdate:value=>cached.push(value)});
  assert.equal(cached[0].score,1);assert.equal(cached[0].fromCache,true);assert.equal(result.score,2);
 });
@@ -181,4 +181,17 @@ test('manual ranking reload bypasses server cache and persists the response',asy
 test('keeper ranking uses roster and reports without individual player statistics',async t=>{
  const paths=[];const {goalkeeperRanking}=await client(t,async url=>{paths.push(String(url));return response(String(url).includes('/api/team-roster')?{players:[{id:'1',name:'Portero'}]}:{records:[],nextOffset:null,error:false})});
  await goalkeeperRanking('846518',{cache:'reload'});assert.ok(paths.some(p=>p.includes('/api/team-roster?')&&p.includes('refresh=1')));assert.ok(paths.some(p=>p.includes('/api/goalkeepers?')&&p.includes('refresh=1')));assert.ok(paths.every(p=>!p.includes('/api/players?')));
+});
+test('el acta refrescada usa la copia canónica inmediatamente y guarda una sola copia para abrirla sin red', {timeout:3000},async t=>{
+ const network=deferred(),shown=deferred();let calls=0;const path='/api/match?team=1&match=22';const {api,copies}=await client(t,()=>{calls++;return network.promise},[[path,stale({id:'22',closed:true,schemaVersion:5,goals:[]})]]);
+ const request=api(path+'&refresh=1',{cache:'no-store',onUpdate:shown.resolve});assert.equal((await shown.promise).id,'22');assert.equal(calls,1);network.resolve(response({id:'22',closed:true,schemaVersion:5,goals:[{id:'g'}]}));await request;assert(!copies.has(path+'&refresh=1'));assert.equal(copies.get(path).data.goals.length,1);const archived=await api(path,{cache:'archive'});assert.equal(archived.goals.length,1);assert.equal(calls,1);
+});
+test('la plantilla guardada aparece aunque la primera consulta completa de porteros siga esperando', {timeout:3000},async t=>{
+ const network=deferred(),updated=deferred();const {api,copies}=await client(t,()=>network.promise,[['/api/players?team=1',{savedAt:new Date().toISOString(),data:{players:[{id:'k',position:'Portero'}]}}]]);
+ const roster=await api('/api/players?team=1',{onUpdate:d=>{if(d.players[0].goalsConceded===2)updated.resolve(d)}});assert.equal(roster.players[0].id,'k');assert.equal(roster.fromCache,true);assert.equal(roster.players[0].goalkeeperPartial,true);
+ network.resolve(response({records:[{id:'111',keepers:[{teamId:'1',playerId:'k',played:true,goalsConceded:2,cleanSheets:0}]}],nextOffset:null}));assert.equal((await updated.promise).players[0].goalsConceded,2);assert.equal(copies.get('goalkeeperTotals.v1.1').data.players[0].goalsConceded,2);
+});
+test('consulta normal y refresh comparten versión: una respuesta antigua no restaura el acta anterior', {timeout:3000},async t=>{
+ const old=deferred(),fresh=deferred(),firstStarted=deferred(),secondStarted=deferred();let calls=0;const path='/api/match?team=a&match=b';const {api,copies}=await client(t,()=>{if(++calls===1){firstStarted.resolve();return old.promise}secondStarted.resolve();return fresh.promise});
+ const first=api(path,{cache:'no-store'});await firstStarted.promise;const second=api(path+'&refresh=1',{cache:'no-store'});await secondStarted.promise;fresh.resolve(response({score:2}));await second;old.resolve(response({score:1}));assert.equal((await first).score,2);assert.equal(copies.get(path).data.score,2);assert(!copies.has(path+'&refresh=1'));
 });

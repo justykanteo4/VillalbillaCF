@@ -13,8 +13,9 @@ async function baseApi(path,options={}){
  if(Platform.OS!=='web'&&!apiBase)throw Error('Servicio pendiente de configurar para móvil');
  if(options.signal?.aborted)throw Object.assign(Error('Consulta cancelada'),{name:'AbortError'});
  const {onUpdate,onRefreshError,cache:cacheMode,...requestOptions}=options;
+ const resourceKey=(()=>{const u=new URL(path,'https://local');u.searchParams.delete('refresh');const query=u.searchParams.toString();return u.pathname+(query?'?'+query:'')})();
  const cacheable=(options.method||'GET')==='GET'&&PUBLIC_DATA.test(path);
- const cached=cacheable?await readCopy(path).catch(()=>null):null;
+ const cached=cacheable?await readCopy(resourceKey).catch(()=>null):null;
  if(options.signal?.aborted)throw Object.assign(Error('Consulta cancelada'),{name:'AbortError'});
  if(cached&&cacheMode==='archive'&&cached.data.closed&&!cached.data.error&&(cached.data.schemaVersion===undefined||cached.data.schemaVersion>=5))return {...cached.data,fromCache:true,savedAt:cached.savedAt};
  if(cached&&Platform.OS==='web'&&globalThis.navigator?.onLine===false)return {...limitData(path,cached.data),error:true,offline:true,savedAt:cached.savedAt};
@@ -26,11 +27,11 @@ async function baseApi(path,options={}){
  if(cached&&!forceNetwork){
   const age=Date.now()-Date.parse(cached.savedAt);
   if(!Number.isFinite(age)||age<0||age>=maxAge){
-   if(!refreshing.has(path)){
+   if(!refreshing.has(resourceKey)){
     const job=baseApi(path,{...requestOptions,signal:undefined,cache:'reload',_background:true});
-    refreshing.set(path,job);job.finally(()=>{if(refreshing.get(path)===job)refreshing.delete(path)}).catch(()=>{});
+    refreshing.set(resourceKey,job);job.finally(()=>{if(refreshing.get(resourceKey)===job)refreshing.delete(resourceKey)}).catch(()=>{});
    }
-   refreshing.get(path).then(data=>{if(!options.signal?.aborted)onUpdate?.(data)}).catch(error=>{
+   refreshing.get(resourceKey).then(data=>{if(!options.signal?.aborted)onUpdate?.(data)}).catch(error=>{
     if(options.signal?.aborted)return;
     if(onRefreshError)onRefreshError(error);
     else onUpdate?.({...limitData(path,cached.data),fromCache:true,error:true,offline:true,savedAt:cached.savedAt});
@@ -40,8 +41,8 @@ async function baseApi(path,options={}){
  }
  if(cached&&forceNetwork)onUpdate?.({...limitData(path,cached.data),fromCache:true,savedAt:cached.savedAt});
  const {_background,...fetchOptions}=requestOptions;
- const version=cacheable?(versions.get(path)||0)+1:0;
- if(cacheable)versions.set(path,version);
+ const version=cacheable?(versions.get(resourceKey)||0)+1:0;
+ if(cacheable)versions.set(resourceKey,version);
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),path==='/api/news'?60000:/^\/api\/(goalkeepers|team-minutes|club-stats|team-calendar|players|team-ranking|team-roster)\?/.test(path)||_background?45000:25000);
  const abortFromCaller=()=>controller.abort();
  if(options.signal?.aborted)controller.abort();
@@ -54,11 +55,11 @@ async function baseApi(path,options={}){
   let d=limitData(path,path==='/api/news'&&cached?.data?.teams?.some(t=>t.fixtures?.length)?mergeNews(cached.data,payload):payload);
   if(r.ok&&d.error)recordDiagnostic({category:/match|goalkeepers|team-minutes|report-membership/.test(path)?'actas':'conexion',code:'SOURCE',resource:path,status:r.status});
   if(!r.ok){const e=Error(d.error||'Servicio no disponible');e.status=r.status;throw e}
-  if(cacheable&&version!==versions.get(path)){
-   const latest=await readCopy(path).catch(()=>null);
+  if(cacheable&&version!==versions.get(resourceKey)){
+   const latest=await readCopy(resourceKey).catch(()=>null);
    return latest?{...limitData(path,latest.data),fromCache:true,savedAt:latest.savedAt}:d;
   }
-  if(cacheable&&!d.error){if(path==='/api/news'){const latest=await readCopy(path).catch(()=>null);if(latest?.data?.teams?.some(t=>t.fixtures?.length))d=mergeNews(latest.data,d)}await saveCopy(path,d).catch(()=>{});if(path.startsWith('/api/match?')&&path.includes('&refresh=1'))await saveCopy(path.replace('&refresh=1',''),d).catch(()=>{})}
+  if(cacheable&&!d.error){if(path==='/api/news'){const latest=await readCopy(resourceKey).catch(()=>null);if(latest?.data?.teams?.some(t=>t.fixtures?.length))d=mergeNews(latest.data,d)}await saveCopy(resourceKey,d).catch(()=>{})}
   if(cacheable&&!d.error&&path.startsWith('/api/match?')&&(d.closed||d.published)&&teamIdForCache){await noteSportsRevision(teamIdForCache,d.id,reportSignature(d)).catch(()=>{});await applyLocalReport(teamIdForCache,d).catch(()=>{});}
   if(cacheable&&!d.error&&path.split('?')[0]==='/api/team-calendar'&&teamIdForCache&&Array.isArray(d.fixtures)){const name='calendar-archive.v1.'+teamIdForCache,previous=(await readCopy(name).catch(()=>null))?.data;const calendar=mergeNews({teams:previous?[previous]:[]},{teams:[{...d,id:teamIdForCache}]}).teams.find(t=>t.id===teamIdForCache);await saveCopy(name,calendar).catch(()=>{});await noteSportsRevision(teamIdForCache,'calendar',calendarSignature(calendar.fixtures)).catch(()=>{});queueCurrentReports([calendar]);}
   if(cacheable&&!d.error&&path.split('?')[0]==='/api/news')await Promise.all((d.teams||[]).filter(t=>!t.error).map(t=>noteSportsRevision(t.id,'calendar',calendarSignature(t.fixtures)).catch(()=>{})));
@@ -66,8 +67,8 @@ async function baseApi(path,options={}){
   return d;
  }catch(error){
   if(!options.signal?.aborted)recordDiagnostic({category:/match|goalkeepers|team-minutes|report-membership/.test(path)?'actas':'conexion',code:controller.signal.aborted?'TIMEOUT':error.diagnosticCode|| (error.status?'HTTP':'NETWORK'),resource:path,status:error.status});
-  if(cacheable&&version!==versions.get(path)&&!options.signal?.aborted){
-   const latest=await readCopy(path).catch(()=>null);
+  if(cacheable&&version!==versions.get(resourceKey)&&!options.signal?.aborted){
+   const latest=await readCopy(resourceKey).catch(()=>null);
    if(latest)return {...limitData(path,latest.data),fromCache:true,savedAt:latest.savedAt};
   }
   if(cacheable&&!_background&&!options.signal?.aborted&&(!error.status||error.status>=500)){
@@ -95,15 +96,23 @@ async function enrichKeepers(path,data,options){
  const players=data.players.map(p=>{const value=totals?.players?.find(v=>v.playerId===String(p.id)),keeper=value||p.isGoalkeeper||/portero|guardameta/i.test(String(p.position));return keeper?{...p,...(value||{goalsConceded:null,cleanSheets:null}),isGoalkeeper:true,goalkeeperPartial:!!(totals?.goalkeeperVersion!==GOALKEEPER_VERSION||value?.goalkeeperPartial||totals?.missing||totals?.stale||options._keepersStale||!value),goalkeeperUpdatedAt:totals?.checkedAt}:p});
  return {...data,players};
 }
+// Una plantilla guardada se presenta antes de recorrer las actas de porteros.
+async function displayKeepers(path,data,options,onKeeperUpdate){
+ const settings={...options,onKeeperUpdate};
+ if(!options.onUpdate||options._keepersLocalOnly)return enrichKeepers(path,data,settings);
+ const local=await enrichKeepers(path,data,{...settings,_keepersLocalOnly:true});
+ enrichKeepers(path,data,settings).then(value=>{if(!options.signal?.aborted&&JSON.stringify(value.players)!==JSON.stringify(local.players))onKeeperUpdate(value)}).catch(()=>{});
+ return local;
+}
 export async function api(path,options={}){
  const enriched=/^\/api\/(players|team-ranking)\?/.test(path);if(!enriched)return baseApi(path,options);
- let sequence=0;const enhance=(value,ticket)=>enrichKeepers(path,value,{...options,onKeeperUpdate:data=>{if(ticket===sequence&&!options.signal?.aborted)options.onUpdate?.(data)}});const onUpdate=value=>{const current=++sequence;enhance(value,current).then(data=>{if(current===sequence&&!options.signal?.aborted)options.onUpdate?.(data)}).catch(()=>{})};
+ let sequence=0;const enhance=(value,ticket)=>displayKeepers(path,value,options,data=>{if(ticket===sequence&&!options.signal?.aborted)options.onUpdate?.(data)});const onUpdate=value=>{const current=++sequence;enhance(value,current).then(data=>{if(current===sequence&&!options.signal?.aborted)options.onUpdate?.(data)}).catch(()=>{})};
  const value=await baseApi(path,{...options,onUpdate});const ticket=++sequence;const result=await enhance(value,ticket);if(options.signal?.aborted)throw Object.assign(Error('Consulta cancelada'),{name:'AbortError'});return result;
 }
 
 export async function goalkeeperRanking(teamId,options={}){
  const path='/api/players?team='+encodeURIComponent(teamId);
- let sequence=0;const enhance=(data,ticket)=>enrichKeepers(path,data,{...options,onKeeperUpdate:value=>{if(ticket===sequence&&!options.signal?.aborted)options.onUpdate?.(value)}});
+ let sequence=0;const enhance=(data,ticket)=>displayKeepers(path,data,options,value=>{if(ticket===sequence&&!options.signal?.aborted)options.onUpdate?.(value)});
  const onUpdate=data=>{const ticket=++sequence;enhance(data,ticket).then(value=>{if(ticket===sequence&&!options.signal?.aborted)options.onUpdate?.(value)}).catch(()=>{})};
  const roster=await baseApi('/api/team-roster?team='+encodeURIComponent(teamId),{...options,onUpdate});return enhance(roster,++sequence);
 }

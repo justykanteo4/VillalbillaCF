@@ -1,8 +1,11 @@
 {
-  "id": "2026.11.14.3",
+  "id": "2026.11.14.4",
   "date": "2026-11-14",
-  "title": "Fantasy: clasificación más limpia",
+  "title": "Carga local más rápida de actas y plantillas",
   "changes": [
-    "Se retira de Clasificación el bloque introductorio de título, puntuación y premios. Las reglas completas siguen disponibles en Ajustes."
+    "Las consultas de actualización reutilizan enseguida el acta guardada en el dispositivo; la copia se conserva con una sola clave para volver a abrirla sin descargarla otra vez.",
+    "La plantilla se muestra con sus datos locales mientras las estadísticas de porteros se comprueban en segundo plano.",
+    "Se mantienen las copias de actas, calendarios, plantillas, estadísticas y fotos ya consultadas en el dispositivo, actualizándolas cuando hay novedades.",
+    "Clasificación Fantasy sin el bloque introductorio señalado. Las reglas siguen disponibles en Ajustes."
   ]
 }

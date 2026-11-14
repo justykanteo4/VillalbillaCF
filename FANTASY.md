@@ -8,9 +8,9 @@ Cabecera: icono, saldo disponible, Ir a noticias y ajustes. Pulsar el saldo abre
 
 ## Primera entrada y entrenador
 
-Primero se explica la dinámica y se exige aceptarla antes de elegir a uno de los candidatos públicos: entrenadores, auxiliares, delegados y demás cuerpo técnico. Los IDs coinciden con las candidaturas de votaciones, agrupando todos sus equipos. El sueldo ofertado se calcula como base + puntos de votación × coeficiente + victorias × coeficiente + empates × coeficiente + equipos adicionales × suplemento. Los importes y coeficientes están **pendientes de fijar con el usuario**: el sueldo base inicial es NULL y no se permite contratar ni cobrar hasta publicarlo. Las pruebas configuran importes únicamente en SQLite temporal.
+Primero se explica la dinámica y se exige aceptarla antes de elegir a uno de los candidatos públicos: entrenadores, auxiliares, delegados y demás cuerpo técnico. Los IDs coinciden con las candidaturas de votaciones, agrupando todos sus equipos. El sueldo ofertado combina votos normalizados respecto al líder, rendimiento (victorias + medio empate por partido) y número de equipos. El baremo inicial usa 0,25 M de base, hasta 1,30 M de variable (60 % votaciones normalizadas y 40 % rendimiento en partidos), 0,15 M por equipo adicional hasta 0,45 M y un máximo absoluto de 2 M semanales. La contratación está habilitada.
 
-Al contratar se fija el sueldo del contrato, que se cobra desde el siguiente lunes de Madrid. Cambiar de entrenador requiere un mes desde la última elección, con ajuste al último día del mes si hace falta. Nuevos precios no cambian unilateralmente contratos vigentes. Cada contrato y semana tiene un único asiento de sueldo; releer o reintentar no repite cobros. El presupuesto permite saldo negativo si un sueldo supera lo disponible; los fichajes comprueban el saldo real. Las aportaciones de 2 M semanales siguen desde la entrada de cada participante.
+Al contratar se fija el sueldo del contrato, que se cobra desde el siguiente lunes de Madrid. Cambiar de entrenador requiere un mes desde la última elección, con ajuste al último día del mes si hace falta. Nuevos precios no cambian unilateralmente contratos vigentes. Cada contrato y semana tiene un único asiento de sueldo; releer o reintentar no repite cobros. El presupuesto permite saldo negativo si un sueldo supera lo disponible; los fichajes comprueban el saldo real. Desde el 16 de noviembre de 2026 los premios de jornada sustituyen los 2 M semanales; se conservan las aportaciones históricas.
 
 Entrenador: +2 por cada victoria y +1 por empate de cualquiera de sus equipos; una o varias amarillas en un partido restan −1 en total, y la roja −3. Las tarjetas solo proceden de la fuente pública identificada. El técnico puede ser elegido por varios participantes; la exclusividad de dueño se aplica a futbolistas.
 
@@ -32,7 +32,7 @@ Las actas cerradas aportan puntos, con fecha de elección y alineación anterior
 
 ## Mercado y favoritos
 
-Hasta 8 anuncios, 2 nuevos cada día de Madrid y máximo 7 días; si falta espacio se retiran los más antiguos. El mercado empieza al incorporarse el primer entrenador. Un futbolista tiene un único dueño dentro de cada liga y puede tener dueños distintos en otras ligas. Los valores combinan estadísticas y votos, conservando las subidas anteriores del 80 % y 30 %. Los administradores pueden fijar precios finales o restaurar el automático.
+Hasta 8 anuncios, 2 nuevos cada día de Madrid y máximo 7 días; si falta espacio los nuevos esperan a que se liberen plazas. El mercado empieza al incorporarse el primer entrenador. Un futbolista tiene un único dueño dentro de cada liga y puede tener dueños distintos en otras ligas. Los valores combinan estadísticas y votos, conservando las subidas anteriores del 80 % y 30 %. Los administradores pueden fijar precios finales o restaurar el automático.
 
 Búsqueda en todos los jugadores del club con foto, valor y puntos Fantasy. Favoritos privados: cuando aparece un anuncio se crea un aviso en la app y se envía push a los dispositivos vinculados al propietario. Se comprueba otra vez el dueño del token al entregar; con Fantasy cerrado solo reciben push dispositivos administradores. Al abrir se entra en Mercado, no en ajustes. Los avisos se deduplican por liga, usuario, futbolista y anuncio; la cola evita que avisos ya enviados bloqueen otros pendientes.
 
@@ -43,3 +43,11 @@ Una oferta enviada por participante, liga y día de Madrid, aunque después se r
 El cron actualiza el mercado una vez al día, liquida sueldos pendientes una vez por semana y entrega avisos de favoritos. Las actas se consultan por lotes pequeños, con lease, reintentos y backoff para fuentes sin cerrar. No se hacen consultas de Fantasy mientras no haya contratos. Los totales públicos se generan también en prepare:release-data mediante prepare-fantasy-sports.cjs. Las fotos existentes se reutilizan sin módulos nativos nuevos.
 
 Las consultas repetidas tienen vías rápidas; los repartos, cobros y avisos se escriben por lotes para conservar los límites gratuitos de D1. Antes de desplegar se aplica fantasy-game-schema.sql tras las migraciones anteriores. No reinicia ligas, saldos, acceso ni votos. Los datos privados de contratos, plantillas, favoritos, transacciones y alineaciones quedan en CHAT_DB y no se incluyen en Git ni en el paquete público. Los datos públicos de actas sí se incluyen con sus pendientes. Las pruebas usan bases temporales y envíos push simulados, sin movimientos ni notificaciones ficticias en producción.
+
+## Pujas y premios (14 de noviembre)
+
+El mercado muestra arriba un contador actualizado cada segundo hasta las 23:59 de Madrid. La puja válida más alta gana; en empate se respeta la primera. Las reservas reducen el saldo disponible y los cupos. No hay compra inmediata. Sin pujas el anuncio continúa hasta siete días; con ocho anuncios los nuevos esperan espacio.
+
+Los premios son 10 M al primero, 8 M al segundo, 6 M al tercero y 5 M al resto; los empates comparten puesto. Sustituyen la aportación fija desde la semana del 16 de noviembre. Se espera la selección de MVP y once ideal cuando corresponde; los resultados pendientes pueden producir premios provisionales. Cada jornada tiene un asiento único y las correcciones registran solo diferencias.
+
+Aplicar fantasy-rewards-schema.sql y después fantasy-auction-schema.sql, sin volver a aplicar los triggers antiguos de compraventa. Las pujas y sus propietarios permanecen privados en D1.

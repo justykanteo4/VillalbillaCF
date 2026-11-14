@@ -1,8 +1,9 @@
 {
-  "id": "2026.11.14.11",
+  "id": "2026.11.14.12",
   "date": "2026-11-14",
-  "title": "Administración: retirar permisos de administrador",
+  "title": "Fantasy: valor de plantilla en cabecera",
   "changes": [
+    "La cabecera de VillalbillaFantasy muestra junto al saldo el valor de mercado de tu plantilla de la liga seleccionada, actualizado tras fichajes y ventas.",
     "Ajustes → Administración → Administradores permite retirar permisos de los administradores añadidos, con confirmación y opción Cancelar.",
     "Las cuentas principales quedan protegidas. La retirada conserva la cuenta y los equipos asignados.",
     "Las sesiones abiertas actualizan el rol al cambiar la lista de administradores. Se retiran los avisos privados de administración y se reintenta la limpieza si falla la conexión."

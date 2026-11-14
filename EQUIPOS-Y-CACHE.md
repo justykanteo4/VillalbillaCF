@@ -43,3 +43,9 @@ removeClubAdmin elimina el documento clubAdmins en una transacción. Si había p
 Antes de publicar esta función hay que desplegar firestore.rules, que permite borrar exclusivamente administradores añadidos. Validación de reglas: iniciar el emulador demo-villalbilla en 127.0.0.1:8185 y ejecutar scripts/check-admin-revocation.cjs y scripts/check-team-permissions.cjs. No retirar ningún administrador real como prueba.
 
 Estado de la revisión 2026.11.14.11: preparada, pendiente de autenticar Firebase y publicar sus reglas antes del despliegue de la interfaz. Verificadas 379 pruebas, confirmación de retirada/cancelación con interfaz web y las reglas con el emulador local; exportaciones web y Android 0.1.11/0.1.12 completadas. No se han retirado permisos a cuentas reales.
+
+Actualización publicada de retirada de administradores: reglas Firebase desplegadas y Worker 0ab8d6ed-dac9-4fd6-bc28-8c6e4fd686cd; OTA de producción para ambos runtimes verificados. No se han retirado administradores reales como prueba.
+
+## Valor de plantilla en Fantasy
+
+La cabecera junto al saldo muestra Plantilla con la suma de los valores de mercado actuales de todos los jugadores de la liga seleccionada. Se suman céntimos de millón para evitar errores de coma flotante; no incluye saldo, entrenador ni pujas pendientes. Durante la carga se muestra —, sin usar la plantilla de otra liga. Las actualizaciones habituales de plantilla, compras, ventas y precios recalculan la suma; se conserva el acceso a transacciones al pulsar Saldo. La fila se adapta a móviles estrechos. Comprobada con interfaz real a 320, 390 y 545 px.

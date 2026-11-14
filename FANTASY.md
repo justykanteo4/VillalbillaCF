@@ -63,3 +63,9 @@ Las copias de Fantasy se guardan en AsyncStorage por UID y recurso, separadas de
 ## Selector de ligas en cabecera (14/11/2026)
 
 El nombre de la liga activa es un selector con las ligas de esa cuenta. Se cambia desde la cabecera, conservando plantillas y movimientos independientes. Entrar o empezar otra liga abre los equipos autorizados: el servidor crea la liga clásica del equipo cuando todavía no existe, o incorpora a la existente según los límites vigentes. La liga personalizada continúa en Próximamente. Cada respuesta de plantilla lleva su identificador de liga en la vista para impedir que una carga anterior sustituya los jugadores o el saldo de la liga seleccionada. La última liga se recuerda con la cuenta y se valida contra las ligas devueltas por el servidor al volver a entrar.
+
+## Entrada por Tus ligas (14/11/2026, revisión 7)
+
+Al entrar desde el club o volver a abrir Fantasy se muestra la pantalla Tus ligas. Cada tarjeta abre una liga existente de esa cuenta. Crear nueva liga está desactivado y marcado En construcción; la interfaz ya no ofrece crear ni incorporarse a ligas nuevas. Las ligas existentes se mantienen. No se solicita la plantilla ni se muestran saldo o pestañas de juego hasta elegir una liga.
+
+Dentro de la liga se muestra una franja de cabecera de ancho completo con borde dorado, LIGA ACTUAL, su nombre y Cambiar. El menú permite alternar entre ligas existentes o volver a Tus ligas; su opción de crear también está desactivada. Se sustituye la apertura automática de la última liga por la elección explícita solicitada.

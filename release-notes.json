@@ -1,13 +1,11 @@
 {
-  "id": "2026.11.14.6",
+  "id": "2026.11.14.7",
   "date": "2026-11-14",
-  "title": "Arranque rápido y selector de ligas Fantasy",
+  "title": "Fantasy: entrada con tus ligas y selector destacado",
   "changes": [
-    "La cabecera de Fantasy muestra la liga activa. Al pulsarla puedes cambiar entre tus ligas o entrar y empezar la liga de otro equipo autorizado; la creación personalizada sigue en Próximamente.",
-    "Al abrir, se muestran datos públicos guardados mientras se comprueba la sesión. Se recuerda la última sección y el equipo de trabajo, validando los permisos antes de entrar.",
-    "La importación de datos da prioridad a noticias y al equipo seleccionado, y cede tiempo entre lotes para mantener la pantalla fluida.",
-    "La descarga completa de los demás equipos y la comprobación automática de actualizaciones empiezan después de mostrar la pantalla.",
-    "Las consultas públicas simultáneas comparten una sola descarga. Las imágenes de noticias se cargan cuando se acercan a la pantalla.",
-    "Las dos consultas de verificación de sesión se realizan en paralelo, conservando las comprobaciones de acceso."
+    "Al entrar en Fantasy aparece primero la pantalla Tus ligas, con tarjetas grandes para elegir una de tus ligas disponibles.",
+    "Crear nueva liga aparece desactivado y claramente marcado En construcción, también en el menú de cabecera.",
+    "Dentro de cada liga, una franja con borde dorado muestra la liga actual y el botón Cambiar. Permite cambiar de liga o volver a ver todas tus ligas.",
+    "La pantalla de elección no carga la plantilla ni muestra los menús de juego hasta entrar en una liga. Se conservan las mejoras de arranque rápido."
   ]
 }

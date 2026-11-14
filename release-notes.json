@@ -1,11 +1,11 @@
 {
-  "id": "2026.11.14.17",
+  "id": "2026.11.14.18",
   "date": "2026-11-14",
-  "title": "Noticias: selección administrativa de MVP",
+  "title": "Fantasy: encontrar y entrar en la liga existente",
   "changes": [
-    "Los administradores pueden elegir los tres MVP desde Ver detalles de un resultado ganador en Noticias o Resultados.",
-    "La selección muestra fotografías y solo admite jugadores que participaron en la victoria según el acta incorporada.",
-    "Se guardan los mismos premios de Fantasy: +1 por MVP y posibilidad de otro +1 al formar el once ideal; sin duplicar puntos al guardar de nuevo.",
-    "La consulta carga únicamente el partido elegido y conserva el control de cambios simultáneos entre administradores."
+    "Mis ligas muestra también las ligas ya creadas de tu equipo confirmado cuando todavía no te has unido, tanto en web como en Android.",
+    "El botón Unirme entra en la liga existente; conserva sus participantes, plantillas, saldos y puntuaciones.",
+    "Las ligas a las que ya perteneces mantienen su acceso directo. Se conserva el cierre de Fantasy y la verificación de compañeros por actas.",
+    "Crear una nueva liga sigue en construcción."
   ]
 }

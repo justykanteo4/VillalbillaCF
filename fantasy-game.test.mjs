@@ -17,7 +17,7 @@ test('jornada cerrada permite preparar la siguiente sin modificar la anterior; f
 test('clasificación evita recalcular precios, votos y plantilla; jugadores incluyen estadísticas confirmadas',async t=>{
  const f=fixture(t),id=await f.enter();const queries=[],prepare=f.db.prepare;f.db.prepare=q=>{queries.push(q);return prepare(q)};
  const board=await f.json(f.call('owner','/leagues/'+id+'/table'));assert(Array.isArray(board.rows));assert(!queries.some(q=>q.includes('FROM fantasy_player_cents')||q.includes('FROM social_ballots')||q.includes('FROM fantasy_managers')));
- queries.length=0;const players=await f.json(f.call('owner','/leagues/'+id+'/players'));assert(players.players.length>100);const p=players.players[0];assert(Number.isFinite(p.price));assert(Number.isFinite(p.fantasyPoints));assert(Number.isInteger(p.stats.played));assert(Number.isInteger(p.stats.goals));
+ queries.length=0;const players=await f.json(f.call('owner','/leagues/'+id+'/players'));assert(players.players.length>100);const expectedTeams=JSON.parse(readFileSync('fantasy-players.json','utf8')).teams.filter(t=>t.players.length).map(t=>t.id),available=new Set(players.players.flatMap(p=>p.teams.map(t=>t.id)));assert(expectedTeams.every(id=>available.has(id)));const p=players.players[0];assert(Number.isFinite(p.price));assert(Number.isFinite(p.fantasyPoints));assert(Number.isInteger(p.stats.played));assert(Number.isInteger(p.stats.goals));
  const other=await f.call('intruder','/leagues/'+id+'/players');assert.equal(other.status,404);
 });
 

@@ -1,11 +1,11 @@
 {
-  "id": "2026.11.14.15",
+  "id": "2026.11.14.16",
   "date": "2026-11-14",
-  "title": "Fantasy: mercado más fluido y ranking de jugadores",
+  "title": "Resultados editables y actas guardadas",
   "changes": [
-    "Clasificación incorpora las pestañas Liga y Jugadores, ordenados por puntos con puestos compartidos en los empates.",
-    "Al pulsar un jugador se abre su ficha con valor de mercado y estadísticas confirmadas: partidos, goles, tarjetas, victorias, porterías a cero y premios.",
-    "La clasificación de la liga evita cálculos de precios innecesarios y las consultas independientes se ejecutan en paralelo. Mercado y clasificación se preparan en segundo plano.",
-    "El contador del mercado se actualiza sin volver a dibujar cada segundo todas las tarjetas y fotografías."
+    "Solo administradores pueden corregir marcadores desde Resultados y consultar quién hizo cada modificación, con fecha e historial privado.",
+    "Los marcadores corregidos se muestran en noticias y resultados sin publicar la identidad del administrador; se puede restaurar el dato oficial.",
+    "Las actas cerradas completas y vigentes se guardan en dispositivo y servidor y se reutilizan sin descargarlas otra vez; las pendientes e incompletas continúan actualizándose.",
+    "La clasificación Fantasy de jugadores incluye todas las categorías del club y reutiliza los datos deportivos guardados."
   ]
 }

@@ -1,3 +1,4 @@
+globalThis.__reportCachePolicyTest=require('./report-cache-policy.cjs');
 globalThis.__gameMinutesTest=require('./game-minutes.cjs');
 globalThis.__offlinePolicyTest=require('./offline-policy.cjs');
 globalThis.__goalkeeperTest=require('./goalkeeper-stats.cjs');
@@ -11,7 +12,7 @@ async function client(t,fetcher,entries=[]){
  const original=global.fetch,copies=new Map(entries),reads=[],events=[];global.__diagnosticTest=event=>events.push(event);
  global.fetch=fetcher;
  global.__localDataTest={readCopy:async key=>{reads.push(key);return copies.get(key)},saveCopy:async(key,data)=>{copies.set(key,{data,savedAt:new Date().toISOString()})}};
- const source=fs.readFileSync('./api.js','utf8').replace("import {gameMinutes} from './game-minutes.cjs';","const {gameMinutes}=globalThis.__gameMinutesTest;").replace("import {policyAge,mergeNews,mergeRecords,monday,reportSignature,changedReportIds,calendarSignature,selectCurrent} from './offline-policy.cjs';","const {policyAge,mergeNews,mergeRecords,monday,reportSignature,changedReportIds,calendarSignature,selectCurrent}=globalThis.__offlinePolicyTest;").replace("import {noteSportsRevision,withSportsStats} from './sports-revision';","const noteSportsRevision=async()=>{},withSportsStats=async(id,work)=>work();")
+ const source=fs.readFileSync('./api.js','utf8').replace("import {reusableReport} from './report-cache-policy.cjs';","const {reusableReport}=globalThis.__reportCachePolicyTest;").replace("import {gameMinutes} from './game-minutes.cjs';","const {gameMinutes}=globalThis.__gameMinutesTest;").replace("import {policyAge,mergeNews,mergeRecords,monday,reportSignature,changedReportIds,calendarSignature,selectCurrent} from './offline-policy.cjs';","const {policyAge,mergeNews,mergeRecords,monday,reportSignature,changedReportIds,calendarSignature,selectCurrent}=globalThis.__offlinePolicyTest;").replace("import {noteSportsRevision,withSportsStats} from './sports-revision';","const noteSportsRevision=async()=>{},withSportsStats=async(id,work)=>work();")
   .replace("import {GOALKEEPER_VERSION,keeperRecordPending,sumGoalkeepers} from './goalkeeper-stats.cjs';","const {GOALKEEPER_VERSION,keeperRecordPending,sumGoalkeepers}=globalThis.__goalkeeperTest;").replace("import {readCopy,saveCopy} from './offline';","const {readCopy,saveCopy}=globalThis.__localDataTest;")
   .replace("import {recordDiagnostic} from './diagnostics';","const recordDiagnostic=globalThis.__diagnosticTest;")
   .replace("import {Platform,AppState} from 'react-native';","const Platform={OS:'web'},AppState={currentState:'active'};");
@@ -129,10 +130,10 @@ test('guarda la selección, reintenta cambios sin red y conserva los equipos al 
  global.__notificationTest.auth.currentUser={emailVerified:false,providerData:[{providerId:'google.com'}],getIdToken:()=>assert.fail('No debe pedir token ni enviar con cuenta sin verificar')};
  await assert.rejects(()=>service.sendClubNotification({title:'Fixture',body:'No enviar'}),/Verifica tu cuenta/);
 });
-test('un acta histórica cerrada se consulta desde el dispositivo sin red; actualizar sigue forzando la red',async t=>{
- let calls=0;const path='/api/match?team=a&match=old';const {api}=await client(t,async()=>{calls++;return response({closed:true,goals:[{name:'Nuevo'}]})},[[path,stale({closed:true,goals:[{name:'Guardado'}]})]]);
+test('un acta histórica cerrada completa permanece local también al actualizar',async t=>{
+ let calls=0;const path='/api/match?team=a&match=old';const {api}=await client(t,async()=>{calls++;return response({closed:true,goals:[{name:'Nuevo'}]})},[[path,stale({closed:true,error:false,schemaVersion:5,goalkeeperVersion:globalThis.__goalkeeperTest.GOALKEEPER_VERSION,goalsAvailable:true,cardsAvailable:true,goals:[{name:'Guardado'}],cards:[],minutesSource:{jugadores_equipo_local:[],jugadores_equipo_visitante:[]}})]]);
  assert.equal((await api(path,{cache:'archive'})).goals[0].name,'Guardado');assert.equal(calls,0);
- assert.equal((await api(path,{cache:'reload'})).goals[0].name,'Nuevo');assert.equal(calls,1);
+ assert.equal((await api(path,{cache:'reload'})).goals[0].name,'Guardado');assert.equal(calls,0);
 });
 
 test('actualizar un acta también corrige el archivo que se abrirá sin conexión',async t=>{
@@ -196,3 +197,4 @@ test('consulta normal y refresh comparten versión: una respuesta antigua no res
  const first=api(path,{cache:'no-store'});await firstStarted.promise;const second=api(path+'&refresh=1',{cache:'no-store'});await secondStarted.promise;fresh.resolve(response({score:2}));await second;old.resolve(response({score:1}));assert.equal((await first).score,2);assert.equal(copies.get(path).data.score,2);assert(!copies.has(path+'&refresh=1'));
 });
 test('dos pantallas solicitan datos por primera vez y comparten una sola descarga', {timeout:3000},async t=>{const network=deferred();let calls=0;const {api}=await client(t,()=>{calls++;return network.promise});const first=api('/api/standings?team=1'),second=api('/api/standings?team=1');await new Promise(r=>setImmediate(r));assert.equal(calls,1);network.resolve(response({rows:[{points:42}]}));assert.equal((await first).rows[0].points,42);assert.equal((await second).rows[0].points,42)});
+test('acta cerrada completa abre desde dispositivo sin red aunque se solicite actualizar',async t=>{const {GOALKEEPER_VERSION}=require('./goalkeeper-stats.cjs'),report={id:'1',closed:true,error:false,schemaVersion:5,goalkeeperVersion:GOALKEEPER_VERSION,goalsAvailable:true,cardsAvailable:true,goals:[],cards:[],minutesSource:{jugadores_equipo_local:[],jugadores_equipo_visitante:[]},homeScore:0,awayScore:0};let calls=0;const {api}=await client(t,async()=>{calls++;throw Error('No debe consultar red')},[['/api/match?team=1&match=1',stale(report)]]);assert.equal((await api('/api/match?team=1&match=1&refresh=1',{cache:'no-store'})).homeScore,0);assert.equal(calls,0)});

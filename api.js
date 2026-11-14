@@ -1,3 +1,4 @@
+import {reusableReport} from './report-cache-policy.cjs';
 import {gameMinutes} from './game-minutes.cjs';
 import {policyAge,mergeNews,mergeRecords,monday,reportSignature,changedReportIds,calendarSignature,selectCurrent} from './offline-policy.cjs';
 import {noteSportsRevision,withSportsStats} from './sports-revision';
@@ -25,7 +26,7 @@ async function fetchBaseApi(path,options={}){
  const cacheable=(options.method||'GET')==='GET'&&PUBLIC_DATA.test(path);
  const cached=cacheable?await readCopy(resourceKey).catch(()=>null):null;
  if(options.signal?.aborted)throw Object.assign(Error('Consulta cancelada'),{name:'AbortError'});
- if(cached&&cacheMode==='archive'&&cached.data.closed&&!cached.data.error&&(cached.data.schemaVersion===undefined||cached.data.schemaVersion>=5))return {...cached.data,fromCache:true,savedAt:cached.savedAt};
+ if(cached&&new URL(path,'https://local').pathname==='/api/match'&&reusableReport(cached.data))return {...cached.data,fromCache:true,savedAt:cached.savedAt};
  if(cached&&Platform.OS==='web'&&globalThis.navigator?.onLine===false)return {...limitData(path,cached.data),error:true,offline:true,savedAt:cached.savedAt};
  const teamIdForCache=new URL(path,'https://local').searchParams.get('team');
  const prepared=cacheable&&cached?(await readCopy(teamIdForCache?'offline-team-pack.v2.'+teamIdForCache:'offline-library.v2').catch(()=>null))?.data?.prepared:false;

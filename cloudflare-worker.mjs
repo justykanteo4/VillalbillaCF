@@ -1,3 +1,4 @@
+import {handleResultEdits,overlayResultEdits} from './result-edits-service.mjs';
 import {scheduledWeeklyPrizes} from './fantasy-weekly-prizes.mjs';
 import {scheduledFantasy,syncFantasySports} from './fantasy-jobs.mjs';
 import {handleFantasy} from './fantasy-service.mjs';
@@ -138,6 +139,7 @@ export default {
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
     if(url.pathname.startsWith('/api/chats/'))return Response.json({error:'El chat se ha eliminado.'},{status:410,headers:{'Cache-Control':'no-store'}});
+    const resultEditResponse=await handleResultEdits(request,env);if(resultEditResponse)return resultEditResponse;
     const fantasyResponse=await handleFantasy(request,env,{ctx});if(fantasyResponse)return fantasyResponse;
     const privateSanctions=await handlePrivateSanctions(request,env,ctx);if(privateSanctions)return privateSanctions;
     const keeperAdjustmentResponse=await handleKeeperAdjustments(request,env);if(keeperAdjustmentResponse)return keeperAdjustmentResponse;
@@ -159,7 +161,7 @@ export default {
       if (cached) {
         const headers = new Headers(cached.headers);
         headers.set('Access-Control-Allow-Origin', origin);
-        return new Response(cached.body, { status: cached.status, headers });
+        if(['/api/news','/api/team-calendar'].includes(url.pathname)){headers.set('Cache-Control','no-store');headers.delete('Content-Length');headers.delete('ETag');headers.delete('Last-Modified');return new Response(JSON.stringify(await overlayResultEdits(await cached.json(),url.pathname,env.VISITS_DB)),{status:cached.status,headers})}return new Response(cached.body, { status: cached.status, headers });
       }
     } catch { /* Local development may not provide the Cloudflare cache API. */ }
     try {
@@ -169,6 +171,7 @@ export default {
       if (status === 200 && maxAge && !value?.error) {
         try { ctx.waitUntil(caches.default.put(cacheKey, response.clone())); } catch { /* Cache is an optimization. */ }
       }
+      if(status===200&&['/api/news','/api/team-calendar'].includes(url.pathname))return json(await overlayResultEdits(value,url.pathname,env.VISITS_DB),status,origin,0);
       return response;
     } catch {
       ctx.waitUntil(saveDiagnostic(env.VISITS_DB,{category:/match|goalkeepers|team-minutes|report-membership/.test(url.pathname)?'actas':'conexion',code:'SOURCE',resource:url.pathname+url.search,status:502,platform:'servidor'}).catch(()=>{}));

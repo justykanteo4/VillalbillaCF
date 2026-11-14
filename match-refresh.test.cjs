@@ -1,10 +1,10 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const team=require('./teams.json').find(row=>row.id==='680163');
 const matches=require('./server/match.cjs');
-const html=(id,goals)=>'<script id="__NEXT_DATA__">'+JSON.stringify({props:{pageProps:{game:{codacta:id,codigo_equipo_local:team.id,codigo_equipo_visitante:'other',equipo_local:team.name,equipo_visitante:'Rival',goles_equipo_local:Array.from({length:goals},()=>({nombre_jugador:'Jugador',minuto:'10',tipo_gol:'100'})),goles_equipo_visitante:[],tarjetas_equipo_local:[],tarjetas_equipo_visitante:[],acta_cerrada:'1'}}}})+'</script>';
-test('las actas nuevas no dependen de la copia inicial y la actualización explícita vuelve a la fuente',async()=>{
+const html=(id,goals)=>'<script id="__NEXT_DATA__">'+JSON.stringify({props:{pageProps:{game:{codacta:id,codigo_equipo_local:team.id,codigo_equipo_visitante:'other',equipo_local:team.name,equipo_visitante:'Rival',goles_equipo_local:Array.from({length:goals},()=>({nombre_jugador:'Jugador',minuto:'10',tipo_gol:'100'})),goles_equipo_visitante:[],tarjetas_equipo_local:[],tarjetas_equipo_visitante:[],jugadores_equipo_local:[],jugadores_equipo_visitante:[],acta_cerrada:'1'}}}})+'</script>';
+test('las actas pendientes siguen actualizándose hasta que se cierren',async()=>{
  const original=global.fetch;let goals=1,calls=0;
- global.fetch=async()=>{calls++;return {ok:true,text:async()=>html('999999999991',goals)}};
+ global.fetch=async()=>{calls++;return {ok:true,text:async()=>html('999999999991',goals).replace('\"acta_cerrada\":\"1\"','\"acta_cerrada\":\"0\"')}};
  try{
   const first=await matches.matchDetails(team.id,'999999999991');assert.equal(first.goals.length,1);
   goals=2;const cached=await matches.matchDetails(team.id,'999999999991');assert.equal(cached.goals.length,1);assert.equal(calls,1);
@@ -30,7 +30,7 @@ test('el marcador y el resumen utilizan los resultados nuevos del acta sin conve
 test('las actas cerradas antiguas persisten en D1 y se reutilizan sin volver a la federación',async()=>{
  const original=global.fetch;let calls=0;const rows=new Map();const db={prepare(sql){let key;return {bind(...values){key=values[0];this.values=values;return this},async first(){return rows.has(key)?{data:rows.get(key)}:null},async run(){rows.set(key,this.values[1]);return {success:true}}}}};
  global.fetch=async()=>{calls++;return {ok:true,text:async()=>html('999999999993',3)}};
- try{const fixture={id:'999999999993',date:'2025-10-01',homeId:team.id,awayId:'other'};await matches.matchFixtureDetails(team.id,fixture,team.id,{db});assert.equal(calls,1);assert.equal(rows.size,1);const data=await matches.matchFixtureDetails(team.id,fixture,team.id,{db});assert.equal(data.goals.length,3);assert.equal(calls,1);await matches.matchFixtureDetails(team.id,fixture,team.id,{db,refresh:true});assert.equal(calls,2)}finally{global.fetch=original}
+ try{const fixture={id:'999999999993',date:'2025-10-01',homeId:team.id,awayId:'other'};await matches.matchFixtureDetails(team.id,fixture,team.id,{db});assert.equal(calls,1);assert.equal(rows.size,1);const data=await matches.matchFixtureDetails(team.id,fixture,team.id,{db});assert.equal(data.goals.length,3);assert.equal(calls,1);await matches.matchFixtureDetails(team.id,fixture,team.id,{db,refresh:true});assert.equal(calls,1)}finally{global.fetch=original}
 });
 test('plantilla conserva el partido jugado hasta un acta real del siguiente, también sin red',()=>{
  const {featuredMatch}=require('./featured-match.cjs');const fixtures=[{id:'old',date:'2026-10-25',round:7,homeScore:2,awayScore:1},{id:'next',date:'2026-11-01',round:8,homeScore:null,awayScore:null}];
@@ -44,4 +44,9 @@ test('cerrar el partido añade el siguiente con detalles y actualiza tres rivale
 test('recalcula actas históricas persistidas con la versión antigua de porteros',async()=>{
  const original=global.fetch,id='999999999994';let calls=0;const old={id,schemaVersion:5,closed:true,homeId:team.id,awayId:'other',updatedAt:new Date().toISOString(),keeperStats:[]};const db={prepare(){return {bind(){return this},async first(){return {data:JSON.stringify(old)}},async run(){return {success:true}}}}};global.fetch=async()=>{calls++;return {ok:true,text:async()=>html(id,1)}};
  try{const result=await matches.matchFixtureDetails(team.id,{id,date:'2025-10-01',homeId:team.id,awayId:'other'},team.id,{db});assert.equal(calls,1);assert.equal(result.goalkeeperVersion,2);assert.equal(result.error,false);await matches.matchFixtureDetails(team.id,{id,date:'2025-10-01',homeId:team.id,awayId:'other'},team.id,{db});assert.equal(calls,1)}finally{global.fetch=original}
+});
+test('un acta se actualiza mientras está abierta y se guarda definitivamente al cerrar, incluso tras reiniciar servidor',async()=>{
+ const original=global.fetch;let closed=false,calls=0;const id='999999999996',rows=new Map(),db={prepare(){return {bind(...args){this.args=args;return this},async first(){return rows.has(this.args[0])?{data:rows.get(this.args[0])}:null},async run(){rows.set(this.args[0],this.args[1]);return {success:true}}}}};
+ global.fetch=async()=>{calls++;return {ok:true,text:async()=>html(id,1).replace('"acta_cerrada":"1"','"acta_cerrada":"'+(closed?'1':'0')+'"')}};
+ try{await matches.matchDetails(team.id,id,{db});assert.equal(calls,1);closed=true;assert.equal((await matches.matchDetails(team.id,id,{db,refresh:true})).closed,true);assert.equal(calls,2);delete require.cache[require.resolve('./server/match.cjs')];const restarted=require('./server/match.cjs');await restarted.matchDetails(team.id,id,{db,refresh:true});assert.equal(calls,2)}finally{global.fetch=original}
 });

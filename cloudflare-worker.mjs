@@ -1,3 +1,4 @@
+import {handleMatchTaskStatus} from './admin-match-task-service.mjs';
 import {handleResultEdits,overlayResultEdits} from './result-edits-service.mjs';
 import {scheduledWeeklyPrizes} from './fantasy-weekly-prizes.mjs';
 import {scheduledFantasy,syncFantasySports} from './fantasy-jobs.mjs';
@@ -139,6 +140,7 @@ export default {
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
     if(url.pathname.startsWith('/api/chats/'))return Response.json({error:'El chat se ha eliminado.'},{status:410,headers:{'Cache-Control':'no-store'}});
+    const taskStatusResponse=await handleMatchTaskStatus(request,env);if(taskStatusResponse)return taskStatusResponse;
     const resultEditResponse=await handleResultEdits(request,env);if(resultEditResponse)return resultEditResponse;
     const fantasyResponse=await handleFantasy(request,env,{ctx});if(fantasyResponse)return fantasyResponse;
     const privateSanctions=await handlePrivateSanctions(request,env,ctx);if(privateSanctions)return privateSanctions;

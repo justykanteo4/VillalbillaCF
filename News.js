@@ -1,3 +1,4 @@
+import {publishAdminTaskNews,subscribeAdminTaskNews} from './AdminPendingTasks';
 import AdminMatchMvp from './AdminMatchMvp';
 import AdminResultEditor from './AdminResultEditor';
 import FantasyNewsAccess from './FantasyNewsAccess';
@@ -45,10 +46,11 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
   const newsRef=useRef(seed),refreshController=useRef(null),persistTimer=useRef(null);
   const persistNews=()=>{clearTimeout(persistTimer.current);const value=newsRef.current;AsyncStorage.setItem('villalbilla.public.news',JSON.stringify(value)).catch(()=>{});saveCopy('/api/news',value).catch(()=>{})};
   const alive=useRef(true),newsUpdated=useRef(false),inFlight=useRef(false);
+  useEffect(()=>subscribeAdminTaskNews(value=>{if(alive.current){newsRef.current=mergeResults(newsRef.current,value);setNews(newsRef.current);persistNews()}}),[]);
   async function refresh(force=false){
     if(inFlight.current)return;
     inFlight.current=true;setBusy(true);const controller=new AbortController();refreshController.current=controller;
-    const applyNews=value=>{if(alive.current){newsUpdated.current=true;newsRef.current=mergeResults(newsRef.current,value);setNews(newsRef.current);if(newsRef.current.teams.every(t=>!t.error&&!t.offline))setError('');clearTimeout(persistTimer.current);persistTimer.current=setTimeout(persistNews,250)}};
+    const applyNews=value=>{if(alive.current){newsUpdated.current=true;newsRef.current=mergeResults(newsRef.current,value);setNews(newsRef.current);publishAdminTaskNews(newsRef.current);if(newsRef.current.teams.every(t=>!t.error&&!t.offline))setError('');clearTimeout(persistTimer.current);persistTimer.current=setTimeout(persistNews,250)}};
     setError('');
     if(mode==='news')api('/api/instagram',{onUpdate:value=>{if(alive.current)setIg({...value,posts:(value.posts||[]).slice(0,8)})}}).then(value=>{if(alive.current)setIg({...value,posts:(value.posts||[]).slice(0,8)})}).catch(()=>{if(alive.current)setIg(value=>({...value,error:true}))});
     const result=await refreshResults(newsRef.current.teams,{loadTeam:api,force,signal:controller.signal,onTeam:team=>applyNews({teams:[team]})});
@@ -65,7 +67,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
     return()=>{alive.current=false;persistNews();refreshController.current?.abort();clearInterval(timer);subscription.remove()};
   },[]);
 
-  const editedResult=(teamId,fixture)=>{const next={...newsRef.current,teams:newsRef.current.teams.map(team=>({...team,fixtures:(team.fixtures||[]).map(m=>String(m.id)===String(fixture.id)?{...m,...fixture}:m)}))};newsRef.current=next;setNews(next);persistNews()};
+  const editedResult=(teamId,fixture)=>{const next={...newsRef.current,teams:newsRef.current.teams.map(team=>({...team,fixtures:(team.fixtures||[]).map(m=>String(m.id)===String(fixture.id)?{...m,...fixture}:m)}))};newsRef.current=next;setNews(next);publishAdminTaskNews(next);persistNews()};
   const favoriteSet=new Set(favoriteTeamIds),orderedTeams=[...news.teams].sort((a,b)=>Number(favoriteSet.has(b.id))-Number(favoriteSet.has(a.id))||a.category.localeCompare(b.category,'es'));
   const availableTeams=mode!=='results'&&favoritesOnly?orderedTeams.filter(item=>favoriteSet.has(item.id)):orderedTeams;
   const activeIds=teamIds.filter(id=>availableTeams.some(item=>item.id===id)),selected=availableTeams.filter(item=>!activeIds.length||activeIds.includes(item.id));

@@ -1,10 +1,11 @@
 {
-  "id": "2026.11.15.3",
+  "id": "2026.11.15.4",
   "date": "2026-11-15",
-  "title": "Fantasy: mercado completo y TOP semanal",
+  "title": "Tareas de administración y capitán desde el campo",
   "changes": [
-    "El mercado se rellena con 16 jugadores disponibles y repone los huecos tras compras y caducidades.",
-    "Cada semana entra un jugador TOP disponible; las reposiciones adicionales son jugadores sin TOP.",
-    "Los jugadores vendidos siguen en Ventas, aparte de los 16 anuncios normales."
+    "Los administradores tienen Tareas pendientes en la cabecera: resultados 1–0, 0–1 y 1–1 por revisar, y victorias sin sus tres MVP.",
+    "Al abrir Noticias se ofrece modificar esos resultados o posponer el aviso hasta la próxima apertura. Los resultados revisados y los tres MVP guardados dejan de estar pendientes.",
+    "En Fantasy el capitán se elige al pulsar un jugador de la alineación. Se muestra su nombre y se mantiene el bloqueo de seis jornadas para repetir.",
+    "El mercado mantiene 16 jugadores disponibles, con reposiciones sin TOP y un jugador TOP nuevo por semana; Ventas sigue aparte."
   ]
 }

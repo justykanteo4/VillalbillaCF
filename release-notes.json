@@ -1,11 +1,10 @@
 {
-  "id": "2026.11.15.4",
+  "id": "2026.11.15.5",
   "date": "2026-11-15",
-  "title": "Tareas de administración y capitán desde el campo",
+  "title": "Fantasy: pujas sin límite de cantidad y saldo reservado",
   "changes": [
-    "Los administradores tienen Tareas pendientes en la cabecera: resultados 1–0, 0–1 y 1–1 por revisar, y victorias sin sus tres MVP.",
-    "Al abrir Noticias se ofrece modificar esos resultados o posponer el aviso hasta la próxima apertura. Los resultados revisados y los tres MVP guardados dejan de estar pendientes.",
-    "En Fantasy el capitán se elige al pulsar un jugador de la alineación. Se muestra su nombre y se mantiene el bloqueo de seis jornadas para repetir.",
-    "El mercado mantiene 16 jugadores disponibles, con reposiciones sin TOP y un jugador TOP nuevo por semana; Ventas sigue aparte."
+    "Puedes hacer tantas pujas de mercado como permita tu saldo disponible; no reservan plazas ni fichajes semanales.",
+    "La cabecera muestra el dinero reservado en pujas como saldo indisponible. Al retirar una puja o resolverse la subasta se libera la reserva correspondiente.",
+    "Las compras adjudicadas siguen respetando el máximo de 16 jugadores y los fichajes semanales disponibles."
   ]
 }

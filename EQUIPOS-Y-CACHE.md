@@ -147,3 +147,11 @@ Los administradores tienen acceso a Tareas pendientes desde las cabeceras públi
 En Fantasy se elimina la lista de botones de capitán. Pulsando un jugador alineado se puede nombrarlo capitán desde su selector; se ve su nombre y la C en el campo. Sigue bloqueado repetir antes de seis jornadas, y el servidor valida capitán, once y cierre como antes. Sustituir al capitán por un suplente deja pendiente elegir otro. Se mantiene Guardar once y capitán.
 
 Validación: 413 pruebas y comprobación móvil con datos simulados de aviso, posponer, reapertura, corrección, tres MVP, permisos y elección/bloqueo de capitán. Sin modificar votos, actas, premios o resultados reales como prueba.
+
+### Pujas sin cupo y saldo indisponible — 2026.11.15.5
+
+Las pujas solo reservan dinero: no consumen ni reservan plazas de plantilla o fichajes semanales. El guard de inserción mantiene el cierre, el mínimo y el saldo disponible en céntimos, excluyendo el importe anterior al actualizar una misma puja. Se conserva la reserva de cada puja activa hasta que se retire o se resuelva; no se abona o descuenta dinero real al pujar. En la cabecera se muestran saldo disponible, importe indisponible por pujas y valor de plantilla. Pulsar la reserva abre los movimientos.
+
+Las adjudicaciones siguen comprobando 16 jugadores y los fichajes semanales realmente realizados; las otras pujas pendientes no bloquean una adjudicación válida. Si al cerrar un participante no cumple esos límites, se intenta el siguiente postor válido, sin cobrar al descartado. Las ofertas entre participantes también respetan el saldo reservado y las compras reales, pero no reservan huecos para las pujas.
+
+Migración idempotente: ejecutar `fantasy-auction-schema.sql` para sustituir el guard de pujas y el guard de compras. Mantiene rondas, pujas, reservas, saldos e historial existentes. No requiere módulos nativos. Validación: 416 pruebas, incluyendo seis pujas simultáneas, actualización/cancelación exacta, dos solicitudes concurrentes sobre el mismo saldo, migración con reservas activas y liquidación sin superar 16 jugadores o dos compras semanales. Cabecera comprobada a 360 px con 22 M disponibles y 30 M indisponibles, sin desbordamiento. Sin pujas o transacciones reales de prueba.

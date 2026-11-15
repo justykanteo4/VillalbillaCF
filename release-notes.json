@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.15.19",
+  "id": "2026.11.15.20",
   "date": "2026-11-15",
-  "title": "Aviso de saldo insuficiente al ofertar",
+  "title": "Premio económico del once ideal y cierre por MVP",
   "changes": [
-    "Al enviar una oferta desde Mercado o Clasificación se muestra un aviso si falta saldo disponible, descontando lo reservado en pujas.",
-    "El aviso indica el importe de la oferta y el dinero disponible. Una oferta rechazada por saldo no consume el límite diario ni avisa al propietario.",
-    "La notificación de una oferta al propietario destaca el nombre del jugador e indica quién la envía y el importe."
+    "El once ideal elegido por los administradores deja de sumar el punto adicional: abona 1 M por elegido alineado en Fantasy, o 2 M si es tu capitán. El +1 por MVP se mantiene.",
+    "La jornada se cierra y se liquidan sus premios al confirmarse los resultados y los tres MVP de todos los partidos ganados, sin esperar al lunes ni al once ideal.",
+    "Los abonos y ajustes del once ideal se registran en transacciones, sin duplicarse al actualizar."
   ]
 }

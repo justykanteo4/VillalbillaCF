@@ -36,3 +36,20 @@ CREATE INDEX IF NOT EXISTS fantasy_favourite_player ON fantasy_favourites(league
 CREATE INDEX IF NOT EXISTS fantasy_notice_user ON fantasy_market_notices(league_id,uid,created_at);
 CREATE INDEX IF NOT EXISTS fantasy_push_queue ON fantasy_market_push_jobs(status,next_at);
 CREATE TABLE IF NOT EXISTS fantasy_lineup_formations(league_id TEXT NOT NULL,uid TEXT NOT NULL,week INTEGER NOT NULL,formation TEXT NOT NULL,revision INTEGER NOT NULL,PRIMARY KEY(league_id,uid,week),FOREIGN KEY(league_id,uid,week) REFERENCES fantasy_lineups(league_id,uid,week));
+CREATE TABLE IF NOT EXISTS fantasy_ideal_rewards(league_id TEXT NOT NULL,uid TEXT NOT NULL,week INTEGER NOT NULL,player_id TEXT NOT NULL,amount_cents INTEGER NOT NULL CHECK(amount_cents IN(0,100,200)),captain INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(league_id,uid,week,player_id));
+CREATE TABLE IF NOT EXISTS fantasy_ideal_reward_events(id INTEGER PRIMARY KEY AUTOINCREMENT,league_id TEXT NOT NULL,uid TEXT NOT NULL,week INTEGER NOT NULL,player_id TEXT NOT NULL,amount_cents INTEGER NOT NULL,captain INTEGER NOT NULL,kind TEXT NOT NULL,created_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS fantasy_ideal_reward_user ON fantasy_ideal_reward_events(league_id,uid,created_at);
+CREATE TABLE IF NOT EXISTS fantasy_ideal_reward_state(league_id TEXT PRIMARY KEY,lease_until INTEGER NOT NULL DEFAULT 0,next_at INTEGER NOT NULL DEFAULT 0,fingerprint TEXT);
+CREATE TABLE IF NOT EXISTS fantasy_round_closures(league_id TEXT NOT NULL,week INTEGER NOT NULL,closed_at INTEGER NOT NULL,PRIMARY KEY(league_id,week));
+CREATE TRIGGER IF NOT EXISTS fantasy_ideal_first AFTER INSERT ON fantasy_ideal_rewards WHEN NEW.amount_cents>0 BEGIN
+ INSERT INTO fantasy_ideal_reward_events(league_id,uid,week,player_id,amount_cents,captain,kind,created_at) VALUES(NEW.league_id,NEW.uid,NEW.week,NEW.player_id,NEW.amount_cents,NEW.captain,'reward',NEW.updated_at);
+END;
+CREATE TRIGGER IF NOT EXISTS fantasy_ideal_adjust AFTER UPDATE ON fantasy_ideal_rewards WHEN NEW.amount_cents!=OLD.amount_cents BEGIN
+ INSERT INTO fantasy_ideal_reward_events(league_id,uid,week,player_id,amount_cents,captain,kind,created_at) VALUES(NEW.league_id,NEW.uid,NEW.week,NEW.player_id,NEW.amount_cents-OLD.amount_cents,NEW.captain,'adjustment',NEW.updated_at);
+END;
+CREATE TRIGGER IF NOT EXISTS fantasy_ideal_credit AFTER INSERT ON fantasy_ideal_reward_events BEGIN
+ UPDATE fantasy_wallet_cents SET delta_cents=delta_cents+NEW.amount_cents WHERE league_id=NEW.league_id AND uid=NEW.uid;
+ UPDATE fantasy_wallet_values SET delta_tenths=(SELECT delta_cents/10.0 FROM fantasy_wallet_cents v WHERE v.league_id=NEW.league_id AND v.uid=NEW.uid) WHERE league_id=NEW.league_id AND uid=NEW.uid;
+ UPDATE fantasy_wallets SET delta_units=(SELECT delta_cents/50.0 FROM fantasy_wallet_cents v WHERE v.league_id=NEW.league_id AND v.uid=NEW.uid) WHERE league_id=NEW.league_id AND uid=NEW.uid;
+END;
+CREATE TABLE IF NOT EXISTS fantasy_club_round_closures(week INTEGER PRIMARY KEY,closed_at INTEGER NOT NULL);

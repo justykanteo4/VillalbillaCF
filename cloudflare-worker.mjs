@@ -1,3 +1,4 @@
+import {dispatchOfferNotifications} from './fantasy-offer-notifications.mjs';
 import {ingestFantasyReport} from './fantasy-report-points.mjs';
 import {handleFantasyPositions} from './fantasy-player-positions.mjs';
 import {handleMatchTaskStatus} from './admin-match-task-service.mjs';
@@ -131,7 +132,7 @@ async function data(request, env) {
 }
 
 export default {
-  async scheduled(event,env,ctx){ctx.waitUntil(Promise.allSettled([scheduledWeeklyPrizes(env),scheduledFantasy(env),syncFantasySports(env),dispatchVoteNotifications(env),scheduledNotifications(env),dispatchAccessNotifications(env),scheduledOfficialSanctions(env),scheduledResults(env)]))},
+  async scheduled(event,env,ctx){ctx.waitUntil(Promise.allSettled([dispatchOfferNotifications(env),scheduledWeeklyPrizes(env),scheduledFantasy(env),syncFantasySports(env),dispatchVoteNotifications(env),scheduledNotifications(env),dispatchAccessNotifications(env),scheduledOfficialSanctions(env),scheduledResults(env)]))},
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const download=await handleApkDownload(request,env.ASSETS);if(download)return download;

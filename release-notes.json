@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.15.15",
+  "id": "2026.11.15.16",
   "date": "2026-11-15",
-  "title": "Cierre de alineaciones del viernes",
+  "title": "Once de la jornada y ofertas desde jugadores",
   "changes": [
-    "Las alineaciones Fantasy solo pueden guardarse hasta el viernes a las 23:59, hora de Madrid.",
-    "Después del cierre se bloquean jugadores, formación y capitán. La nueva alineación se prepara desde el lunes a las 00:00.",
-    "Las alineaciones ya guardadas conservan sus puntos. El cierre se comprueba también en el servidor."
+    "En Clasificación → Jugadores aparece el once con más puntos de la última jornada con datos, seguido de la clasificación completa.",
+    "Desde la ficha de un jugador rival de tu liga puedes enviar una oferta. Su propietario recibe una notificación que abre las ofertas de esa liga.",
+    "El resumen del mercado solo se abre automáticamente en la primera visita; puedes volver a consultarlo con su botón."
   ]
 }

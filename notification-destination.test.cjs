@@ -21,3 +21,5 @@ test('Web Push preserves the content link and focuses the existing window; forei
  handlers.notificationclick({notification:{data:shown[0].data,close(){}},waitUntil:p=>job=p});await job;assert.equal(navigated[0],'https://club.test'+url);assert.deepEqual(opened,[]);
  self.clients.matchAll=async()=>[];handlers.notificationclick({notification:{data:{url:'https://evil.test/'},close(){}},waitUntil:p=>job=p});await job;assert.equal(new URL(opened[0]).origin,'https://club.test');assert.deepEqual(destinationFromUrl(opened[0]),{type:'section',section:'news'});
 });
+
+test('ofertas Fantasy abren la liga concreta y las ofertas recibidas',()=>{const d={type:'fantasy-offers',leagueId:'official-2026-27-680163'};const n=require('./notification-destination.cjs');assert.deepEqual(n.normalizeDestination(d),d);assert.deepEqual(n.destinationRoute(d),{area:'VillalbillaFantasy',fantasySection:'offers',fantasyLeagueId:d.leagueId});assert.deepEqual(n.destinationFromUrl('https://club.test'+n.destinationUrl(d)),d);assert.equal(n.normalizeDestination({type:'fantasy-offers',leagueId:'../private'}),null)});

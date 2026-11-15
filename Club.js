@@ -153,7 +153,7 @@ const chooseEntry=role=>{setEntryRole(role);AsyncStorage.setItem('villalbilla.en
  return()=>{active=false;stopProfile();stopAuth()};
  },[]);
  useEffect(()=>{const sync=()=>{if(splashDataReady&&notificationReady)updateNotificationTargets(favoriteTeamIds,favoritePlayerIds).catch(()=>{})};sync();const sub=AppState.addEventListener('change',state=>{if(state==='active')sync()}),stop=watchPushRegistration({admin:account?.status==='admin'});return()=>{sub.remove();stop()}},[splashDataReady,notificationReady,favoriteTeamIds.join(','),favoritePlayerIds.join(','),account?.id,account?.status]);
- const openClubDestination=(value,id)=>{if(!account&&!entryRole)setEntryRole('fan');const target=destinationRoute(value);setClubRoute({...target,key:String(id||'aviso')+':'+(++destinationSequence.current)});resetArea(target.area);if(target.fantasySection){setFantasySection(target.fantasySection);setFantasyLeagueTarget('market-notice')}};
+ const openClubDestination=(value,id)=>{if(!account&&!entryRole)setEntryRole('fan');const target=destinationRoute(value);setClubRoute({...target,key:String(id||'aviso')+':'+(++destinationSequence.current)});resetArea(target.area);if(target.fantasySection){setFantasySection(target.fantasySection);setFantasyLeagueTarget(target.fantasyLeagueId||'market-notice')}};
  useEffect(()=>{
  if(!notificationOpen||!launchReady||!authReady||handlingNotification.current===notificationOpen.id)return;
  if(notificationOpen.intent.type==='club'){const id=notificationOpen.id;handlingNotification.current=id;openClubDestination(notificationOpen.intent.destination,id);consumeNotification(id).catch(()=>{}).finally(()=>{if(handlingNotification.current===id)handlingNotification.current=null});return}

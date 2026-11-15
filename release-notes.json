@@ -1,13 +1,11 @@
 {
-  "id": "2026.11.15.6",
+  "id": "2026.11.15.7",
   "date": "2026-11-15",
-  "title": "Fantasy: suplentes MVP, tareas descartables y once fuera de plazo",
+  "title": "Corrección de puntos y sincronización de posiciones",
   "changes": [
-    "Los administradores pueden elegir los tres MVP entre todos los convocados del ganador, incluidos suplentes sin minutos. Conservan el punto MVP y el adicional del once ideal.",
-    "Tareas pendientes permite descartar con confirmación. El descarte se comparte y persiste; si cambia el marcador, la tarea vuelve a aparecer.",
-    "Las alineaciones de las ligas activas puntúan aunque se guarden fuera de plazo: solo suman los 11 alineados, con los puntos dobles del capitán.",
-    "Las posiciones manuales guardadas en la sección de entrenadores se comparten en Fantasy para todos. Las copias antiguas no sobrescriben ediciones recientes.",
-    "Si una puja supera el saldo disponible aparece un aviso. Modificar una puja aprovecha su reserva anterior; el servidor vuelve a comprobar los fondos.",
-    "Los puntos base se suman al incorporarse cada acta cerrada, sin esperar al final de la jornada. La clasificación se refresca automáticamente; MVP y once ideal añaden sus bonos al confirmarse."
+    "Se recuperan para la jornada actual los onces que la interfaz anterior guardó por error en la semana siguiente; se conserva la alineación futura.",
+    "El once muestra claramente la jornada a la que pertenecen sus puntos. Solo suman sus once jugadores y el capitán doble.",
+    "Una posición antigua de un jugador fuera del catálogo ya no bloquea la sincronización de las demás posiciones válidas.",
+    "Se conservan las posiciones compartidas más recientes y se corrige el aviso de sincronización entre equipos."
   ]
 }

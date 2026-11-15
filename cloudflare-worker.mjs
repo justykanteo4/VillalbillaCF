@@ -1,3 +1,5 @@
+import {ingestFantasyReport} from './fantasy-report-points.mjs';
+import {handleFantasyPositions} from './fantasy-player-positions.mjs';
 import {handleMatchTaskStatus} from './admin-match-task-service.mjs';
 import {handleResultEdits,overlayResultEdits} from './result-edits-service.mjs';
 import {scheduledWeeklyPrizes} from './fantasy-weekly-prizes.mjs';
@@ -140,6 +142,7 @@ export default {
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
     if(url.pathname.startsWith('/api/chats/'))return Response.json({error:'El chat se ha eliminado.'},{status:410,headers:{'Cache-Control':'no-store'}});
+    const fantasyPositionResponse=await handleFantasyPositions(request,env);if(fantasyPositionResponse)return fantasyPositionResponse;
     const taskStatusResponse=await handleMatchTaskStatus(request,env);if(taskStatusResponse)return taskStatusResponse;
     const resultEditResponse=await handleResultEdits(request,env);if(resultEditResponse)return resultEditResponse;
     const fantasyResponse=await handleFantasy(request,env,{ctx});if(fantasyResponse)return fantasyResponse;
@@ -161,6 +164,7 @@ export default {
     try {
       const cached = ['/api/match','/api/news','/api/team-calendar','/api/players','/api/team-ranking','/api/team-roster','/api/goalkeepers'].includes(url.pathname)&&url.searchParams.get('refresh')==='1'?null:await caches.default.match(cacheKey);
       if (cached) {
+        if(url.pathname==='/api/match')ctx.waitUntil(cached.clone().json().then(value=>ingestFantasyReport(env.CHAT_DB,url.searchParams.get('team'),value)).catch(()=>{}));
         const headers = new Headers(cached.headers);
         headers.set('Access-Control-Allow-Origin', origin);
         if(['/api/news','/api/team-calendar'].includes(url.pathname)){headers.set('Cache-Control','no-store');headers.delete('Content-Length');headers.delete('ETag');headers.delete('Last-Modified');return new Response(JSON.stringify(await overlayResultEdits(await cached.json(),url.pathname,env.VISITS_DB)),{status:cached.status,headers})}return new Response(cached.body, { status: cached.status, headers });
@@ -169,6 +173,7 @@ export default {
     try {
       const [value, status, maxAge] = await data(request, env);
       if(status>=500||value?.error)ctx.waitUntil(saveDiagnostic(env.VISITS_DB,{category:/match|goalkeepers|team-minutes|report-membership/.test(url.pathname)?'actas':'conexion',code:'SOURCE',resource:url.pathname+url.search,status,platform:'servidor'}).catch(()=>{}));
+      if(status===200&&url.pathname==='/api/match')ctx.waitUntil(ingestFantasyReport(env.CHAT_DB,url.searchParams.get('team'),value).catch(()=>{}));
       const response = json(value, status, origin, maxAge);
       if (status === 200 && maxAge && !value?.error) {
         try { ctx.waitUntil(caches.default.put(cacheKey, response.clone())); } catch { /* Cache is an optimization. */ }

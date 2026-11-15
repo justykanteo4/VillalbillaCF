@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS admin_match_task_dismissals(kind TEXT NOT NULL CHECK(kind IN('score','mvp')),team_id TEXT NOT NULL,match_id TEXT NOT NULL,score_key TEXT NOT NULL,actor_uid TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(kind,team_id,match_id));

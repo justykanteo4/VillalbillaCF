@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useState} from 'react';
-import {View,Text,Pressable,TextInput,Modal,ScrollView} from 'react-native';
+import {View,Text,Pressable,TextInput,Modal,ScrollView,AppState} from 'react-native';
 import PlayerPortrait from './PlayerPortrait';
 import {rankFantasyPlayers} from './fantasy-player-ranking.cjs';
 import {Button,ErrorText,text,panel,title,input,theme} from './FantasyUI';
@@ -8,6 +8,7 @@ export default function FantasyPlayerRanking({leagueId,request}){
  const [record,setRecord]=useState(null),[error,setError]=useState(''),[retry,setRetry]=useState(0),[loading,setLoading]=useState(false),[query,setQuery]=useState(''),[limit,setLimit]=useState(30),[selected,setSelected]=useState(null);
  const data=record?.leagueId===leagueId?record.data:null;
  useEffect(()=>{let active=true;setError('');setSelected(null);setLoading(true);const apply=data=>{if(active)setRecord({leagueId,data})};request('/leagues/'+leagueId+'/players',{cache:retry?'reload':undefined,onCached:apply}).then(apply).catch(e=>{if(active)setError(e.message)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[leagueId,retry]);
+ useEffect(()=>{const timer=setInterval(()=>setRetry(n=>n+1),60000),sub=AppState.addEventListener('change',s=>{if(s==='active')setRetry(n=>n+1)});return()=>{clearInterval(timer);sub.remove()}},[leagueId]);
  const ranked=useMemo(()=>rankFantasyPlayers(data?.players||[]),[data?.players]),rows=useMemo(()=>ranked.filter(p=>normal(p.name+' '+p.teams?.map(t=>t.category).join(' ')).includes(normal(query))),[ranked,query]);
  const player=selected?ranked.find(p=>p.id===selected):null;
  const value=v=>Number.isFinite(v)?v.toLocaleString('es-ES',{maximumFractionDigits:2}):'—';

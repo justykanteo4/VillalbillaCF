@@ -1,12 +1,12 @@
 {
-  "id": "2026.11.15.1",
+  "id": "2026.11.15.2",
   "date": "2026-11-15",
-  "title": "Fantasy: movimientos de liga y tarjeta de fichaje",
+  "title": "Fantasy: ventas en mercado y resumen emergente",
   "changes": [
-    "Mercado muestra un resumen con los fichajes, traspasos y ventas completados por todos los participantes de la misma liga.",
-    "Cada movimiento incluye jugador y foto, importe de la operación, vendedor, comprador y fecha; tus operaciones quedan destacadas.",
-    "Puedes filtrar Toda la liga o Mis movimientos y consultar movimientos anteriores sin cargar todo el historial de golpe.",
-    "El resumen se guarda por cuenta y liga para mostrar primero la copia local y actualizar en segundo plano. Las pujas y ofertas pendientes continúan siendo privadas.",
-    "Al entrar en Fantasy aparece una tarjeta de tus nuevos fichajes adjudicados con foto, estadísticas y el precio pagado en la puja; Visto la retira también en otros dispositivos."
+    "Al vender un jugador se publica una sola vez en Ventas durante siete días desde la venta, con pujas y fecha de caducidad.",
+    "El mercado normal admite hasta 16 anuncios; los vendidos van en una sección independiente sin quitar ni ocupar esos huecos.",
+    "Al abrir Mercado aparece una ventana emergente con el resumen de los movimientos de la liga.",
+    "Mis operaciones incorpora Transacciones con el historial de la liga y el filtro Mis movimientos; las ofertas siguen disponibles en su pestaña.",
+    "Al pulsar una entrada de Mis pujas se abre la foto, el importe pujado, el valor de mercado y las estadísticas del jugador."
   ]
 }

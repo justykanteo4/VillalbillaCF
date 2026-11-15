@@ -1,9 +1,9 @@
 {
-  "id": "2026.11.15.17",
+  "id": "2026.11.15.18",
   "date": "2026-11-15",
-  "title": "Mejor portero del once y puntos por jornadas",
+  "title": "Once de la jornada por posiciones",
   "changes": [
-    "El once de la jornada incluye al portero con más puntos y a los diez jugadores de campo con mayor puntuación. Se respetan las posiciones manuales de los entrenadores.",
-    "Nueva sección Jornadas junto a Clasificación, con los puntos de cada participante desglosados por jornada."
+    "El once de la jornada busca una formación que respete defensas, centrocampistas y delanteros, con el portero de mayor puntuación.",
+    "Se priorizan las posiciones guardadas por los entrenadores y después los puntos. Los puestos adaptados o sin posición confirmada se indican en el campo."
   ]
 }

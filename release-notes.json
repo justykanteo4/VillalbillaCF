@@ -1,9 +1,9 @@
 {
-  "id": "2026.11.15.13",
+  "id": "2026.11.15.14",
   "date": "2026-11-15",
-  "title": "Premios Fantasy con patrocinadores",
+  "title": "Control de avisos de votos",
   "changes": [
-    "Al entrar en Fantasy, los premios abonados se presentan en una ventana con un patrocinador aleatorio del club, el puesto y el importe recibido.",
-    "El aviso se guarda como visto en tu cuenta y no vuelve a ingresar el premio. Los ajustes posteriores se muestran con su importe real."
+    "Los administradores pueden activar o desactivar Avisos de votos en Ajustes → Notificaciones.",
+    "La preferencia se guarda por cuenta para todos sus dispositivos. No afecta a resultados ni a solicitudes de acceso; al reactivarla no se envían avisos atrasados."
   ]
 }

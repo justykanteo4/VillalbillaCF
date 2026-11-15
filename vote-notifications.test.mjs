@@ -6,3 +6,26 @@ test('each new selection and candidate change alerts only admin, retry and rejec
 test('delivery failure preserves vote and queues retry; removed admin is never notified',async t=>{const {env,social,privateDb}=setup(t);vote(social);await dispatchVoteNotifications(env,{send:async()=>{throw Error('offline')}});const job=social.prepare('SELECT * FROM vote_notice_jobs').get();assert.equal(job.status,'pending');assert.equal(job.attempts,1);assert.equal(social.prepare('SELECT SUM(points) n FROM social_ballots').get().n,3);privateDb.exec('DELETE FROM access_admin_devices');await dispatchVoteNotifications(env,{now:Date.now()+61000,send:async()=>assert.fail('removed admin')});assert.equal(social.prepare('SELECT status FROM vote_notice_jobs').get().status,'cancelled')});
 test('existing votes produce no historical alerts on migration and migration is repeatable',t=>{const sql=new DatabaseSync(':memory:');t.after(()=>sql.close());sql.exec(readFileSync('social-schema.sql','utf8'));vote(sql);sql.exec(readFileSync('vote-notifications-schema.sql','utf8'));sql.exec(readFileSync('vote-notifications-schema.sql','utf8'));assert.equal(sql.prepare('SELECT COUNT(*) n FROM vote_notice_events').get().n,0);vote(sql,'two');assert.equal(sql.prepare('SELECT COUNT(*) n FROM vote_notice_events').get().n,1)});
 test('successful voting schedules delivery in background without affecting response',async t=>{const {env,social}=setup(t),pending=[];const {handleSocial}=await import('./social-service.mjs');const catalog=JSON.parse(readFileSync('social-candidates.json'));env.VISITS_DB.prepare=()=>{throw Error('Provider temporarily unavailable')};const response=await handleSocial(new Request('https://club.test/api/social/votes?category=player',{method:'POST',body:JSON.stringify({candidateId:catalog.player[0].id,points:3})}),env,{voteAccess:async()=>({canVote:true}),verify:async()=> 'user',ctx:{waitUntil:job=>pending.push(job)}});assert.equal(response.status,200);assert.equal(pending.length,1);await Promise.all(pending);assert.equal(social.prepare('SELECT COUNT(*) n FROM vote_notice_events').get().n,1);assert.equal(social.prepare('SELECT SUM(points) n FROM social_ballots').get().n,3)});
+
+test('silenciar votos se guarda por administrador, cancela reintentos y reactivar no envía atrasados',async t=>{
+ const {env,social,privateDb}=setup(t),sent=[],now=Date.now(),{handleVoteNotificationPreferences:handle}=await import('./vote-notification-preferences.mjs');
+ const call=(method,value,uid='admin')=>handle(new Request('https://app.test/api/access/vote-notifications',{method,...(value===undefined?{}:{body:JSON.stringify(value)})}),env,{authorize:async()=>uid,now});
+ assert.equal((await (await call('GET')).json()).enabled,true);vote(social);social.prepare('UPDATE vote_notice_events SET created_at=?').run(now-100);
+ await dispatchVoteNotifications(env,{now,send:async()=>{throw Error('offline')}});
+ assert.equal((await call('POST',{enabled:false,uid:'other'})).status,200);assert.equal((await (await call('GET')).json()).enabled,false);assert.equal((await (await call('GET',undefined,'other')).json()).enabled,true);
+ await dispatchVoteNotifications(env,{now:now+61000,send:async()=>assert.fail('muted')});assert.equal(social.prepare('SELECT status FROM vote_notice_jobs').get().status,'cancelled');
+ assert.equal(privateDb.prepare('SELECT enabled FROM access_push_tokens WHERE uid=?').get('admin').enabled,1);assert.equal(privateDb.prepare('SELECT COUNT(*) n FROM access_admin_devices').get().n,1);
+ assert.equal((await call('POST',{enabled:true})).status,200);await dispatchVoteNotifications(env,{now:now+62000,send:async()=>assert.fail('historical')});
+ vote(social,'two');social.prepare('UPDATE vote_notice_events SET created_at=? WHERE rowid=(SELECT MAX(rowid) FROM vote_notice_events)').run(now+63000);
+ await dispatchVoteNotifications(env,{now:now+64000,send:sender(sent)});assert.equal(sent.length,1);assert.equal(social.prepare('SELECT SUM(points) n FROM social_ballots').get().n,3);
+ const unchanged=privateDb.prepare('SELECT updated_at FROM vote_notification_preferences').get().updated_at;await handle(new Request('https://app.test/api/access/vote-notifications',{method:'POST',body:JSON.stringify({enabled:true})}),env,{authorize:async()=> 'admin',now:now+90000});assert.equal(privateDb.prepare('SELECT updated_at FROM vote_notification_preferences').get().updated_at,unchanged);
+});
+
+test('preferencias de votos exigen administrador, booleano y origen propio',async t=>{
+ const {env}=setup(t),{handleVoteNotificationPreferences:handle}=await import('./vote-notification-preferences.mjs'),url='https://app.test/api/access/vote-notifications';
+ assert.equal((await handle(new Request(url),env,{authorize:async()=>{throw Object.assign(Error('Solo administrador'),{status:403})}})).status,403);
+ const deps={authorize:async()=> 'admin'};
+ for(const value of [{enabled:'false'},null,{}])assert.equal((await handle(new Request(url,{method:'POST',body:JSON.stringify(value)}),env,deps)).status,400);
+ assert.equal((await handle(new Request(url,{method:'POST',headers:{Origin:'https://other.test'},body:'{"enabled":false}'}),env,deps)).status,403);
+ assert.equal((await handle(new Request(url,{method:'DELETE'}),env,deps)).status,405);
+});

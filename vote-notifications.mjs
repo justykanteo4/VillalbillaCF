@@ -2,12 +2,12 @@ const labels={player:'mejor jugador',team:'mejor equipo',trainer:'entrenadores y
 // Ballot triggers commit events atomically. Delivery never changes a ballot.
 export async function dispatchVoteNotifications(env,{send=fetch,now=Date.now()}={}){
  const db=env.CHAT_DB,privateDb=env.VISITS_DB;if(!db||!privateDb)return;
- const admins=await privateDb.prepare('SELECT a.token_id,a.uid,s.token FROM access_admin_devices a JOIN access_push_tokens s ON s.id=a.token_id AND s.uid=a.uid AND s.enabled=1').all();
- for(const admin of admins.results)await db.prepare('INSERT OR IGNORE INTO vote_notice_jobs(event_id,token_id,admin_uid) SELECT id,?,? FROM vote_notice_events WHERE created_at>=?').bind(admin.token_id,admin.uid,now-86400000).run();
+ const admins=await privateDb.prepare('SELECT a.token_id,a.uid,s.token,COALESCE(p.updated_at,0) AS votes_since FROM access_admin_devices a JOIN access_push_tokens s ON s.id=a.token_id AND s.uid=a.uid AND s.enabled=1 LEFT JOIN vote_notification_preferences p ON p.uid=a.uid WHERE COALESCE(p.enabled,1)=1').all();
+ for(const admin of admins.results)await db.prepare('INSERT OR IGNORE INTO vote_notice_jobs(event_id,token_id,admin_uid) SELECT id,?,? FROM vote_notice_events WHERE created_at>=?').bind(admin.token_id,admin.uid,Math.max(now-86400000,admin.votes_since)).run();
  await db.prepare("UPDATE vote_notice_jobs SET status='pending' WHERE status='sending' AND claimed_at<?").bind(now-120000).run();
- const jobs=await db.prepare("SELECT j.*,e.category,e.points FROM vote_notice_jobs j JOIN vote_notice_events e ON e.id=j.event_id WHERE j.status='pending' AND j.attempts<5 AND j.next_at<=? AND e.created_at>=? ORDER BY e.created_at,j.event_id LIMIT 5").bind(now,now-86400000).all();
+ const jobs=await db.prepare("SELECT j.*,e.category,e.points,e.created_at AS event_created_at FROM vote_notice_jobs j JOIN vote_notice_events e ON e.id=j.event_id WHERE j.status='pending' AND j.attempts<5 AND j.next_at<=? AND e.created_at>=? ORDER BY e.created_at,j.event_id LIMIT 5").bind(now,now-86400000).all();
  await Promise.all(jobs.results.map(async job=>{
-  const admin=await privateDb.prepare('SELECT s.token FROM access_admin_devices a JOIN access_push_tokens s ON s.id=a.token_id AND s.uid=a.uid AND s.enabled=1 WHERE a.token_id=? AND a.uid=?').bind(job.token_id,job.admin_uid).first();
+  const admin=await privateDb.prepare('SELECT s.token FROM access_admin_devices a JOIN access_push_tokens s ON s.id=a.token_id AND s.uid=a.uid AND s.enabled=1 LEFT JOIN vote_notification_preferences p ON p.uid=a.uid WHERE a.token_id=? AND a.uid=? AND COALESCE(p.enabled,1)=1 AND COALESCE(p.updated_at,0)<=?').bind(job.token_id,job.admin_uid,job.event_created_at).first();
   if(!admin){await db.prepare("UPDATE vote_notice_jobs SET status='cancelled' WHERE event_id=? AND token_id=? AND admin_uid=?").bind(job.event_id,job.token_id,job.admin_uid).run();return}
   const claim=await db.prepare("UPDATE vote_notice_jobs SET status='sending',claimed_at=?,attempts=attempts+1 WHERE event_id=? AND token_id=? AND admin_uid=? AND status='pending'").bind(now,job.event_id,job.token_id,job.admin_uid).run();if(!claim.meta?.changes)return;
   try{

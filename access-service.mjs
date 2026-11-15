@@ -1,3 +1,4 @@
+import {handleVoteNotificationPreferences} from './vote-notification-preferences.mjs';
 import {handleAdminRevocation} from './admin-revocation-service.mjs';
 import {handleAdminAccess,dispatchAdminAccessNotifications} from './admin-access-service.mjs';
 import {createRemoteJWKSet,jwtVerify} from 'jose';
@@ -11,6 +12,7 @@ const hash=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SH
 async function queue(db,uid,noticeId){await db.prepare("INSERT OR IGNORE INTO access_push_jobs(notice_id,subscription_id) SELECT n.id,s.id FROM access_notice_events n JOIN access_push_tokens s ON n.uid=s.uid AND s.enabled=1 WHERE n.uid=? AND n.id=? AND n.created_at>=?").bind(uid,uid+':'+noticeId,Date.now()-7*86400000).run()}
 export async function handleAccess(request,env,ctx,{verifyUser=verifyAccessUser,authorize=verifyAdmin,profile=approvedProfile,requestProfile}={}){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/access/'))return null;
+ const votePreferences=await handleVoteNotificationPreferences(request,env,{authorize});if(votePreferences)return votePreferences;
  const revoked=await handleAdminRevocation(request,env,{verifyUser,authorize});if(revoked)return revoked;
  const adminResponse=await handleAdminAccess(request,env,ctx,{verifyUser,authorize,requestProfile});if(adminResponse)return adminResponse;
  try{

@@ -181,3 +181,9 @@ La clasificación no sumaba los jugadores porque el selector antiguo, al superar
 En la sincronización de posiciones, una entrada antigua de un jugador fuera del catálogo hacía fallar todo el lote. Las entradas numéricas fuera de la plantilla/refuerzos conocidos se omiten sin modificar otros jugadores; las posiciones válidas sí se guardan. La respuesta distingue aceptadas y omitidas. Se mantiene la comprobación de equipo, tipos, posiciones permitidas, fechas y autorización. Datos malformados siguen rechazándose. El aviso se limpia al cambiar a un equipo ya sincronizado. Se importaron las posiciones válidas existentes desde el espacio verificado de Primera Aficionado, preservando cualquier corrección compartida anterior. La copia y el SQL con esos datos son privados y no se incluyen en Git ni en la app.
 
 Validación: 426 pruebas, incluida recuperación idempotente con puntos, futuro intacto y protección de un once actual editado, más lote mixto de posiciones válidas/antiguas sin ampliar permisos. Publicación conserva runtimes Android 0.1.11/0.1.12 y las copias deportivas anteriores.
+
+### Posición visible en Fantasy — 2026.11.15.8
+
+`FantasyPlayerPosition` muestra la posición ya resuelta por el servidor, con prioridad a la edición compartida del entrenador. Se reutiliza en plantilla y presentación, mercado/búsqueda, Mis pujas y su ficha, ranking y estadísticas, confirmación de venta y presentación de fichaje. En el campo del once usa POR/DEF/MED/DEL y en la selección muestra el nombre completo. Sin posición publicada no se asigna una por suposición. La etiqueta accesible identifica las posiciones manuales sin añadir peticiones ni consultas de actas.
+
+Validación: 426 pruebas existentes y pantalla móvil de 360 px con posición manual en ranking, ficha, campo y selector, posición desconocida y ausencia de desbordamiento. No cambia las reglas de alineación, las estadísticas, las posiciones almacenadas ni los permisos.

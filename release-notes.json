@@ -1,11 +1,10 @@
 {
-  "id": "2026.11.15.7",
+  "id": "2026.11.15.8",
   "date": "2026-11-15",
-  "title": "Corrección de puntos y sincronización de posiciones",
+  "title": "Posiciones visibles en toda la zona Fantasy",
   "changes": [
-    "Se recuperan para la jornada actual los onces que la interfaz anterior guardó por error en la semana siguiente; se conserva la alineación futura.",
-    "El once muestra claramente la jornada a la que pertenecen sus puntos. Solo suman sus once jugadores y el capitán doble.",
-    "Una posición antigua de un jugador fuera del catálogo ya no bloquea la sincronización de las demás posiciones válidas.",
-    "Se conservan las posiciones compartidas más recientes y se corrige el aviso de sincronización entre equipos."
+    "La posición de campo aparece en plantilla, mercado, búsquedas, pujas, clasificación y fichas de jugador, también al comprar o vender.",
+    "El campo del once muestra POR, DEF, MED o DEL junto a cada jugador; el selector muestra la posición completa.",
+    "Se usa la posición compartida guardada por los entrenadores con prioridad sobre la federativa. Si no hay posición publicada, se indica sin inventarla."
   ]
 }

@@ -1,11 +1,11 @@
 {
-  "id": "2026.11.15.9",
+  "id": "2026.11.15.10",
   "date": "2026-11-15",
-  "title": "Puntos sobre las fotos del once y nueva jornada el lunes",
+  "title": "Carrusel de patrocinadores en Noticias",
   "changes": [
-    "El once inicial muestra sobre cada foto los puntos ganados en esa jornada, con negativos, MVP, once ideal y el doble del capitán incluidos.",
-    "Se indican las actas pendientes y los puntos provisionales, sin confundirlos con el acumulado de temporada.",
-    "La nueva alineación se prepara desde el lunes a las 00:00 de Madrid. El once cambia de jornada automáticamente y conserva los históricos.",
-    "Los puntos se actualizan con las actas mientras se consulta el campo. Los cambios sin guardar no se presentan como puntos ganados."
+    "Al final de Noticias aparece un carrusel con los 18 patrocinadores del archivo aportado, incluidos los cuatro documentos PDF.",
+    "Los logotipos tienen fondo transparente y letras oscuras aclaradas para leerse sobre la app. Se corrige la orientación cuando hace falta.",
+    "Todas las imágenes se muestran en el mismo marco, completas y sin deformarlas. Cambian automáticamente cada cuatro segundos.",
+    "Incluye anterior, siguiente y pausa. Se detiene fuera de pantalla y en segundo plano; las imágenes se incluyen en la app para su consulta sin conexión."
   ]
 }

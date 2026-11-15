@@ -1,3 +1,4 @@
+import SponsorCarousel from './SponsorCarousel';
 import {publishAdminTaskNews,subscribeAdminTaskNews} from './AdminPendingTasks';
 import AdminMatchMvp from './AdminMatchMvp';
 import AdminResultEditor from './AdminResultEditor';
@@ -92,6 +93,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
       {!!error&&<Text style={s.warning}>{error}</Text>}
       <FavoritePlayers favoritePlayerIds={favoritePlayerIds}/>
       <VisitCounter/>
+      <SponsorCarousel/>
     </>}
   </View>;
 }

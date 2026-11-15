@@ -1,11 +1,10 @@
 {
-  "id": "2026.11.15.10",
+  "id": "2026.11.15.11",
   "date": "2026-11-15",
-  "title": "Carrusel de patrocinadores en Noticias",
+  "title": "Patrocinadores: cambio automático o deslizando",
   "changes": [
-    "Al final de Noticias aparece un carrusel con los 18 patrocinadores del archivo aportado, incluidos los cuatro documentos PDF.",
-    "Los logotipos tienen fondo transparente y letras oscuras aclaradas para leerse sobre la app. Se corrige la orientación cuando hace falta.",
-    "Todas las imágenes se muestran en el mismo marco, completas y sin deformarlas. Cambian automáticamente cada cuatro segundos.",
-    "Incluye anterior, siguiente y pausa. Se detiene fuera de pantalla y en segundo plano; las imágenes se incluyen en la app para su consulta sin conexión."
+    "Se eliminan las flechas del carrusel de patrocinadores.",
+    "Los logotipos siguen cambiando automáticamente cada cuatro segundos y también se pueden pasar deslizando a izquierda o derecha.",
+    "Se mantiene el mismo diseño, las imágenes, el contador y la pausa. El gesto horizontal respeta el desplazamiento vertical de Noticias."
   ]
 }

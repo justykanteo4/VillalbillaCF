@@ -211,3 +211,6 @@ El carrusel mantiene su diseño y cambio automático cada cuatro segundos, y per
 
 ### 2026.11.15.12 — Sin contador de patrocinadores
 Se retira únicamente el contador visible del carrusel. Se conservan navegación accesible, cambio automático, deslizamiento y pausa.
+
+### 2026.11.15.13 — Premios Fantasy patrocinados
+FantasyPrizeReceipt presenta al entrar los ingresos reales de fantasy_prize_events, con un logo existente del carrusel elegido por distribución estable del identificador del premio. No ejecuta liquidaciones ni modifica saldos. Agrupa por liga/jornada y suma ajustes pendientes para evitar mostrar importes antiguos; los ajustes negativos se distinguen. GET/POST /prize-receipts conservan controles de cuenta, pertenencia y equipo autorizado. El acuse en fantasy_prize_seen persiste entre dispositivos, es idempotente y cubre solo eventos hasta el mostrado (no oculta ajustes concurrentes). Requiere aplicar fantasy-prize-receipts-schema.sql a CHAT_DB antes del Worker. Lectura sin caché de saldo ni invalidación de copias por marcar visto. Diseño oscuro/dorado, imágenes originales, diálogo desplazable en pantallas pequeñas. Pruebas de premios 10/8/6/5, permisos, lectura repetida, agregación, ajustes concurrentes y saldo inalterado; interfaz en móvil pequeño, móvil y escritorio, incluido reintento sin conexión.

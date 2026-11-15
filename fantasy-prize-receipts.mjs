@@ -1,0 +1,8 @@
+const joins=`FROM fantasy_prize_events e JOIN fantasy_leagues l ON l.id=e.league_id JOIN fantasy_members m ON m.league_id=e.league_id AND m.uid=e.uid LEFT JOIN fantasy_league_groups g ON g.league_id=l.id `;
+const where=`WHERE e.uid=? AND COALESCE(g.team_id,json_extract(l.pool_json,'$.teamId')) IN(SELECT value FROM json_each(?))`;
+export async function pendingPrize(db,uid,allowed){return db.prepare(`SELECT MAX(e.id) AS id,e.league_id,e.week,SUM(e.amount_cents) AS amount_cents,MAX(e.created_at) AS created_at,SUM(e.kind='prize') AS initial,l.name,l.mode,COALESCE(g.team_id,json_extract(l.pool_json,'$.teamId')) AS team_id,p.position,p.amount_cents AS total_cents,p.provisional ${joins} JOIN fantasy_weekly_prizes p ON p.league_id=e.league_id AND p.uid=e.uid AND p.week=e.week ${where} AND NOT EXISTS(SELECT 1 FROM fantasy_prize_seen s WHERE s.uid=e.uid AND s.event_id=e.id) GROUP BY e.league_id,e.week HAVING SUM(e.amount_cents)!=0 ORDER BY created_at DESC,id DESC LIMIT 1`).bind(uid,JSON.stringify(allowed)).first()}
+export async function acknowledgePrize(db,uid,allowed,eventId,now){
+ if(!Number.isSafeInteger(eventId)||eventId<1)throw Object.assign(Error('Premio no válido.'),{status:400});
+ const row=await db.prepare(`SELECT e.league_id,e.week ${joins} ${where} AND e.id=?`).bind(uid,JSON.stringify(allowed),eventId).first();if(!row)throw Object.assign(Error('Premio no encontrado.'),{status:404});
+ await db.prepare('INSERT OR IGNORE INTO fantasy_prize_seen SELECT uid,id,? FROM fantasy_prize_events WHERE uid=? AND league_id=? AND week=? AND id<=?').bind(now,uid,row.league_id,row.week,eventId).run();return {seen:true};
+}

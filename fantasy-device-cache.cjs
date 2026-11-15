@@ -9,7 +9,7 @@ function createFantasyCache({read,save,now=Date.now}){
  async function revoke(uid){await invalidate(uid);await invalidate(uid,true)}
  return async function cached(uid,path,options,fetcher){
   const method=options.method||'GET',identity=path==='/preview',version=await epoch(uid,identity),vkey=versionKey(uid,identity),key='fantasy.private.v1.'+uid+'.'+path+(options.scope?'#'+encodeURIComponent(options.scope):''),allowed=method==='GET'&&(identity||/^\/leagues(?:$|\/[a-zA-Z0-9-]+\/(?:squad|market|search|alerts|lineup|table|transactions|coaches|players|market-history)(?:\?|$))/.test(path));
-  if(!allowed){try{const result=await fetcher();if(method!=='GET'&&path!=='/purchase-receipts/seen'){if(path==='/admin/access')await revoke(uid);else await invalidate(uid)}return result}catch(error){if(error.status===401||error.status===403)await revoke(uid);throw error}}
+  if(!allowed){try{const result=await fetcher();if(method!=='GET'&&!['/purchase-receipts/seen','/prize-receipts/seen'].includes(path)){if(path==='/admin/access')await revoke(uid);else await invalidate(uid)}return result}catch(error){if(error.status===401||error.status===403)await revoke(uid);throw error}}
   let copy=await stored(key),directoryOnly=false;if(copy&&Date.parse(copy.savedAt)<=version){if(path==='/leagues'&&Array.isArray(copy.data?.leagues)&&Date.parse(copy.savedAt)>await epoch(uid,true)){directoryOnly=true;copy={...copy,data:{...copy.data,leagues:copy.data.leagues.map(({finance,...league})=>league)}}}else copy=null;}
   if(copy)options.onCached?.({...copy.data,fromCache:true});
   if(copy&&!directoryOnly&&now()-Date.parse(copy.savedAt)>=0&&now()-Date.parse(copy.savedAt)<15000&&options.cache!=='reload')return {...copy.data,fromCache:true};

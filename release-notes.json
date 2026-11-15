@@ -1,8 +1,9 @@
 {
-  "id": "2026.11.15.12",
+  "id": "2026.11.15.13",
   "date": "2026-11-15",
-  "title": "Patrocinadores sin contador",
+  "title": "Premios Fantasy con patrocinadores",
   "changes": [
-    "Se elimina el contador de imágenes del carrusel de patrocinadores. Se mantienen el cambio automático, el deslizamiento y la pausa."
+    "Al entrar en Fantasy, los premios abonados se presentan en una ventana con un patrocinador aleatorio del club, el puesto y el importe recibido.",
+    "El aviso se guarda como visto en tu cuenta y no vuelve a ingresar el premio. Los ajustes posteriores se muestran con su importe real."
   ]
 }

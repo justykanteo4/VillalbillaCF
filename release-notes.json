@@ -1,10 +1,8 @@
 {
-  "id": "2026.11.15.11",
+  "id": "2026.11.15.12",
   "date": "2026-11-15",
-  "title": "Patrocinadores: cambio automático o deslizando",
+  "title": "Patrocinadores sin contador",
   "changes": [
-    "Se eliminan las flechas del carrusel de patrocinadores.",
-    "Los logotipos siguen cambiando automáticamente cada cuatro segundos y también se pueden pasar deslizando a izquierda o derecha.",
-    "Se mantiene el mismo diseño, las imágenes, el contador y la pausa. El gesto horizontal respeta el desplazamiento vertical de Noticias."
+    "Se elimina el contador de imágenes del carrusel de patrocinadores. Se mantienen el cambio automático, el deslizamiento y la pausa."
   ]
 }

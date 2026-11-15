@@ -208,3 +208,6 @@ Los PNG se incluyen como recursos estáticos de web y APK, sin nuevos módulos n
 
 ### 2026.11.15.11 — Patrocinadores sin flechas
 El carrusel mantiene su diseño y cambio automático cada cuatro segundos, y permite deslizar horizontalmente en ambos sentidos. Se conservan el contador, la pausa, el desplazamiento vertical de Noticias y los controles accesibles por teclado/lector. La dirección del gesto se captura antes del actualizador de estado, evitando reutilizar el objeto mutable de PanResponder. Verificado con gestos táctiles de navegador, pausa, desplazamiento vertical y movimiento reducido; pruebas y comprobación de publicación correctas.
+
+### 2026.11.15.12 — Sin contador de patrocinadores
+Se retira únicamente el contador visible del carrusel. Se conservan navegación accesible, cambio automático, deslizamiento y pausa.

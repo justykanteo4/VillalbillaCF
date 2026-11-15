@@ -1,10 +1,11 @@
 {
-  "id": "2026.11.15.8",
+  "id": "2026.11.15.9",
   "date": "2026-11-15",
-  "title": "Posiciones visibles en toda la zona Fantasy",
+  "title": "Puntos sobre las fotos del once y nueva jornada el lunes",
   "changes": [
-    "La posición de campo aparece en plantilla, mercado, búsquedas, pujas, clasificación y fichas de jugador, también al comprar o vender.",
-    "El campo del once muestra POR, DEF, MED o DEL junto a cada jugador; el selector muestra la posición completa.",
-    "Se usa la posición compartida guardada por los entrenadores con prioridad sobre la federativa. Si no hay posición publicada, se indica sin inventarla."
+    "El once inicial muestra sobre cada foto los puntos ganados en esa jornada, con negativos, MVP, once ideal y el doble del capitán incluidos.",
+    "Se indican las actas pendientes y los puntos provisionales, sin confundirlos con el acumulado de temporada.",
+    "La nueva alineación se prepara desde el lunes a las 00:00 de Madrid. El once cambia de jornada automáticamente y conserva los históricos.",
+    "Los puntos se actualizan con las actas mientras se consulta el campo. Los cambios sin guardar no se presentan como puntos ganados."
   ]
 }

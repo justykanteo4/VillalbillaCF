@@ -6,3 +6,5 @@ END;
 CREATE TRIGGER IF NOT EXISTS fantasy_sale_relist AFTER INSERT ON fantasy_player_sales BEGIN
  INSERT INTO fantasy_market_listings(id,league_id,player_id,listed_day,slot) VALUES('resale-'||NEW.id,NEW.league_id,NEW.player_id,CAST(NEW.created_at/86400000 AS INTEGER),COALESCE((SELECT MIN(slot) FROM fantasy_market_listings WHERE league_id=NEW.league_id AND listed_day=CAST(NEW.created_at/86400000 AS INTEGER)),0)-1);
 END;
+
+CREATE TABLE IF NOT EXISTS fantasy_market_top_weeks(league_id TEXT NOT NULL,week INTEGER NOT NULL,listing_id TEXT NOT NULL,PRIMARY KEY(league_id,week),FOREIGN KEY(league_id) REFERENCES fantasy_leagues(id));

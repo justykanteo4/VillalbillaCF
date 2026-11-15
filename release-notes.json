@@ -1,12 +1,10 @@
 {
-  "id": "2026.11.15.2",
+  "id": "2026.11.15.3",
   "date": "2026-11-15",
-  "title": "Fantasy: ventas en mercado y resumen emergente",
+  "title": "Fantasy: mercado completo y TOP semanal",
   "changes": [
-    "Al vender un jugador se publica una sola vez en Ventas durante siete días desde la venta, con pujas y fecha de caducidad.",
-    "El mercado normal admite hasta 16 anuncios; los vendidos van en una sección independiente sin quitar ni ocupar esos huecos.",
-    "Al abrir Mercado aparece una ventana emergente con el resumen de los movimientos de la liga.",
-    "Mis operaciones incorpora Transacciones con el historial de la liga y el filtro Mis movimientos; las ofertas siguen disponibles en su pestaña.",
-    "Al pulsar una entrada de Mis pujas se abre la foto, el importe pujado, el valor de mercado y las estadísticas del jugador."
+    "El mercado se rellena con 16 jugadores disponibles y repone los huecos tras compras y caducidades.",
+    "Cada semana entra un jugador TOP disponible; las reposiciones adicionales son jugadores sin TOP.",
+    "Los jugadores vendidos siguen en Ventas, aparte de los 16 anuncios normales."
   ]
 }

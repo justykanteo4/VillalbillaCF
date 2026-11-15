@@ -1,10 +1,9 @@
 {
-  "id": "2026.11.15.16",
+  "id": "2026.11.15.17",
   "date": "2026-11-15",
-  "title": "Once de la jornada y ofertas desde jugadores",
+  "title": "Mejor portero del once y puntos por jornadas",
   "changes": [
-    "En Clasificación → Jugadores aparece el once con más puntos de la última jornada con datos, seguido de la clasificación completa.",
-    "Desde la ficha de un jugador rival de tu liga puedes enviar una oferta. Su propietario recibe una notificación que abre las ofertas de esa liga.",
-    "El resumen del mercado solo se abre automáticamente en la primera visita; puedes volver a consultarlo con su botón."
+    "El once de la jornada incluye al portero con más puntos y a los diez jugadores de campo con mayor puntuación. Se respetan las posiciones manuales de los entrenadores.",
+    "Nueva sección Jornadas junto a Clasificación, con los puntos de cada participante desglosados por jornada."
   ]
 }

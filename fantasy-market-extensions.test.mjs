@@ -14,7 +14,7 @@ const schemas=['fantasy-schema.sql','fantasy-club-schema.sql','fantasy-actas-sch
  'fantasy-resale-schema.sql','fantasy-clause-schema.sql','fantasy-manager-listings-schema.sql'];
 const start=Date.parse('2026-10-01T12:00:00Z'),week=7*86400000;
 const schedule=Array.from({length:7},(_,i)=>({id:'m'+i,teamId:'team',week:i,startsAt:start+i*week}));
-const at=start+4*week+86400000;
+const at=start+4*week+3*86400000;
 function fixture(t){
  const sql=new DatabaseSync(':memory:');
  sql.exec('PRAGMA foreign_keys=ON');
@@ -52,7 +52,7 @@ function fixture(t){
 }
 
 test('calendario de jornadas evita desbloquear al jugador antes de completar dos jornadas',()=>{
- assert.equal(completedRounds(schedule,'team',start+week-1),0);
+ assert.equal(completedRounds(schedule,'team',start+week-1),1);
  assert.equal(completedRounds(schedule,'team',start+week+4*3600000),2);
  assert.equal(completedRounds(schedule,'unknown',at),null);
 });

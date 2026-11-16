@@ -36,3 +36,11 @@ WHEN SUBSTR(NEW.request_id,1,9)='!manager-' BEGIN
     AND NEW.buyer_uid!=NEW.seller_uid
  ) THEN RAISE(ABORT,'FANTASY_MANAGER_AUCTION_PROOF') END;
 END;
+
+-- Do not sell directly while a manager auction is still open.
+CREATE TRIGGER IF NOT EXISTS fantasy_sale_manager_listing_guard BEFORE INSERT ON fantasy_player_sales
+WHEN EXISTS(SELECT 1 FROM fantasy_manager_listings m JOIN fantasy_market_listings l ON l.id=m.listing_id
+ WHERE m.league_id=NEW.league_id AND m.ownership_id=NEW.ownership_id AND l.retired_day IS NULL AND m.expires_at>NEW.created_at)
+BEGIN
+ SELECT RAISE(ABORT,'FANTASY_LISTED');
+END;

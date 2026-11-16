@@ -3,6 +3,7 @@
 // All amounts are in integer cents of a Fantasy million (1 M = 100 cents).
 const INITIAL_CLAUSE_MULTIPLIER = 1.5;
 const PROTECTION_MS = 7 * 24 * 60 * 60 * 1000;
+const BOOST_DURATION_ROUNDS = 2;
 const MAX_SQUAD = 16;
 const MIN_SQUAD = 12;
 
@@ -15,7 +16,17 @@ function initialClauseCents(marketValue) {
   return Math.ceil(toCents(marketValue) * 3 / 2);
 }
 
-function clauseCents(marketValue, extraCents = 0) {
+function boostExpiresAtRound(startRound) {
+  if (!Number.isSafeInteger(startRound) || startRound < 0) throw new RangeError('Jornada no válida');
+  return startRound + BOOST_DURATION_ROUNDS;
+}
+
+function isBoostActive(startRound, currentRound) {
+  return Number.isSafeInteger(currentRound) && currentRound >= startRound && currentRound < boostExpiresAtRound(startRound);
+}
+
+function clauseCents(marketValue, extraCents = 0, startRound = null, currentRound = null) {
+  if (startRound !== null && !isBoostActive(startRound, currentRound)) extraCents = 0;
   if (!Number.isSafeInteger(extraCents) || extraCents < 0) throw new RangeError('Ampliación no válida');
   return initialClauseCents(marketValue) + extraCents;
 }
@@ -43,5 +54,6 @@ function canPayClause({enabled, acquiredAt, now, buyerCount, sellerCount, transf
   return '';
 }
 
-module.exports = {INITIAL_CLAUSE_MULTIPLIER, PROTECTION_MS, MAX_SQUAD, MIN_SQUAD,
+module.exports = {INITIAL_CLAUSE_MULTIPLIER, PROTECTION_MS, BOOST_DURATION_ROUNDS, MAX_SQUAD, MIN_SQUAD,
+  boostExpiresAtRound, isBoostActive,
   initialClauseCents, clauseCents, protectedUntil, isProtected, canPayClause};

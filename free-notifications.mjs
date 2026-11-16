@@ -63,6 +63,7 @@ export async function handleFreeNotifications(request,env,ctx){
    }else if(value.provider!=='expo'||!/^Expo(?:nent)?PushToken\[[A-Za-z0-9_-]+\]$/.test(value.token||''))throw error('Dispositivo no válido.');
    const destination=await hash(value.provider==='web'?value.subscription.endpoint:value.token);
    const payload=JSON.stringify(value.provider==='web'?value.subscription:{token:value.token});
+   const registered=await db.prepare('SELECT destination,provider,payload,team_ids,player_ids,enabled FROM push_subscriptions WHERE id=?').bind(id).first();if(registered?.enabled===1&&registered.destination===destination&&registered.provider===value.provider&&registered.payload===payload&&registered.team_ids===JSON.stringify(value.teamIds)&&registered.player_ids===JSON.stringify(value.playerIds))return reply({enabled:true});
    const count=await db.prepare('SELECT count(*) AS n FROM push_subscriptions WHERE enabled=1 AND id<>? AND destination<>?').bind(id,destination).first();
    if(count.n>=FREE_LIMITS.subscriptions)throw error('Se ha alcanzado el límite gratuito de dispositivos. Puedes seguir leyendo los avisos dentro de la app.',429);
    const saved=await db.batch([

@@ -53,3 +53,8 @@ CREATE TRIGGER IF NOT EXISTS fantasy_ideal_credit AFTER INSERT ON fantasy_ideal_
  UPDATE fantasy_wallets SET delta_units=(SELECT delta_cents/50.0 FROM fantasy_wallet_cents v WHERE v.league_id=NEW.league_id AND v.uid=NEW.uid) WHERE league_id=NEW.league_id AND uid=NEW.uid;
 END;
 CREATE TABLE IF NOT EXISTS fantasy_club_round_closures(week INTEGER PRIMARY KEY,closed_at INTEGER NOT NULL);
+
+CREATE INDEX IF NOT EXISTS fantasy_live_updated ON fantasy_live_matches(updated_at);
+CREATE INDEX IF NOT EXISTS fantasy_award_week ON fantasy_awards(week,kind,player_id);
+CREATE INDEX IF NOT EXISTS fantasy_manager_league ON fantasy_managers(league_id,initialized_at,uid);
+CREATE INDEX IF NOT EXISTS fantasy_roster_member ON fantasy_roster(league_id,uid,player_id);

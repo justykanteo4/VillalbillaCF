@@ -85,7 +85,7 @@ test('los equipos elegidos para avisos no se reemplazan al cambiar los favoritos
  assert.deepEqual(resolveDeviceTargets({teamSelection:'custom',teamIds:[]},['b'],[]).teamIds,[]);
  assert.deepEqual(resolveDeviceTargets({},['b'],[]).teamIds,['b']);
 });
-test('guarda la selección, reintenta cambios sin red y conserva los equipos al desactivar',async t=>{
+test('guarda la selección, reintenta cambios sin red y conserva los equipos al desactivar',{timeout:5000},async t=>{
  const stored=new Map(),sent=[],privateRegistrations=[];let online=true,gate=null;
  global.__notificationTest={
   storage:{getItem:async key=>stored.get(key)||null,setItem:async(key,value)=>stored.set(key,value)},
@@ -116,7 +116,7 @@ test('guarda la selección, reintenta cambios sin red y conserva los equipos al 
  await service.updateNotificationTargets(['b'],[]);
  assert.deepEqual(sent.at(-1).teamIds,['a']);assert.match(sent[0].installationKey,/^[0-9a-f]{64}$/);
  const delayed=deferred();delayed.started=deferred();gate=delayed;
- const older=service.updateNotificationTargets(['b'],[]);await delayed.started.promise;
+ const older=service.saveNotificationTeams(['a'],[]);await delayed.started.promise;
  const newer=service.saveNotificationTeams(['b'],[]);
  await new Promise(resolve=>setImmediate(resolve));assert.deepEqual((await service.notificationPreferences()).teamIds,['b']);
  delayed.resolve();await Promise.all([older,newer]);assert.deepEqual(sent.at(-1).teamIds,['b']);

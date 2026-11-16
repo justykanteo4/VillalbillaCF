@@ -42,8 +42,8 @@ export async function enableNotifications(teamIds,playerIds,{admin=false}={}){
  await syncSavedPreferences();await registerAccessPush({prompt:false,admin}).catch(()=>{});return notificationPreferences();
 }
 export async function updateNotificationTargets(teamIds,playerIds){
- const next=await changePreferences(value=>value?{...value,...resolveDeviceTargets(value,teamIds,playerIds),pendingSync:!!(value.enabled||value.pendingSync)}:value);
- if(next?.pendingSync)await syncSavedPreferences({refreshRegistration:true});
+ const next=await changePreferences(value=>{if(!value)return value;const targets=resolveDeviceTargets(value,teamIds,playerIds);if(JSON.stringify(value.teamIds)===JSON.stringify(targets.teamIds)&&JSON.stringify(value.playerIds)===JSON.stringify(targets.playerIds))return value;return {...value,...targets,pendingSync:!!(value.enabled||value.pendingSync)}});
+ if(next?.enabled||next?.pendingSync)await syncSavedPreferences({refreshRegistration:true});
 }
 export async function saveNotificationTeams(teamIds,playerIds,choices={}){
  const next=await changePreferences(previous=>({...previous,receiveTeams:choices.receiveTeams??previous?.receiveTeams??true,receivePlayers:choices.receivePlayers??previous?.receivePlayers??true,enabled:!!previous?.enabled,...resolveDeviceTargets({teamSelection:'custom',teamIds,playerSelection:'custom',playerIds},teamIds,playerIds),teamSelection:'custom',playerSelection:'custom',pendingSync:!!(previous?.enabled||previous?.pendingSync)}));

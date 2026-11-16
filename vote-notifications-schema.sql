@@ -7,3 +7,6 @@ END;
 CREATE TRIGGER IF NOT EXISTS vote_notice_change AFTER UPDATE OF candidate_id ON social_ballots WHEN NEW.candidate_id<>OLD.candidate_id BEGIN
  INSERT INTO vote_notice_events VALUES(lower(hex(randomblob(16))),NEW.category,NEW.points,unixepoch()*1000);
 END;
+
+CREATE INDEX IF NOT EXISTS vote_notice_event_date ON vote_notice_events(created_at,id);
+CREATE TABLE IF NOT EXISTS vote_notice_cursors(token_id TEXT NOT NULL,admin_uid TEXT NOT NULL,last_created_at INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(token_id,admin_uid));

@@ -1,7 +1,7 @@
 'use strict';
 
 // All amounts are in integer cents of a Fantasy million (1 M = 100 cents).
-const INITIAL_CLAUSE_MULTIPLIER = 1.5;
+const INITIAL_CLAUSE_MULTIPLIER = 0.6;
 const NEW_SIGNING_PROTECTION_ROUNDS = 2;
 const BOOST_DURATION_ROUNDS = 2;
 const BOOST_MULTIPLIER = 2;
@@ -14,8 +14,8 @@ function toCents(value) {
   return Math.round(value * 100);
 }
 
-function initialClauseCents(marketValue) {
-  return Math.ceil(toCents(marketValue) * 3 / 2);
+function initialClauseCents(purchasePrice) {
+  return Math.ceil(toCents(purchasePrice) * 3 / 5);
 }
 
 function boostExpiresAtRound(startRound) {
@@ -27,15 +27,15 @@ function isBoostActive(startRound, currentRound) {
   return Number.isSafeInteger(currentRound) && currentRound >= startRound && currentRound < boostExpiresAtRound(startRound);
 }
 
-function boostedClauseCents(marketValue, paymentCents) {
+function boostedClauseCents(purchasePrice, paymentCents) {
   if (!Number.isSafeInteger(paymentCents) || paymentCents < 0) throw new RangeError('Pago no válido');
-  return initialClauseCents(marketValue) + paymentCents * BOOST_MULTIPLIER;
+  return initialClauseCents(purchasePrice) + paymentCents * BOOST_MULTIPLIER;
 }
 
-function clauseCents(marketValue, extraCents = 0, startRound = null, currentRound = null) {
+function clauseCents(purchasePrice, extraCents = 0, startRound = null, currentRound = null) {
   if (startRound !== null && !isBoostActive(startRound, currentRound)) extraCents = 0;
   if (!Number.isSafeInteger(extraCents) || extraCents < 0) throw new RangeError('Ampliación no válida');
-  return initialClauseCents(marketValue) + extraCents;
+  return initialClauseCents(purchasePrice) + extraCents;
 }
 
 function protectedUntil(acquiredRound) {

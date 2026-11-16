@@ -98,3 +98,15 @@ test('anuncio con precio personalizado crea subasta sin transferir jugador hasta
  assert.equal(f.sql.prepare("SELECT delta_cents FROM fantasy_wallet_cents WHERE uid='seller'").get().delta_cents,1500);
  assert.equal(f.sql.prepare("SELECT COUNT(*) n FROM fantasy_trades").get().n,1);
 });
+
+test('dos pagos en jornadas distintas caducan por separado sin prorrogar el anterior',async t=>{
+ const f=fixture(t);
+ const event=f.sql.prepare('INSERT INTO fantasy_clause_boost_events(id,league_id,uid,ownership_id,amount_cents,gross_cents,created_at,start_round,request_id) VALUES(?,?,?,?,?,?,?,?,?)');
+ event.run('event-a','league','seller','own-seller-0',100,5200,start+2*week,2,'boost-round-2');
+ event.run('event-b','league','seller','own-seller-0',200,5200,start+3*week,3,'boost-round-3');
+ const quoteAt=async now=>clauseRoute({db:f.db,league:f.league,uid:'buyer',now,players:f.players,
+  schedule,method:'GET',action:'clause',ownershipId:'own-seller-0'});
+ assert.equal((await quoteAt(start+3*week+86400000)).amountCents,2200);
+ assert.equal((await quoteAt(start+4*week+86400000)).amountCents,2000);
+ assert.equal((await quoteAt(start+5*week+86400000)).amountCents,1600);
+});

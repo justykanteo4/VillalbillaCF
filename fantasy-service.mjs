@@ -32,6 +32,41 @@ async function body(request){const text=await request.text();if(text.length>6000
 function publicLeague(row,uid,now,economy){const stored=JSON.parse(row.settings_json),settings={...stored,...(row.mode==='classic'?{budget:52}:{}),weeklyIncome:(economy?.weeklyIncomeCents??200)/100,...(economy?{weeklyChange:economy}:{})};const finance=leaguePolicy.weeklyBudget(settings,row.joinedAt,now);finance.tradingDelta=(row.delta_cents||0)/100;finance.cashBalance=Math.round((finance.balance+finance.tradingDelta)*100)/100;finance.reservedBids=(row.reserved_cents||0)/100;finance.balance=Math.round((finance.cashBalance-finance.reservedBids)*100)/100;return {id:row.id,name:row.mode==='classic'?leaguePolicy.classicLeagueName(teams.find(t=>t.id===row.group_team_id)):row.name,mode:row.mode,pool:{type:'club'},teamId:row.group_team_id,teamName:leaguePolicy.classicLeagueName(teams.find(t=>t.id===row.group_team_id)).replace('Liga de ',''),settings,finance,code:row.code,createdAt:row.created_at,isOwner:row.owner_uid===uid,memberCount:row.memberCount||0}}
 async function detail(db,id,uid,now,allowed){const row=await db.prepare('SELECT l.*,COALESCE(v.delta_cents,ROUND(w.delta_units*50),0) AS delta_cents,COALESCE(g.team_id,json_extract(l.pool_json,\'$.teamId\')) AS group_team_id,m.joined_at AS joinedAt FROM fantasy_leagues l JOIN fantasy_members m ON m.league_id=l.id LEFT JOIN fantasy_wallets w ON w.league_id=l.id AND w.uid=m.uid LEFT JOIN fantasy_wallet_cents v ON v.league_id=l.id AND v.uid=m.uid LEFT JOIN fantasy_league_groups g ON g.league_id=l.id WHERE l.id=? AND m.uid=?').bind(id,uid).first();if(!row)throw fail('Liga no encontrada o no perteneces a ella.',404);if(!allowed.includes(row.group_team_id))throw fail('Esta liga está reservada a compañeros del mismo equipo aprobado.',403);await settleSalaries(db,id,now);await settleIdealCash(db,id,now);const prizeState=await db.prepare('SELECT next_at FROM fantasy_prize_state WHERE league_id=?').bind(id).first();if(!prizeState||prizeState.next_at<=now)await settleWeeklyPrizes(db,id,now);const [wallet,held,members,economy]=await Promise.all([db.prepare('SELECT delta_cents FROM fantasy_wallet_cents WHERE league_id=? AND uid=?').bind(id,uid).first(),reservedBids(db,id,uid),db.prepare('SELECT nickname,joined_at AS joinedAt,CASE WHEN uid=? THEN 1 ELSE 0 END AS me,CASE WHEN uid=? THEN 1 ELSE 0 END AS creator FROM fantasy_members WHERE league_id=? ORDER BY joined_at,nickname').bind(uid,row.owner_uid,id).all(),economyPolicy(db)]);row.delta_cents=wallet?.delta_cents||0;row.reserved_cents=held;return {league:{...publicLeague(row,uid,now,economy),memberCount:members.results.length},members:members.results.map(m=>({...m,me:!!m.me,creator:!!m.creator}))}}
 async function prices(db,pool,points=leaguePolicy.classicSettings.points,snapshot=null){const [rows,totals,live,awards]=await Promise.all([db.prepare('SELECT player_id,price_cents,revision,updated_at FROM fantasy_player_cents').all(),db.prepare("SELECT candidate_id,SUM(points_total) AS points FROM social_candidate_totals WHERE season='2026-27' AND category IN('player','goalkeeper') GROUP BY candidate_id").all(),sports(db),db.prepare('SELECT * FROM fantasy_awards').all()]),overrides=new Map(rows.results.map(r=>[r.player_id,r])),votes=Object.fromEntries(totals.results.map(r=>[r.candidate_id,r.points])),byTeamPlayer=new Map();for(const m of live.matches)for(const p of m.players){const key=m.teamId+':'+p.id,row=byTeamPlayer.get(key)||{goals:0,wins:0,played:0,cleanSheets:0,red:0,yellow:0,partial:false};row.goals+=p.goals||0;row.wins+=p.played&&p.win?1:0;row.played+=p.played||0;row.cleanSheets+=p.cleanSheet?1:0;row.red+=p.red||0;row.yellow+=p.yellow||0;row.partial||=!!p.partial;byTeamPlayer.set(key,row)}if(snapshot){snapshot.live=live;snapshot.awards=awards.results}const current={...catalog,teams:catalog.teams.map(t=>({...t,players:t.players.map(p=>{const row=byTeamPlayer.get(t.id+':'+p.id);return row?{...p,...row,partial:p.partial||row.partial}:p})}))};const priced=leaguePolicy.playersForPool(current,{type:'club'},votes).filter(p=>!pool||pool.type==='club'||p.teams.some(t=>t.id===pool.teamId)).map(p=>{const edit=overrides.get(p.id);return {...p,automaticPrice:p.price,price:edit?.price_cents!=null?edit.price_cents/100:p.price,manualPrice:edit?.price_cents!=null,priceRevision:edit?.revision||0,priceUpdatedAt:edit?.updated_at||null}}).sort((a,b)=>b.price-a.price||b.performance-a.performance||a.name.localeCompare(b.name,'es'));return playerTotals(await applyFantasyPositions(db,priced),live,points,awards.results)}
+
+async function manageFantasyUsers(db,request,url,adminUid,now){
+ if(!db)throw fail('No se pudo conectar con Fantasy.',503);
+ if(request.method==='GET'){
+  const query=(url.searchParams.get('q')||'').trim().slice(0,80);
+  const after=(url.searchParams.get('after')||'').slice(0,128);
+  const {results}=await db.prepare(`
+   SELECT m.uid,MIN(m.nickname) AS nickname,COUNT(*) AS leagues,
+          x.excluded_at AS excludedAt
+   FROM fantasy_members m
+   LEFT JOIN fantasy_excluded_users x ON x.uid=m.uid
+   WHERE m.uid>? AND m.uid<>?
+   GROUP BY m.uid
+   HAVING ?='' OR MAX(INSTR(LOWER(m.nickname),LOWER(?)))>0 OR INSTR(m.uid,?)>0
+   ORDER BY m.uid LIMIT 31
+  `).bind(after,adminUid,query,query,query).all();
+  const users=results.slice(0,30);
+  return reply({users,next:results.length>30?users[users.length-1].uid:null});
+ }
+ if(request.method!=='POST')throw fail('Método no permitido.',405);
+ const value=await body(request),target=value?.uid;
+ if(typeof target!=='string'||!target.trim()||target.length>128||typeof value.excluded!=='boolean')throw fail('Usuario o acción no válidos.');
+ if(target===adminUid)throw fail('No puedes cambiar tu propio acceso desde aquí.');
+ if(!await db.prepare('SELECT 1 FROM fantasy_members WHERE uid=? LIMIT 1').bind(target).first())throw fail('No se encontró al usuario en Fantasy.',404);
+ if(value.excluded){
+  await db.batch([
+   db.prepare('INSERT OR IGNORE INTO fantasy_excluded_users(uid,excluded_at,excluded_by) VALUES(?,?,?)').bind(target,now,adminUid),
+   db.prepare('DELETE FROM fantasy_participant_teams WHERE uid=?').bind(target),
+  ]);
+ }else{
+  await db.prepare('DELETE FROM fantasy_excluded_users WHERE uid=?').bind(target).run();
+ }
+ return reply({uid:target,excluded:value.excluded});
+}
+
 export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adminAuthorize=verifyAdmin,makeCode=randomCode,clock=Date.now,getTeams=fantasyTeamIds,ctx}={}){
  const url=new URL(request.url),path=url.pathname;if(path!=='/api/fantasy'&&!path.startsWith('/api/fantasy/'))return null;
  try{const uid=await authorize(request,env),currentTime=clock();if(request.method!=='GET'){const origin=request.headers.get('Origin');if(origin&&origin!==url.origin)throw fail('Origen no permitido.',403)}
@@ -40,6 +75,11 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  const access=db?await db.prepare('SELECT disabled,revision,updated_at FROM fantasy_access_settings WHERE id=1').first():null;
  const accessSettings={disabled:access?!!access.disabled:true,revision:access?.revision||0,updatedAt:access?.updated_at||null};
  if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ if(path==='/api/fantasy/admin/users')return await manageFantasyUsers(db,request,url,uid,currentTime);
+ if(db&&!path.startsWith('/api/fantasy/admin/')&&await db.prepare('SELECT 1 FROM fantasy_excluded_users WHERE uid=?').bind(uid).first()){
+  if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path))return reply({rules:config.rules,canPlay:false,isAdmin:admin,excluded:true});
+  throw fail('Tu acceso a Fantasy está desactivado.',403);
+ }
  if(path==='/api/fantasy/admin/access'){
  if(!db)throw fail('No se pudo consultar el acceso de Fantasy.',503);
  if(request.method==='GET')return reply(accessSettings);
@@ -50,7 +90,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  return reply({disabled:!!saved.disabled,revision:saved.revision,updatedAt:saved.updated_at});
  }
  if(accessSettings.disabled&&!admin){if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path))return reply({rules:config.rules,canPlay:false,isAdmin:false,disabled:true,features:{leagues:false,prices:false,market:false,offers:false,play:false}});throw fail('Fantasy está deshabilitado temporalmente. Acceso reservado a administradores.',403)}
- const allowedTeams=async()=>{if(allowed)return allowed;allowed=(await getTeams(request,uid,{isAdmin:admin})).filter(id=>teams.some(t=>t.id===id));if(db)await db.batch([db.prepare('DELETE FROM fantasy_participant_teams WHERE uid=?').bind(uid),db.prepare('INSERT INTO fantasy_participant_teams SELECT ?,CAST(value AS TEXT),? FROM json_each(?)').bind(uid,currentTime,JSON.stringify(allowed))]);return allowed};
+ const allowedTeams=async()=>{if(allowed)return allowed;allowed=(await getTeams(request,uid,{isAdmin:admin})).filter(id=>teams.some(t=>t.id===id));if(db)await db.batch([db.prepare('DELETE FROM fantasy_participant_teams WHERE uid=?').bind(uid),db.prepare('INSERT INTO fantasy_participant_teams SELECT ?,CAST(value AS TEXT),? FROM json_each(?) WHERE NOT EXISTS(SELECT 1 FROM fantasy_excluded_users WHERE uid=?)').bind(uid,currentTime,JSON.stringify(allowed),uid)]);return allowed};
  if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path)){if(admin)await scheduleVoteCleanup(request,env,uid,async()=>uid,ctx);return reply({rules:config.rules,canPlay:(await allowedTeams()).length>0,isAdmin:admin,disabled:accessSettings.disabled,features:{leagues:false,prices:true,market:true,offers:true,play:false}})}
  if(!['GET','POST'].includes(request.method))return reply({error:'Método no permitido.'},405);
  if(!db)throw fail('No se pudo conectar con las ligas.',503);

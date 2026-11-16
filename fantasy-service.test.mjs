@@ -51,3 +51,27 @@ test('una liga disponible obsoleta no crea una liga sustituta',async t=>{const {
 test('resumen de mercado exige pertenencia y equipo confirmado, no calcula precios ni publica ofertas pendientes',async t=>{
  const {env:e,sql}=env(t),created=await fixtureLeague(e,'owner-uid',classic('history-guard')),id=created.league.id,path='/leagues/'+id+'/market-history';let r=await handleFantasy(request(path),e,owner);assert.equal(r.status,200);assert.equal(r.headers.get('Cache-Control'),'no-store');assert.deepEqual((await r.json()).movements,[]);assert.equal((await handleFantasy(request(path),e,other)).status,404);assert.equal((await handleFantasy(request(path),e,{...owner,getTeams:async()=>['10659267']})).status,403);assert.equal((await handleFantasy(request(path,{}),e,owner)).status,405);assert.equal(sql.prepare('SELECT COUNT(*) n FROM fantasy_trades').get().n,0);
 });
+
+test('only admins can remove and restore a user’s Fantasy access',async t=>{
+ const {sql,env:e}=env(t);
+ await fixtureLeague(e,'owner-uid',classic());
+ const admin={authorize:async()=> 'admin-uid'};
+ const nonAdmin={...other,adminAuthorize:async()=>{throw Object.assign(Error('No admin'),{status:403})}};
+ const remove={uid:'owner-uid',excluded:true};
+ assert.equal((await handleFantasy(request('/admin/users'),e,nonAdmin)).status,403);
+ assert.equal((await handleFantasy(request('/admin/users',remove),e,nonAdmin)).status,403);
+ assert.equal((await handleFantasy(request('/admin/users',{uid:'admin-uid',excluded:true}),e,admin)).status,400);
+ assert.equal((await handleFantasy(request('/admin/users',remove),e,admin)).status,200);
+ assert.equal((await handleFantasy(request('/admin/users',remove),e,admin)).status,200);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS count FROM fantasy_participant_teams WHERE uid=?').get('owner-uid').count,0);
+ const list=await (await handleFantasy(request('/admin/users?q=Creador'),e,admin)).json();
+ assert.equal(list.users[0].uid,'owner-uid');
+ assert.equal(typeof list.users[0].excludedAt,'number');
+ const preview=await (await handleFantasy(request('/preview'),e,owner)).json();
+ assert.equal(preview.excluded,true);
+ assert.equal(preview.canPlay,false);
+ assert.equal((await handleFantasy(request('/leagues'),e,owner)).status,403);
+ assert.equal((await handleFantasy(request('/admin/users',{...remove,excluded:false}),e,admin)).status,200);
+ assert.equal((await handleFantasy(request('/leagues'),e,owner)).status,200);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS count FROM fantasy_members WHERE uid=?').get('owner-uid').count,1);
+});

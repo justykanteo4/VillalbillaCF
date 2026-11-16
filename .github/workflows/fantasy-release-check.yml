@@ -1,0 +1,40 @@
+name: Fantasy release checks (web Android iOS)
+on:
+  pull_request:
+    paths:
+      - 'Fantasy*.js'
+      - 'fantasy-*'
+      - 'app.json'
+      - 'app.config.js'
+      - 'eas.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/fantasy-release-check.yml'
+  push:
+    branches:
+      - feat/fantasy-clausulas-150
+jobs:
+  business-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Verify Fantasy clause and trade rules
+        run: node --test fantasy-clauses.test.cjs
+  # Platform bundles must work before a native build or public deployment.
+  platform-bundles:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Export web, Android and iOS JS bundles
+        run: pnpm exec expo export --platform all --output-dir work/verify-all-platforms

@@ -25,6 +25,7 @@ export default function FantasyScreen({account,section='plantilla',onSectionChan
  if(rules){
   if(section==='settings'&&admin)return <FantasySettings account={account} request={fantasyRequest} onBack={()=>onSectionChange('plantilla')}/>;
   if(disabled&&!admin)return <View style={panel}><FantasyIcon size={80}/><Text style={{...text,fontSize:23,fontWeight:'800'}}>Fantasy · Próximamente</Text><Text style={text}>Está en construcción. ¡Ya queda poco!</Text><Text style={text}>El acceso está reservado temporalmente a administradores.</Text></View>;
+  if(access.excluded)return <View style={panel}><Text style={text}>Tu acceso a Fantasy está desactivado.</Text></View>;
   if(!canPlay)return <View style={panel}><Text style={text}>Solo pueden jugar jugadores y cuerpo técnico con una cuenta aprobada e identificados en las actas oficiales. Si ya cumples estos requisitos, revisa tu identidad en el perfil.</Text><Text style={text}>Crear liga · Próximamente</Text></View>;
   if(section==='settings')return <FantasyRules/>;
   return <View><FantasyPurchaseReceipt accountId={account.id} key={'receipt-'+account.id} request={fantasyRequest} onOpenLeague={id=>{onLeagueChange?.(id);onSectionChange('plantilla')}}/><FantasyLeagues key={account.id} account={account} section={section} onFinance={onFinance} preferredLeagueId={preferredLeagueId} onLeagueChange={onLeagueChange}/><FantasyPrizeReceipt key={'prize-'+account.id} request={fantasyRequest}/></View>;

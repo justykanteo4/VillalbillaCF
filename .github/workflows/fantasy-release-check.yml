@@ -35,6 +35,6 @@ jobs:
         with:
           node-version: '22.16.0'
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       - name: Export web, Android and iOS JS bundles
         run: pnpm exec expo export --platform all --output-dir work/verify-all-platforms

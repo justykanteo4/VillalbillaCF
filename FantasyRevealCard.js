@@ -13,14 +13,17 @@ export default function FantasyRevealCard({player,progress,opened,reduced,width,
     ['Goles',number(player.stats?.goals??player.goals)],
     ['Partidos',number(player.stats?.played??player.played)],
   ];
-  const entrance=reduced?[]:[
+  const entrance=opened||reduced?[]:[
     {perspective:900},
-    {translateY:progress.interpolate({inputRange:[0,.32,.78,1],outputRange:[68,68,-10,0]})},
-    {rotateY:progress.interpolate({inputRange:[0,.33,.69,.87,1],outputRange:['-86deg','-86deg','21deg','-8deg','0deg']})},
-    {rotateZ:progress.interpolate({inputRange:[0,.42,.75,1],outputRange:['-12deg','-12deg','4deg','0deg']})},
-    {scale:progress.interpolate({inputRange:[0,.32,.8,1],outputRange:[.68,.68,1.045,1]})},
+    {translateY:progress.interpolate({inputRange:[0,.26,.76,1],outputRange:[52,52,0,0]})},
+    {rotateY:progress.interpolate({
+      inputRange:[0,.25,.40,.56,.72,.86,1],
+      outputRange:['-720deg','-720deg','-396deg','-172deg','-58deg','-11deg','0deg'],
+    })},
+    {scale:progress.interpolate({inputRange:[0,.25,.8,1],outputRange:[.82,.82,1,1]})},
   ];
-  return <Animated.View accessibilityElementsHidden={!opened} importantForAccessibility={opened?'yes':'no-hide-descendants'} pointerEvents={opened?'auto':'none'} style={{width,alignItems:'center',gap:6,opacity:reduced?progress:progress.interpolate({inputRange:[0,.32,.55,1],outputRange:[0,0,1,1]}),transform:entrance}}>
+  const opacity=opened?1:reduced?progress:progress.interpolate({inputRange:[0,.24,.4,1],outputRange:[0,0,1,1]});
+  return <Animated.View accessibilityElementsHidden={!opened} importantForAccessibility={opened?'yes':'no-hide-descendants'} pointerEvents={opened?'auto':'none'} style={{width,alignItems:'center',gap:6,opacity,transform:entrance}}>
     <View style={[styles.card,{width,height:width*4/3}]}>
       <Image source={artwork} resizeMode="stretch" style={{position:'absolute',top:0,left:0,width,height:width*4/3}} accessible={false}/>
       <View style={styles.portrait}>

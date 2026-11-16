@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {initialClauseCents, clauseCents, isProtected, protectedUntil, canPayClause, BOOST_DURATION_ROUNDS, BOOST_PERCENT, boostedClauseCents, boostExpiresAtRound, isBoostActive} = require('./fantasy-clauses.cjs');
+const {initialClauseCents, clauseCents, isProtected, protectedUntil, canPayClause, BOOST_DURATION_ROUNDS, BOOST_MULTIPLIER, boostedClauseCents, boostExpiresAtRound, isBoostActive} = require('./fantasy-clauses.cjs');
 
 test('cláusula inicial del 150% calculada con céntimos, redondeando hacia arriba', () => {
   assert.equal(initialClauseCents(5), 750);
@@ -42,9 +42,11 @@ test('una ampliación dura exactamente dos jornadas; después vuelve al 150 %', 
   assert.equal(clauseCents(20, 500, 12, 14), 3000);
 });
 
-test('subir cláusula aumenta un 65% respecto a la base del 150%', () => {
-  assert.equal(BOOST_PERCENT, 65);
+test('cada millón pagado sube dos millones la cláusula', () => {
+  assert.equal(BOOST_MULTIPLIER, 2);
   assert.equal(initialClauseCents(20), 3000);
-  assert.equal(boostedClauseCents(20), 4950);
-  assert.equal(boostedClauseCents(10), 2475);
+  assert.equal(boostedClauseCents(20, 100), 3200);
+  assert.equal(boostedClauseCents(20, 500), 4000);
+  assert.equal(boostedClauseCents(10, 200), 1900);
+  assert.throws(() => boostedClauseCents(20, -1));
 });

@@ -42,7 +42,7 @@ CREATE TRIGGER IF NOT EXISTS fantasy_clause_purchase_guard BEFORE INSERT ON fant
  SELECT CASE WHEN COALESCE(json_extract((SELECT settings_json FROM fantasy_leagues WHERE id=NEW.league_id),'$.clausesEnabled'),0)!=1 THEN RAISE(ABORT,'FANTASY_CLAUSES_DISABLED') END;
  SELECT CASE WHEN NEW.buyer_uid=NEW.seller_uid THEN RAISE(ABORT,'FANTASY_CLAUSE_OWN') END;
  SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM fantasy_roster r WHERE r.id=NEW.ownership_id AND r.league_id=NEW.league_id AND r.player_id=NEW.player_id AND r.uid=NEW.seller_uid AND NEW.acquired_round>=0 AND NEW.current_round>=NEW.acquired_round+2) THEN RAISE(ABORT,'FANTASY_CLAUSE_PROTECTED') END;
- SELECT CASE WHEN NEW.amount_cents!=NEW.minimum_cents+COALESCE((SELECT extra_cents FROM fantasy_clause_boosts WHERE ownership_id=NEW.ownership_id AND league_id=NEW.league_id AND start_round+2>NEW.current_round),0) THEN RAISE(ABORT,'FANTASY_CLAUSE_CHANGED') END;
+ SELECT CASE WHEN NEW.amount_cents!=NEW.minimum_cents+COALESCE((SELECT SUM(amount_cents*2) FROM fantasy_clause_boost_events WHERE ownership_id=NEW.ownership_id AND league_id=NEW.league_id AND start_round<=NEW.current_round AND start_round+2>NEW.current_round),0) THEN RAISE(ABORT,'FANTASY_CLAUSE_CHANGED') END;
  SELECT CASE WHEN (SELECT COUNT(*) FROM fantasy_roster WHERE league_id=NEW.league_id AND uid=NEW.seller_uid)<=12 THEN RAISE(ABORT,'FANTASY_ROSTER_MIN') END;
  SELECT CASE WHEN (SELECT COUNT(*) FROM fantasy_roster WHERE league_id=NEW.league_id AND uid=NEW.buyer_uid)>=16 THEN RAISE(ABORT,'FANTASY_ROSTER_MAX') END;
 END;

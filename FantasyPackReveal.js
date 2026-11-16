@@ -2,6 +2,7 @@ import React,{useEffect,useReducer,useRef,useState} from 'react';
 import {AccessibilityInfo,Animated,AppState,Easing,Image,Keyboard,Modal,Platform,Pressable,ScrollView,StyleSheet,Text,View,useWindowDimensions} from 'react-native';
 import {StatusBar} from 'expo-status-bar';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import fantasyTorch from './fantasy-torch';
 import FantasyRevealCard from './FantasyRevealCard';
 import {useFantasyOfferVisible} from './fantasy-offer-visibility';
 import {useFantasyRevealSlot} from './fantasy-reveal-queue';
@@ -31,9 +32,9 @@ export default function FantasyPackReveal({players=[],mode='squad',leagueName=''
   const deadline=setTimeout(finish,duration+200);
   const animation=Animated.timing(progress,{toValue:1,duration,easing:Easing.linear,useNativeDriver:Platform.OS!=='web',isInteraction:false});
   animation.start(({finished})=>{if(finished)finish()});
-  return()=>{active=false;clearTimeout(deadline);animation.stop()};
+  return()=>{active=false;clearTimeout(deadline);animation.stop();fantasyTorch?.stop()};
  },[state.phase,state.index,visible,reduced,foreground,progress]);
- const close=()=>{if(!busy)(onLater||onFinish)?.()},reveal=()=>{if(!busy)step('open')},next=()=>{if(busy||!opened)return;if(state.index+1===state.count)onFinish?.();else{progress.setValue(0);step('next')}};
+ const close=()=>{if(!busy)(onLater||onFinish)?.()},reveal=()=>{if(!busy&&state.phase==='sealed'){if(!reduced&&Platform.OS==='android')fantasyTorch?.pulse();step('open')}},next=()=>{if(busy||!opened)return;if(state.index+1===state.count)onFinish?.();else{progress.setValue(0);step('next')}};
  return <Modal visible={visible} animationType="fade" presentationStyle="fullScreen" statusBarTranslucent navigationBarTranslucent onRequestClose={close}><View accessibilityViewIsModal style={s.screen}><StatusBar hidden/><Image source={stadium} resizeMode="cover" style={StyleSheet.absoluteFillObject}/><View pointerEvents="none" style={[StyleSheet.absoluteFillObject,{backgroundColor:'#03061055'}]}/>
  <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{flexGrow:1,justifyContent:'center',alignItems:'center',paddingHorizontal:20,paddingTop:Math.max(insets.top,16),paddingBottom:Math.max(insets.bottom,16),gap:compact?8:14}}><View style={{alignItems:'center',gap:5,maxWidth:460}}><Text style={s.brand}>VILLALBILLA<Text style={{color:theme.accent}}>FANTASY</Text></Text><Text accessibilityRole="header" style={[s.heading,{fontSize:compact?23:28}]}>{mode==='squad'?'Tu equipo empieza aquí':opened?'¡Nuevo fichaje!':'Tu nuevo fichaje'}</Text>{!!leagueName&&<Text style={s.subtitle}>{leagueName}</Text>}<Text style={s.counter}>{mode==='squad'?'PLANTILLA INICIAL · '+(state.index+1)+' / '+state.count:'FICHAJE CONFIRMADO'}</Text></View>
  <View style={{width:'100%',maxWidth:400,minHeight:h+12,alignItems:'center',justifyContent:'center'}}>

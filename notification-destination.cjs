@@ -13,4 +13,11 @@ function destinationRoute(value){const d=storedDestination(value);if(d.type==='f
 function destinationLabel(value){const d=storedDestination(value);return d.type==='fantasy-offers'?'Ofertas recibidas en Fantasy':d.type==='fantasy-league'?'Liga de VillalbillaFantasy':d.type==='match'?'Partido · '+teams.find(t=>t.id===d.teamId).category:sections.find(([id])=>id===d.section)[1]}
 function destinationUrl(value,id){const q=new URLSearchParams({aviso:JSON.stringify(storedDestination(value))});if(typeof id==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(id))q.set('notice',id);return '/?'+q.toString()}
 function destinationFromUrl(raw){try{const u=new URL(raw,'https://local');const d=JSON.parse(u.searchParams.get('aviso'));return normalizeDestination(d)}catch{return null}}
-module.exports={sections,defaultDestination,normalizeDestination,storedDestination,destinationRoute,destinationLabel,destinationUrl,destinationFromUrl};
+function nativeFantasyDestination(raw){
+ try{
+  const url=new URL(raw);
+  if(url.protocol!=='villalbilla-cf:'||url.hostname!=='fantasy'||url.pathname!=='/league')return null;
+  return normalizeDestination({type:'fantasy-league',leagueId:url.searchParams.get('id')});
+ }catch{return null}
+}
+module.exports={nativeFantasyDestination,sections,defaultDestination,normalizeDestination,storedDestination,destinationRoute,destinationLabel,destinationUrl,destinationFromUrl};

@@ -18,6 +18,33 @@
         "simulator": true
       },
       "channel": "preview"
+    },
+    "preview-ios-device": {
+      "environment": "production",
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      },
+      "channel": "preview",
+      "node": "22.16.0"
+    },
+    "production-ios": {
+      "environment": "production",
+      "distribution": "store",
+      "ios": {
+        "simulator": false
+      },
+      "channel": "production",
+      "node": "22.16.0"
+    },
+    "production-android": {
+      "environment": "production",
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "channel": "production",
+      "node": "22.16.0"
     }
   }
 }

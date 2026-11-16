@@ -11,6 +11,7 @@ import {applyFantasyPositions} from './fantasy-player-positions.mjs';
 import {pendingPurchase,acknowledgePurchase} from './fantasy-purchase-receipts.mjs';
 import {marketHistory} from './fantasy-market-history.mjs';
 import {saleRoute} from './fantasy-sales.mjs';
+import {clauseRoute} from './fantasy-clause-routes.mjs';
 import {reservedBids} from './fantasy-auctions.mjs';
 import {economyPolicy} from './fantasy-economy.mjs';
 import {gameRoute,adminGame,settleSalaries,ensureManager,playerTotals,sports} from './fantasy-game.mjs';
@@ -95,6 +96,19 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(!['GET','POST'].includes(request.method))return reply({error:'Método no permitido.'},405);
  if(!db)throw fail('No se pudo conectar con las ligas.',503);
  if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ const clauseSwitch=path.match(/^\\/api\\/fantasy\\/admin\\/leagues\\/([a-zA-Z0-9-]{1,80})\\/clauses$/);
+ if(clauseSwitch){
+  if(request.method!=='POST')throw fail('Método no permitido.',405);
+  const value=await body(request);
+  if(typeof value?.enabled!=='boolean')throw fail('Indica si el club activa las cláusulas.');
+  const old=await db.prepare('SELECT settings_json FROM fantasy_leagues WHERE id=?').bind(clauseSwitch[1]).first();
+  if(!old)throw fail('Liga no encontrada.',404);
+  const next=JSON.stringify({...JSON.parse(old.settings_json),clausesEnabled:value.enabled});
+  const saved=await db.prepare('UPDATE fantasy_leagues SET settings_json=? WHERE id=? AND settings_json=? RETURNING id')
+    .bind(next,clauseSwitch[1],old.settings_json).first();
+  if(!saved)throw fail('La configuración cambió. Actualiza antes de reintentar.',409);
+  return reply({saved:true,enabled:value.enabled});
+ }
  if(['/api/fantasy/admin/salaries','/api/fantasy/admin/awards'].includes(path)){let matchScope=null;if(path.endsWith('/awards')&&(url.searchParams.has('match')||url.searchParams.has('team'))){const matchId=url.searchParams.get('match'),teamId=url.searchParams.get('team');if(!/^\d{1,20}$/.test(matchId||'')||!teams.some(t=>t.id===teamId))throw fail('Partido no válido.');matchScope={matchId,teamId}}const result=await adminGame({db,path,method:request.method,readBody:()=>body(request),matchScope});if(path.endsWith('/awards')&&request.method==='POST'){await db.prepare('UPDATE fantasy_prize_state SET next_at=0,fingerprint=NULL').run();await db.prepare('UPDATE fantasy_ideal_reward_state SET next_at=0,fingerprint=NULL').run();ctx?.waitUntil?.(settleAwardEconomy(env,currentTime));}return reply(result)}
  if(path==='/api/fantasy/admin/players'&&request.method==='GET'){const teamId=url.searchParams.get('team');if(teamId&&!teams.some(t=>t.id===teamId))throw fail('Equipo no válido.');return reply({players:await prices(db,teamId?{type:'team',teamId}:{type:'club'}),updatedAt:catalog.updatedAt})}
  if(path==='/api/fantasy/admin/prices'&&request.method==='POST'){const value=await body(request),id=String(value.playerId||'');if(!catalog.teams.some(t=>t.players.some(p=>p.id===id)))throw fail('Jugador no encontrado.',404);if(value.price!==null&&(!Number.isFinite(value.price)||value.price<1||value.price>234||Math.abs(value.price*100-Math.round(value.price*100))>1e-7))throw fail('El precio debe estar entre 1 y 234 M, en pasos de 0,01 M.');if(!Number.isSafeInteger(value.revision)||value.revision<0)throw fail('Actualiza los precios antes de guardar.');const now=currentTime;const saved=await db.prepare('INSERT INTO fantasy_player_cents(player_id,price_cents,revision,updated_at,changed_by) SELECT ?,?,1,?,? WHERE ?=0 OR EXISTS(SELECT 1 FROM fantasy_player_cents WHERE player_id=?) ON CONFLICT(player_id) DO UPDATE SET price_cents=excluded.price_cents,revision=fantasy_player_cents.revision+1,updated_at=excluded.updated_at,changed_by=excluded.changed_by WHERE fantasy_player_cents.revision=? RETURNING player_id,price_cents,revision,updated_at').bind(id,value.price===null?null:Math.round(value.price*100),now,uid,value.revision,id,value.revision).first();if(!saved)throw fail('Otro administrador ha cambiado este precio. Actualiza la lista antes de guardar.',409);return reply({playerId:saved.player_id,price:saved.price_cents==null?null:saved.price_cents/100,revision:saved.revision,updatedAt:saved.updated_at})}
@@ -124,6 +138,18 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  const history=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/market-history$/);if(history){if(request.method!=='GET')throw fail('Método no permitido.',405);await detail(db,history[1],uid,currentTime,await allowedTeams());return reply(await marketHistory({db,leagueId:history[1],uid,players:catalog.teams.flatMap(t=>t.players.map(p=>({...p,teamId:t.id}))),mine:url.searchParams.get('mine')==='1',cursor:url.searchParams.get('cursor')}))}
  const sale=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/sell$/);if(sale){const data=await detail(db,sale[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);return reply(await saleRoute({db,league:data.league,uid,now:clock(),getNow:clock,method:request.method,playerId:url.searchParams.get('playerId'),readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points)}))}
  const game=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(squad|coaches|coach|presentation|search|favourites|alerts|lineup|table|transactions)$/);if(game){const data=await detail(db,game[1],uid,currentTime,await allowedTeams());return reply(await gameRoute({db,league:data.league,uid,now:currentTime,action:game[2],getNow:clock,targetNext:url.searchParams.get('next')==='1',method:request.method,readBody:()=>body(request),players:['table','alerts','presentation','coaches'].includes(game[2])?[]:await prices(db,data.league.pool,data.league.settings.points)}))}
+ const clause=path.match(/^\\/api\\/fantasy\\/leagues\\/([a-zA-Z0-9-]{1,80})\\/(clause(?:\\/boost)?)$/);
+ if(clause){
+  const data=await detail(db,clause[1],uid,currentTime,await allowedTeams());
+  await ensureManager(db,data.league,uid);
+  const [allPlayers,live]=await Promise.all([prices(db,data.league.pool,data.league.settings.points),sports(db)]);
+  return reply(await clauseRoute({db,league:data.league,uid,now:currentTime,
+    action:clause[2],method:request.method,readBody:()=>body(request),
+    ownershipId:url.searchParams.get('ownershipId'),players:allPlayers,
+    schedule:live.schedule,getNow:clock,
+    canPlay:async target=>!!await db.prepare('SELECT 1 FROM fantasy_participant_teams WHERE uid=? AND team_id=?').bind(target,data.league.teamId).first()
+  }));
+ }
  const market=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(market|roster|buy|bid|offers(?:\/[a-zA-Z0-9-]{1,80}\/(?:accept|reject|cancel))?)$/);if(market){const data=await detail(db,market[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);const result=await marketRoute({db,league:data.league,uid,now:currentTime,action:market[2],method:request.method,readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points),getNow:clock,catalogVersion:catalog.version+'-actas-30-v2',canPlay:async target=>!!await db.prepare('SELECT 1 FROM fantasy_participant_teams WHERE uid=? AND team_id=?').bind(target,data.league.teamId).first()});if((market[2]==='offers'||/^offers\/[^/]+\/(accept|reject)$/.test(market[2]))&&request.method==='POST')ctx?.waitUntil?.(dispatchOfferNotifications(env).catch(()=>{}));return reply(result)}
  const match=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})(\/players)?$/);if(match&&request.method==='GET'){const data=await detail(db,match[1],uid,currentTime,await allowedTeams());if(match[2]){const snapshot={},[players,owners]=await Promise.all([prices(db,data.league.pool,data.league.settings.points,snapshot),playerOwnership(db,match[1],uid)]);return reply({players:players.map(p=>({...p,...(owners.get(p.id)||{ownershipId:null,owner:null,mine:false})})),finance:data.league.finance,weeklyEleven:weeklyEleven(players,snapshot.live.matches,snapshot.awards,data.league.settings.points,currentTime),version:catalog.version,updatedAt:catalog.updatedAt})}return reply(data)}
  return reply({error:'Apartado no disponible.'},404);

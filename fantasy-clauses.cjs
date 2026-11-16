@@ -4,7 +4,7 @@
 const INITIAL_CLAUSE_MULTIPLIER = 1.5;
 const PROTECTION_MS = 7 * 24 * 60 * 60 * 1000;
 const BOOST_DURATION_ROUNDS = 2;
-const BOOST_PERCENT = 65;
+const BOOST_MULTIPLIER = 2;
 const MAX_SQUAD = 16;
 const MIN_SQUAD = 12;
 
@@ -26,8 +26,9 @@ function isBoostActive(startRound, currentRound) {
   return Number.isSafeInteger(currentRound) && currentRound >= startRound && currentRound < boostExpiresAtRound(startRound);
 }
 
-function boostedClauseCents(marketValue) {
-  return Math.ceil(initialClauseCents(marketValue) * (100 + BOOST_PERCENT) / 100);
+function boostedClauseCents(marketValue, paymentCents) {
+  if (!Number.isSafeInteger(paymentCents) || paymentCents < 0) throw new RangeError('Pago no válido');
+  return initialClauseCents(marketValue) + paymentCents * BOOST_MULTIPLIER;
 }
 
 function clauseCents(marketValue, extraCents = 0, startRound = null, currentRound = null) {
@@ -59,7 +60,7 @@ function canPayClause({enabled, acquiredAt, now, buyerCount, sellerCount, transf
   return '';
 }
 
-module.exports = {INITIAL_CLAUSE_MULTIPLIER, PROTECTION_MS, BOOST_DURATION_ROUNDS, BOOST_PERCENT, MAX_SQUAD, MIN_SQUAD,
+module.exports = {INITIAL_CLAUSE_MULTIPLIER, PROTECTION_MS, BOOST_DURATION_ROUNDS, BOOST_MULTIPLIER, MAX_SQUAD, MIN_SQUAD,
   boostedClauseCents,
   boostExpiresAtRound, isBoostActive,
   initialClauseCents, clauseCents, protectedUntil, isProtected, canPayClause};

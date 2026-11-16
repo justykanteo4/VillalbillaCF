@@ -40,7 +40,7 @@ const rules = [
     'En Ventas puedes ver a los jugadores vendidos durante una semana. Esos jugadores no ocupan plazas del mercado. Cada futbolista tiene un solo dueño por liga.',
     'Pujas hasta las 23:59 (Madrid). Gana la puja válida más alta. Si hay empate, gana la primera. Sin pujas, el anuncio dura hasta 7 días.',
     'Puedes pujar con el saldo disponible. El importe queda retenido hasta que retires la puja o termine la subasta. Las plazas y fichajes se comprueban al adjudicar.',
-    'Máximo 2 fichajes por semana y 1 oferta enviada al día por liga, aunque se rechace o cancele. Las ofertas no retienen saldo. Al aceptarlas se comprueban fondos y límites de ambas plantillas.',
+    'Máximo 2 fichajes por semana. Puedes enviar las ofertas que cubra tu saldo disponible; las ofertas no retienen saldo. Al aceptarlas se comprueban fondos y límites de ambas plantillas.',
   ]],
 ];
 

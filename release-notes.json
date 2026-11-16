@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.16.4",
+  "id": "2026.11.16.12",
   "date": "2026-11-16",
-  "title": "Sobres animados para presentar jugadores Fantasy",
+  "title": "Confirmación al enviar ofertas Fantasy en Android",
   "changes": [
-    "La plantilla inicial se presenta a pantalla completa: toca cada sobre para descubrir al jugador y pulsa Siguiente para continuar, sin avance automático.",
-    "Cada fichaje confirmado, tanto en el mercado como por una oferta a un rival, se revela con el mismo sobre y su foto, puntos, valor e importe pagado.",
-    "El sobre y el estadio están incluidos en la app. Las presentaciones respetan el movimiento reducido y se coordinan con las ofertas y premios para evitar pantallas superpuestas."
+    "Antes de enviar una oferta desde Mercado o Clasificación aparece una confirmación con jugador, propietario e importe. Cancelar no envía nada.",
+    "Se ajusta la ficha de jugadores para que el teclado de Android no consuma el toque del botón y se acepten importes con punto o coma decimal.",
+    "Los reintentos conservan el identificador de la oferta y se bloquean pulsaciones repetidas, manteniendo las comprobaciones de saldo y las notificaciones al propietario."
   ]
 }

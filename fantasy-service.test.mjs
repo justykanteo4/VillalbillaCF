@@ -55,7 +55,6 @@ test('resumen de mercado exige pertenencia y equipo confirmado, no calcula preci
 test('only admins can remove and restore a user’s Fantasy access',async t=>{
  const {sql,env:e}=env(t);
  await fixtureLeague(e,'owner-uid',classic());
- sql.prepare('INSERT INTO fantasy_participant_teams VALUES(?,?,?)').run('owner-uid','680163',1);
  const admin={authorize:async()=> 'admin-uid'};
  const nonAdmin={...other,adminAuthorize:async()=>{throw Object.assign(Error('No admin'),{status:403})}};
  const remove={uid:'owner-uid',excluded:true};

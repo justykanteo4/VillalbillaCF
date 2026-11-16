@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {initialClauseCents, clauseCents, isProtected, protectedUntil, canPayClause} = require('./fantasy-clauses.cjs');
+const {initialClauseCents, clauseCents, isProtected, protectedUntil, canPayClause, BOOST_DURATION_ROUNDS, boostExpiresAtRound, isBoostActive} = require('./fantasy-clauses.cjs');
 
 test('cláusula inicial del 150% calculada con céntimos, redondeando hacia arriba', () => {
   assert.equal(initialClauseCents(5), 750);
@@ -30,4 +30,14 @@ test('cláusulas inactivas y compras restringidas por jornada, plantillas, ficha
   assert.match(canPayClause({...valid, sellerCount: 12}), /12/);
   assert.match(canPayClause({...valid, transfersRemaining: 0}), /semana/);
   assert.match(canPayClause({...valid, reservedCents: 1500}), /Saldo/);
+});
+
+test('una ampliación dura exactamente dos jornadas; después vuelve al 150 %', () => {
+  assert.equal(BOOST_DURATION_ROUNDS, 2);
+  assert.equal(boostExpiresAtRound(12), 14);
+  assert.equal(isBoostActive(12, 12), true);
+  assert.equal(isBoostActive(12, 13), true);
+  assert.equal(isBoostActive(12, 14), false);
+  assert.equal(clauseCents(20, 500, 12, 13), 3500);
+  assert.equal(clauseCents(20, 500, 12, 14), 3000);
 });

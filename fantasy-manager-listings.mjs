@@ -1,9 +1,12 @@
 import policy from './fantasy-game-policy.cjs';
+import {settleAuctions} from './fantasy-auctions.mjs';
 const fail=(message,status=409)=>Object.assign(Error(message),{status});
 const validId=id=>typeof id==='string'&&/^[A-Za-z0-9-]{1,80}$/.test(id);
 const requestId=id=>typeof id==='string'&&/^[A-Za-z0-9_-]{8,80}$/.test(id);
 
 export async function managerListingRoute({db,league,uid,now,method,readBody,playerId=null,players,getNow=()=>now}){
+ await settleAuctions(db,league,now,{limit:20});
+ await db.prepare("UPDATE fantasy_market_listings SET retired_day=? WHERE league_id=? AND retired_day IS NULL AND id IN(SELECT listing_id FROM fantasy_manager_listings WHERE league_id=? AND expires_at<=?) AND NOT EXISTS(SELECT 1 FROM fantasy_auction_rounds r WHERE r.league_id=fantasy_market_listings.league_id AND r.listing_id=fantasy_market_listings.id AND r.status='open')").bind(policy.madridDay(now),league.id,league.id,now).run();
  if(!['GET','POST'].includes(method))throw fail('Método no permitido.',405);
  const value=method==='POST'?await readBody():null;
  if(method==='POST'&&(!requestId(value?.requestId)||!validId(value?.ownershipId)||!validId(value?.playerId)))throw fail('Solicitud del mercado no válida.',400);

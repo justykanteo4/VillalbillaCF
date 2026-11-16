@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {initialClauseCents, clauseCents, isProtected, protectedUntil, canPayClause, BOOST_DURATION_ROUNDS, BOOST_MULTIPLIER, boostedClauseCents, boostExpiresAtRound, isBoostActive, CLAUSE_LOCK_MS, isClauseWindowClosed} = require('./fantasy-clauses.cjs');
+const {initialClauseCents, clauseCents, isProtected, protectedUntil, canPayClause, NEW_SIGNING_PROTECTION_ROUNDS, BOOST_DURATION_ROUNDS, BOOST_MULTIPLIER, boostedClauseCents, boostExpiresAtRound, isBoostActive, CLAUSE_LOCK_MS, isClauseWindowClosed} = require('./fantasy-clauses.cjs');
 
 test('cláusula inicial del 150% calculada con céntimos, redondeando hacia arriba', () => {
   assert.equal(initialClauseCents(5), 750);
@@ -11,20 +11,22 @@ test('cláusula inicial del 150% calculada con céntimos, redondeando hacia arri
   assert.throws(() => clauseCents(20, -1));
 });
 
-test('siete días de protección exactos desde la compra', () => {
-  const boughtAt = Date.UTC(2026, 10, 16);
-  assert.equal(isProtected(boughtAt, boughtAt), true);
-  assert.equal(isProtected(boughtAt, protectedUntil(boughtAt) - 1), true);
-  assert.equal(isProtected(boughtAt, protectedUntil(boughtAt)), false);
+test('fichaje protegido dos jornadas completas, independientemente del tiempo transcurrido', () => {
+  assert.equal(NEW_SIGNING_PROTECTION_ROUNDS, 2);
+  assert.equal(protectedUntil(12), 14);
+  assert.equal(isProtected(12, 12), true);
+  assert.equal(isProtected(12, 13), true);
+  assert.equal(isProtected(12, 14), false);
+  assert.equal(isProtected(12, undefined), true);
 });
 
 test('cláusulas inactivas y compras restringidas por jornada, plantillas, fichajes y saldo', () => {
   const now = Date.UTC(2026, 10, 16);
-  const valid = {enabled: true, acquiredAt: now - 8 * 86400000, now, buyerCount: 14,
+  const valid = {enabled: true, acquiredRound: 10, currentRound: 12, now, buyerCount: 14,
     sellerCount: 14, transfersRemaining: 1, balanceCents: 3000, reservedCents: 1000, priceCents: 1800};
   assert.equal(canPayClause(valid), '');
   assert.match(canPayClause({...valid, enabled: false}), /desactivadas/);
-  assert.match(canPayClause({...valid, acquiredAt: now - 86400000}), /7 días/);
+  assert.match(canPayClause({...valid, acquiredRound: 11}), /dos jornadas/);
   assert.match(canPayClause({...valid, lockStartsAt: now - 1, lockEndsAt: now + 1}), /jornada/);
   assert.match(canPayClause({...valid, buyerCount: 16}), /16/);
   assert.match(canPayClause({...valid, sellerCount: 12}), /12/);
@@ -53,7 +55,7 @@ test('cada millón pagado sube dos millones la cláusula', () => {
 
 test('prohibidos los clausulazos en las 24 horas anteriores al cierre de jornada', () => {
   const close = Date.parse('2026-11-20T22:59:00Z');
-  const valid = {enabled:true, acquiredAt:close-10*86400000, now:close-CLAUSE_LOCK_MS-1,
+  const valid = {enabled:true, acquiredRound: 10, currentRound: 12, now:close-CLAUSE_LOCK_MS-1,
     buyerCount:14, sellerCount:14, transfersRemaining:1, balanceCents:3000, priceCents:1500, closesAt:close};
   assert.equal(CLAUSE_LOCK_MS, 86400000);
   assert.equal(isClauseWindowClosed(valid.now, close), false);

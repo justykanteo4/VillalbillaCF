@@ -1,0 +1,38 @@
+name: Sync Fantasy Expo lockfile
+on:
+  push:
+    branches:
+      - feat/fantasy-clausulas-150
+    paths:
+      - '.github/workflows/fantasy-lockfile-sync.yml'
+      - 'package.json'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  sync:
+    if: github.ref == 'refs/heads/feat/fantasy-clausulas-150'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/fantasy-clausulas-150
+          persist-credentials: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Resolve locked Expo dependencies
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+      - name: Commit lockfile if it changed
+        run: |
+          if ! git diff --quiet -- pnpm-lock.yaml; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add pnpm-lock.yaml
+            git commit -m "chore(fantasy): synchronize Expo pnpm lockfile"
+            git pull --rebase origin feat/fantasy-clausulas-150
+            git push origin HEAD:feat/fantasy-clausulas-150
+          fi

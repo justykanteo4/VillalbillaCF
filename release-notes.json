@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.16.2",
+  "id": "2026.11.16.3",
   "date": "2026-11-16",
-  "title": "Buzón Fantasy y ofertas con confirmación",
+  "title": "Avisos al comprador al responder ofertas",
   "changes": [
-    "Nuevo buzón en la cabecera de Fantasy con ofertas, premios, ganadores de jornada, fichajes y ventas de tu liga.",
-    "Las ofertas muestran un aviso emergente con Posponer, Rechazar o Aceptar; aceptar y rechazar requieren confirmación. Los avisos al móvil siguen activos independientemente de los avisos de votos.",
-    "Más reutilización de copias privadas del dispositivo para abrir Fantasy con menos consultas. Los saldos y las operaciones se validan en el servidor."
+    "El comprador recibe una notificación cuando el propietario acepta o rechaza su oferta, con el jugador y el importe.",
+    "La respuesta queda en el buzón privado de Fantasy y al pulsar el aviso se abren las ofertas de la liga correspondiente.",
+    "Los avisos se generan después de confirmar la operación, con cola de reintentos y sin enviar resoluciones históricas al actualizar."
   ]
 }

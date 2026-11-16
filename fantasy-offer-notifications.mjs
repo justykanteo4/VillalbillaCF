@@ -1,7 +1,9 @@
+import {dispatchOfferResponses} from './fantasy-offer-responses.mjs';
 import catalog from './fantasy-players.json' with {type:'json'};
 export async function dispatchOfferNotifications(env,{send=fetch,now=Date.now()}={}){
  const db=env.CHAT_DB,privateDb=env.VISITS_DB;if(!db||!privateDb)return;
  const closed=!!(await db.prepare('SELECT disabled FROM fantasy_access_settings WHERE id=1').first())?.disabled;
+ await dispatchOfferResponses(env,{send,now,closed});
  const offers=(await db.prepare("SELECT o.*,b.nickname AS buyer FROM fantasy_offer_notice_events e JOIN fantasy_offers o ON o.id=e.offer_id JOIN fantasy_members b ON b.league_id=o.league_id AND b.uid=o.buyer_uid JOIN fantasy_members s ON s.league_id=o.league_id AND s.uid=o.seller_uid WHERE e.created_at>=? AND o.status='pending' AND o.expires_at>? ORDER BY e.created_at DESC LIMIT 50").bind(now-86400000,now).all()).results;
  for(const o of offers){const tokens=(await privateDb.prepare(closed?'SELECT s.id FROM access_push_tokens s JOIN access_admin_devices a ON a.token_id=s.id AND a.uid=s.uid WHERE s.uid=? AND s.enabled=1':'SELECT id FROM access_push_tokens WHERE uid=? AND enabled=1').bind(o.seller_uid).all()).results;for(const t of tokens)await db.prepare('INSERT OR IGNORE INTO fantasy_offer_push_jobs(offer_id,token_id,uid) VALUES(?,?,?)').bind(o.id,t.id,o.seller_uid).run()}
  const jobs=(await db.prepare("SELECT j.*,o.league_id,o.ownership_id,o.player_id,o.amount_units,o.seller_uid,o.status AS offer_status,o.expires_at,b.nickname AS buyer FROM fantasy_offer_push_jobs j JOIN fantasy_offers o ON o.id=j.offer_id LEFT JOIN fantasy_members b ON b.league_id=o.league_id AND b.uid=o.buyer_uid WHERE j.attempts<5 AND j.next_at<=? AND (j.status='pending' OR j.status='sending' AND j.claimed_at<?) ORDER BY o.created_at LIMIT 5").bind(now,now-120000).all()).results;

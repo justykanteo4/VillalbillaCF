@@ -19,3 +19,5 @@ export async function registerPush({prompt=true}={}){
  try{return {provider:'expo',token:(await Notifications.getExpoPushTokenAsync({projectId})).data}}
  catch(error){throw Error(pushRegistrationError(error))}
 }
+
+export function onPushReceived(callback){const sub=Notifications.addNotificationReceivedListener(callback);return ()=>sub.remove()}

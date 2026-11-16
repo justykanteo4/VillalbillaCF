@@ -18,3 +18,5 @@ export async function registerPush({prompt=true}={}){
  if(!subscription)subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
  return {provider:'web',subscription:subscription.toJSON()};
 }
+
+export function onPushReceived(){return ()=>{}}

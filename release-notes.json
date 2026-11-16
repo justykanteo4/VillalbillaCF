@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.16.1",
+  "id": "2026.11.16.2",
   "date": "2026-11-16",
-  "title": "Menos consumo de datos y consultas del servidor",
+  "title": "Buzón Fantasy y ofertas con confirmación",
   "changes": [
-    "Se reducen las lecturas repetidas de D1 con índices, colas de avisos incrementales y reutilización de consultas dentro de cada petición.",
-    "Las votaciones mantienen sus totales actualizados al votar, sin recalcular todos los votos en cada consulta.",
-    "La app evita volver a registrar el mismo móvil cuando sus preferencias no han cambiado, conservando la renovación y reparación de avisos."
+    "Nuevo buzón en la cabecera de Fantasy con ofertas, premios, ganadores de jornada, fichajes y ventas de tu liga.",
+    "Las ofertas muestran un aviso emergente con Posponer, Rechazar o Aceptar; aceptar y rechazar requieren confirmación. Los avisos al móvil siguen activos independientemente de los avisos de votos.",
+    "Más reutilización de copias privadas del dispositivo para abrir Fantasy con menos consultas. Los saldos y las operaciones se validan en el servidor."
   ]
 }

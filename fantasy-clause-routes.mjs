@@ -30,16 +30,19 @@ async function ownerQuote(db,league,uid,ownershipId,players,schedule,now){
   if(!player)throw fail('El jugador no está disponible en el catálogo.',404);
   const currentRound=completedRounds(schedule,league.teamId,now);
   const acquiredRound=completedRounds(schedule,league.teamId,own.acquired_at);
-  const recorded=(await db.prepare('SELECT extra_cents,start_round FROM fantasy_clause_boosts WHERE ownership_id=? AND league_id=?').bind(own.id,league.id).first());
-  const activeBoost=recorded && currentRound!==null&&recorded.start_round<=currentRound&&currentRound<recorded.start_round+2
-    ?recorded.extra_cents:0;
+  const boosts=currentRound===null?[]:(await db.prepare(
+    'SELECT amount_cents,start_round FROM fantasy_clause_boost_events WHERE ownership_id=? AND league_id=? AND start_round<=? AND start_round+2>?'
+    ).bind(own.id,league.id,currentRound,currentRound).all()).results;
+  // Each payment has its own two-round expiry; later payments never extend older ones.
+  const activeBoost=boosts.reduce((total,e)=>total+e.amount_cents*2,0);
+  const boostExpiresRound=boosts.length?Math.max(...boosts.map(e=>e.start_round+2)):null;
   // Assigned starter players cost zero; use their market value as the
   // acquisition reference until a paid transfer establishes a purchase price.
   const purchasePrice=own.price_units>0?own.price_units/2:player.price;
   const baseCents=clauses.initialClauseCents(purchasePrice);
   return {own,player,currentRound,acquiredRound,purchasePrice,baseCents,
     amountCents:baseCents+activeBoost,boostCents:activeBoost,
-    boostExpiresRound:recorded&&activeBoost?recorded.start_round+2:null,
+    boostExpiresRound,
     protectedRoundsRemaining:currentRound===null||acquiredRound===null?2:Math.max(0,acquiredRound+2-currentRound),
     enabled:league.settings.clausesEnabled===true,mine:own.uid===uid};
 }

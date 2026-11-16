@@ -14,7 +14,7 @@ CREATE TRIGGER IF NOT EXISTS fantasy_clause_boost_guard BEFORE INSERT ON fantasy
  SELECT CASE WHEN NEW.gross_cents+COALESCE((SELECT delta_cents FROM fantasy_wallet_cents WHERE league_id=NEW.league_id AND uid=NEW.uid),-999999999)-COALESCE((SELECT SUM(b.amount_cents) FROM fantasy_auction_bids b JOIN fantasy_auction_rounds r ON r.league_id=b.league_id AND r.listing_id=b.listing_id AND r.day=b.day WHERE b.league_id=NEW.league_id AND b.uid=NEW.uid AND b.status='active' AND r.status='open'),0)<NEW.amount_cents THEN RAISE(ABORT,'FANTASY_FUNDS') END;
 END;
 CREATE TRIGGER IF NOT EXISTS fantasy_clause_boost_apply AFTER INSERT ON fantasy_clause_boost_events BEGIN
- INSERT INTO fantasy_clause_boosts(ownership_id,league_id,extra_cents) VALUES(NEW.ownership_id,NEW.league_id,NEW.amount_cents) ON CONFLICT(ownership_id) DO UPDATE SET extra_cents=extra_cents+excluded.extra_cents;
+ INSERT INTO fantasy_clause_boosts(ownership_id,league_id,extra_cents) VALUES(NEW.ownership_id,NEW.league_id,NEW.amount_cents*2) ON CONFLICT(ownership_id) DO UPDATE SET extra_cents=extra_cents+excluded.extra_cents;
  UPDATE fantasy_wallet_cents SET delta_cents=delta_cents-NEW.amount_cents WHERE league_id=NEW.league_id AND uid=NEW.uid;
  UPDATE fantasy_wallet_values SET delta_tenths=(SELECT delta_cents/10.0 FROM fantasy_wallet_cents WHERE league_id=NEW.league_id AND uid=NEW.uid) WHERE league_id=NEW.league_id AND uid=NEW.uid;
  UPDATE fantasy_wallets SET delta_units=(SELECT delta_cents/50.0 FROM fantasy_wallet_cents WHERE league_id=NEW.league_id AND uid=NEW.uid) WHERE league_id=NEW.league_id AND uid=NEW.uid;

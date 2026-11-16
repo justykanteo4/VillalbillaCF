@@ -44,7 +44,7 @@ function protectedUntil(acquiredRound) {
 }
 
 function isProtected(acquiredRound, currentRound) {
-  if (!Number.isSafeInteger(currentRound)) return true;
+  if (!Number.isSafeInteger(acquiredRound) || !Number.isSafeInteger(currentRound)) return true;
   return currentRound < protectedUntil(acquiredRound);
 }
 

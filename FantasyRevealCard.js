@@ -21,8 +21,8 @@ export default function FantasyRevealCard({player,progress,opened,reduced,width,
     {scale:progress.interpolate({inputRange:[0,.32,.8,1],outputRange:[.68,.68,1.045,1]})},
   ];
   return <Animated.View accessibilityElementsHidden={!opened} importantForAccessibility={opened?'yes':'no-hide-descendants'} pointerEvents={opened?'auto':'none'} style={{width,alignItems:'center',gap:6,opacity:reduced?progress:progress.interpolate({inputRange:[0,.32,.55,1],outputRange:[0,0,1,1]}),transform:entrance}}>
-    <View style={[styles.card,{width}]}>
-      <Image source={artwork} resizeMode="stretch" style={StyleSheet.absoluteFillObject} accessible={false}/>
+    <View style={[styles.card,{width,height:width*4/3}]}>
+      <Image source={artwork} resizeMode="stretch" style={{position:'absolute',top:0,left:0,width,height:width*4/3}} accessible={false}/>
       <View style={styles.portrait}>
         <PlayerPortrait playerId={player.id||player.playerId} teamId={player.teamId} name={player.name} photo={player.photo} size={Math.round(width*.42)} style={styles.photo}/>
       </View>
@@ -43,8 +43,8 @@ export default function FantasyRevealCard({player,progress,opened,reduced,width,
 }
 
 const styles=StyleSheet.create({
-  card:{aspectRatio:.75,position:'relative'},
-  portrait:{position:'absolute',top:'18%',left:0,right:0,alignItems:'center'},
+  card:{position:'relative',overflow:'hidden'},
+  portrait:{position:'absolute',top:'15%',left:0,right:0,alignItems:'center'},
   photo:{borderWidth:2,borderColor:'#FFE19B',backgroundColor:'#102742'},
   position:{position:'absolute',left:'14%',top:'24%',maxWidth:'16%'},
   nameBand:{position:'absolute',top:'48%',left:'11%',right:'11%',height:'10%',justifyContent:'center',paddingHorizontal:5},

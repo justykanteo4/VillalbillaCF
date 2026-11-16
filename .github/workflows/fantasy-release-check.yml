@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '22.16.0'
       - name: Verify Fantasy clause and trade rules
-        run: node --test fantasy-clauses.test.cjs
+        run: node --test fantasy-clauses.test.cjs fantasy-market-extensions.test.mjs
   # Platform bundles must work before a native build or public deployment.
   platform-bundles:
     runs-on: ubuntu-latest

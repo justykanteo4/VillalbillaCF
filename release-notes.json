@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.16.3",
+  "id": "2026.11.16.4",
   "date": "2026-11-16",
-  "title": "Avisos al comprador al responder ofertas",
+  "title": "Sobres animados para presentar jugadores Fantasy",
   "changes": [
-    "El comprador recibe una notificación cuando el propietario acepta o rechaza su oferta, con el jugador y el importe.",
-    "La respuesta queda en el buzón privado de Fantasy y al pulsar el aviso se abren las ofertas de la liga correspondiente.",
-    "Los avisos se generan después de confirmar la operación, con cola de reintentos y sin enviar resoluciones históricas al actualizar."
+    "La plantilla inicial se presenta a pantalla completa: toca cada sobre para descubrir al jugador y pulsa Siguiente para continuar, sin avance automático.",
+    "Cada fichaje confirmado, tanto en el mercado como por una oferta a un rival, se revela con el mismo sobre y su foto, puntos, valor e importe pagado.",
+    "El sobre y el estadio están incluidos en la app. Las presentaciones respetan el movimiento reducido y se coordinan con las ofertas y premios para evitar pantallas superpuestas."
   ]
 }

@@ -56,7 +56,7 @@ WHEN SUBSTR(NEW.request_id,1,8)='!clause-' BEGIN
  SELECT 1 FROM fantasy_clause_purchases c
  WHERE c.offer_id=NEW.id AND c.league_id=NEW.league_id AND c.buyer_uid=NEW.buyer_uid
  AND c.seller_uid=NEW.seller_uid AND c.ownership_id=NEW.ownership_id
- AND c.player_id=NEW.player_id AND c.amount_cents=NEW.amount_units*50
+ AND c.player_id=NEW.player_id AND c.amount_cents=ROUND(NEW.amount_units*50)
  AND c.created_at=NEW.created_at AND c.trade_id IS NOT NULL)
  THEN RAISE(ABORT,'FANTASY_CLAUSE_PROOF') END;
 END;

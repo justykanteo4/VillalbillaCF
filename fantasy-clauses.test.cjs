@@ -67,7 +67,7 @@ test('prohibidos los clausulazos en las 24 horas anteriores al cierre de jornada
 });
 
 test('cláusula utiliza precio de compra, no valoración actual', () => {
-  assert.equal(initialClauseCents(10), 600);
+  assert.equal(initialClauseCents(10), 1600);
   assert.equal(initialClauseCents(25), 4000);
   assert.equal(clauseCents(10, 200, 12, 13), 1800);
   assert.equal(clauseCents(10, 200, 12, 14), 1600);

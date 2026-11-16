@@ -1,7 +1,7 @@
 'use strict';
 
 // All amounts are in integer cents of a Fantasy million (1 M = 100 cents).
-const INITIAL_CLAUSE_MULTIPLIER = 0.6;
+const INITIAL_CLAUSE_MULTIPLIER = 1.6;
 const NEW_SIGNING_PROTECTION_ROUNDS = 2;
 const BOOST_DURATION_ROUNDS = 2;
 const BOOST_MULTIPLIER = 2;
@@ -15,7 +15,7 @@ function toCents(value) {
 }
 
 function initialClauseCents(purchasePrice) {
-  return Math.ceil(toCents(purchasePrice) * 3 / 5);
+  return Math.ceil(toCents(purchasePrice) * 8 / 5);
 }
 
 function boostExpiresAtRound(startRound) {

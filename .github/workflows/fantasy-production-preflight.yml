@@ -1,5 +1,8 @@
 name: Fantasy production access preflight
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/fantasy-production-preflight.yml'
   push:
     branches:
       - feat/fantasy-clausulas-150

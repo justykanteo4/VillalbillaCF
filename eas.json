@@ -9,7 +9,8 @@
       "android": {
         "buildType": "apk"
       },
-      "channel": "production"
+      "channel": "production",
+      "node": "22.16.0"
     },
     "preview-ios-simulator": {
       "distribution": "internal",

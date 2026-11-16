@@ -2,7 +2,7 @@
 
 // All amounts are in integer cents of a Fantasy million (1 M = 100 cents).
 const INITIAL_CLAUSE_MULTIPLIER = 1.5;
-const PROTECTION_MS = 7 * 24 * 60 * 60 * 1000;
+const NEW_SIGNING_PROTECTION_ROUNDS = 2;
 const BOOST_DURATION_ROUNDS = 2;
 const BOOST_MULTIPLIER = 2;
 const CLAUSE_LOCK_MS = 24 * 60 * 60 * 1000;
@@ -38,23 +38,24 @@ function clauseCents(marketValue, extraCents = 0, startRound = null, currentRoun
   return initialClauseCents(marketValue) + extraCents;
 }
 
-function protectedUntil(acquiredAt) {
-  if (!Number.isSafeInteger(acquiredAt) || acquiredAt < 0) throw new RangeError('Fecha de fichaje no válida');
-  return acquiredAt + PROTECTION_MS;
+function protectedUntil(acquiredRound) {
+  if (!Number.isSafeInteger(acquiredRound) || acquiredRound < 0) throw new RangeError('Jornada de fichaje no válida');
+  return acquiredRound + NEW_SIGNING_PROTECTION_ROUNDS;
 }
 
-function isProtected(acquiredAt, now) {
-  return now < protectedUntil(acquiredAt);
+function isProtected(acquiredRound, currentRound) {
+  if (!Number.isSafeInteger(currentRound)) return true;
+  return currentRound < protectedUntil(acquiredRound);
 }
 
 function isClauseWindowClosed(now, closesAt) {
   return Number.isFinite(closesAt) && now >= closesAt - CLAUSE_LOCK_MS && now < closesAt;
 }
 
-function canPayClause({enabled, acquiredAt, now, buyerCount, sellerCount, transfersRemaining,
+function canPayClause({enabled, acquiredRound, currentRound, now, buyerCount, sellerCount, transfersRemaining,
   balanceCents, reservedCents = 0, priceCents, closesAt = null, lockStartsAt = null, lockEndsAt = null}) {
   if (!enabled) return 'Las cláusulas están desactivadas en esta liga.';
-  if (isProtected(acquiredAt, now)) return 'El jugador está protegido durante 7 días desde su fichaje.';
+  if (isProtected(acquiredRound, currentRound)) return 'El jugador está protegido durante dos jornadas desde su fichaje.';
   if (isClauseWindowClosed(now, closesAt)) return 'No se permiten clausulazos durante las 24 horas anteriores al cierre de la jornada.';
   if (Number.isFinite(lockStartsAt) && Number.isFinite(lockEndsAt) &&
     now >= lockStartsAt && now < lockEndsAt) return 'Las cláusulas están bloqueadas por la jornada.';
@@ -66,7 +67,7 @@ function canPayClause({enabled, acquiredAt, now, buyerCount, sellerCount, transf
   return '';
 }
 
-module.exports = {INITIAL_CLAUSE_MULTIPLIER, PROTECTION_MS, BOOST_DURATION_ROUNDS, BOOST_MULTIPLIER, CLAUSE_LOCK_MS, MAX_SQUAD, MIN_SQUAD,
+module.exports = {INITIAL_CLAUSE_MULTIPLIER, NEW_SIGNING_PROTECTION_ROUNDS, BOOST_DURATION_ROUNDS, BOOST_MULTIPLIER, CLAUSE_LOCK_MS, MAX_SQUAD, MIN_SQUAD,
   boostedClauseCents, isClauseWindowClosed,
   boostExpiresAtRound, isBoostActive,
   initialClauseCents, clauseCents, protectedUntil, isProtected, canPayClause};

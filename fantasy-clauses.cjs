@@ -5,6 +5,7 @@ const INITIAL_CLAUSE_MULTIPLIER = 1.5;
 const PROTECTION_MS = 7 * 24 * 60 * 60 * 1000;
 const BOOST_DURATION_ROUNDS = 2;
 const BOOST_MULTIPLIER = 2;
+const CLAUSE_LOCK_MS = 24 * 60 * 60 * 1000;
 const MAX_SQUAD = 16;
 const MIN_SQUAD = 12;
 
@@ -46,10 +47,15 @@ function isProtected(acquiredAt, now) {
   return now < protectedUntil(acquiredAt);
 }
 
+function isClauseWindowClosed(now, closesAt) {
+  return Number.isFinite(closesAt) && now >= closesAt - CLAUSE_LOCK_MS && now < closesAt;
+}
+
 function canPayClause({enabled, acquiredAt, now, buyerCount, sellerCount, transfersRemaining,
-  balanceCents, reservedCents = 0, priceCents, lockStartsAt = null, lockEndsAt = null}) {
+  balanceCents, reservedCents = 0, priceCents, closesAt = null, lockStartsAt = null, lockEndsAt = null}) {
   if (!enabled) return 'Las cláusulas están desactivadas en esta liga.';
   if (isProtected(acquiredAt, now)) return 'El jugador está protegido durante 7 días desde su fichaje.';
+  if (isClauseWindowClosed(now, closesAt)) return 'No se permiten clausulazos durante las 24 horas anteriores al cierre de la jornada.';
   if (Number.isFinite(lockStartsAt) && Number.isFinite(lockEndsAt) &&
     now >= lockStartsAt && now < lockEndsAt) return 'Las cláusulas están bloqueadas por la jornada.';
   if (buyerCount >= MAX_SQUAD) return 'La plantilla compradora no puede superar los 16 jugadores.';
@@ -60,7 +66,7 @@ function canPayClause({enabled, acquiredAt, now, buyerCount, sellerCount, transf
   return '';
 }
 
-module.exports = {INITIAL_CLAUSE_MULTIPLIER, PROTECTION_MS, BOOST_DURATION_ROUNDS, BOOST_MULTIPLIER, MAX_SQUAD, MIN_SQUAD,
-  boostedClauseCents,
+module.exports = {INITIAL_CLAUSE_MULTIPLIER, PROTECTION_MS, BOOST_DURATION_ROUNDS, BOOST_MULTIPLIER, CLAUSE_LOCK_MS, MAX_SQUAD, MIN_SQUAD,
+  boostedClauseCents, isClauseWindowClosed,
   boostExpiresAtRound, isBoostActive,
   initialClauseCents, clauseCents, protectedUntil, isProtected, canPayClause};

@@ -12,6 +12,7 @@ import {pendingPurchase,acknowledgePurchase} from './fantasy-purchase-receipts.m
 import {marketHistory} from './fantasy-market-history.mjs';
 import {saleRoute} from './fantasy-sales.mjs';
 import {clauseRoute} from './fantasy-clause-routes.mjs';
+import {managerListingRoute} from './fantasy-manager-listings.mjs';
 import {reservedBids} from './fantasy-auctions.mjs';
 import {economyPolicy} from './fantasy-economy.mjs';
 import {gameRoute,adminGame,settleSalaries,ensureManager,playerTotals,sports} from './fantasy-game.mjs';
@@ -136,6 +137,14 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(path==='/api/fantasy/purchase-receipts'){if(request.method!=='GET')throw fail('Método no permitido.',405);const row=await pendingPurchase(db,uid,await allowedTeams());if(!row)return reply({receipt:null});const settings=JSON.parse(row.settings_json),player=(await prices(db,{type:'club'},settings.points)).find(p=>p.id===row.player_id);return reply({receipt:{id:row.id,leagueId:row.league_id,leagueName:row.mode==='classic'?leaguePolicy.classicLeagueName(teams.find(t=>t.id===row.team_id)):row.name,playerId:row.player_id,player:player||{id:row.player_id,name:'Jugador',stats:{},partial:true},paid:row.paid_cents/100,auction:!!row.auction,at:row.created_at}})}
  if(path==='/api/fantasy/purchase-receipts/seen'){if(request.method!=='POST')throw fail('Método no permitido.',405);const value=await body(request);return reply(await acknowledgePurchase(db,uid,await allowedTeams(),value?.tradeId,currentTime))}
  const history=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/market-history$/);if(history){if(request.method!=='GET')throw fail('Método no permitido.',405);await detail(db,history[1],uid,currentTime,await allowedTeams());return reply(await marketHistory({db,leagueId:history[1],uid,players:catalog.teams.flatMap(t=>t.players.map(p=>({...p,teamId:t.id}))),mine:url.searchParams.get('mine')==='1',cursor:url.searchParams.get('cursor')}))}
+ const listing=path.match(/^\\/api\\/fantasy\\/leagues\\/([a-zA-Z0-9-]{1,80})\\/list-player$/);
+ if(listing){
+  const data=await detail(db,listing[1],uid,currentTime,await allowedTeams());
+  await ensureManager(db,data.league,uid);
+  return reply(await managerListingRoute({db,league:data.league,uid,now:currentTime,
+    getNow:clock,method:request.method,readBody:()=>body(request),
+    playerId:url.searchParams.get('playerId')}));
+ }
  const sale=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/sell$/);if(sale){const data=await detail(db,sale[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);return reply(await saleRoute({db,league:data.league,uid,now:clock(),getNow:clock,method:request.method,playerId:url.searchParams.get('playerId'),readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points)}))}
  const game=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(squad|coaches|coach|presentation|search|favourites|alerts|lineup|table|transactions)$/);if(game){const data=await detail(db,game[1],uid,currentTime,await allowedTeams());return reply(await gameRoute({db,league:data.league,uid,now:currentTime,action:game[2],getNow:clock,targetNext:url.searchParams.get('next')==='1',method:request.method,readBody:()=>body(request),players:['table','alerts','presentation','coaches'].includes(game[2])?[]:await prices(db,data.league.pool,data.league.settings.points)}))}
  const clause=path.match(/^\\/api\\/fantasy\\/leagues\\/([a-zA-Z0-9-]{1,80})\\/(clause(?:\\/boost)?)$/);

@@ -15,7 +15,7 @@ export async function saleRoute({db,league,uid,now,method,playerId,readBody,play
  const own=await db.prepare('SELECT id FROM fantasy_roster WHERE league_id=? AND uid=? AND player_id=?').bind(league.id,uid,playerId).first(),p=players.find(p=>p.id===playerId);
  if(!own||!p)throw fail('El jugador ya no pertenece a tu plantilla en esta liga.',404);
  const count=await db.prepare('SELECT COUNT(*) n FROM fantasy_roster WHERE league_id=? AND uid=?').bind(league.id,uid).first(),marketCents=Math.round(p.price*100),amountCents=saleValueCents(marketCents),revision=p.priceRevision||0;
- const quote={playerId,name:p.name,ownershipId:own.id,marketCents,amountCents,priceRevision:revision,discountPercent:8,rosterCount:count.n,minRoster:12,canSell:count.n>12};
+ const quote={playerId,name:p.name,ownershipId:own.id,marketCents,amountCents,priceRevision:revision,discountPercent:60,rosterCount:count.n,minRoster:12,canSell:count.n>12};
  if(method==='GET')return quote;
  if(count.n<=12)throw fail('La plantilla debe conservar al menos 12 jugadores.',409);
  if(value.ownershipId!==own.id)throw fail('La propiedad del jugador ha cambiado. Revisa la venta.',409);

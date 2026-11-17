@@ -47,3 +47,38 @@ test('recuperación del próximo once legado permite puntuar la jornada actual, 
 test('cierre fijo del viernes en Madrid: último milisegundo, bloqueo sábado y reapertura lunes',async t=>{const f=fixture(t),id=await f.enter();await f.enableSalary();await f.choose('owner',id);const path='/leagues/'+id+'/lineup',d=await f.json(f.call('owner',path)),ids=d.players.slice(0,11).map(p=>p.id);assert.equal(new Date(d.closesAt).toISOString(),'2026-11-20T22:59:59.999Z');const payload={week:d.week,playerIds:ids,captainId:ids[0],formation:'4-4-2',revision:0};f.setNow(d.closesAt);await f.json(f.call('owner',path,payload));const saved=f.sql.prepare('SELECT * FROM fantasy_lineups').get();f.setNow(d.closesAt+1);assert.equal((await f.json(f.call('owner',path))).locked,true);assert.equal((await f.call('owner',path,{...payload,revision:1,formation:'3-5-2',captainId:ids[1]})).status,409);assert.deepEqual(f.sql.prepare('SELECT * FROM fantasy_lineups').get(),saved);assert.equal((await f.call('owner',path+'?next=1',{...payload,week:d.week+1})).status,409);f.setNow('2026-11-22T23:00:00Z');const monday=await f.json(f.call('owner',path));assert.equal(monday.locked,false);assert.equal(monday.week,d.week+1);assert.deepEqual(monday.selected,[]);await f.json(f.call('owner',path,{...payload,week:monday.week,captainId:ids[1]}));assert.equal(f.sql.prepare('SELECT COUNT(*) n FROM fantasy_lineups').get().n,2)});
 test('el reloj del servidor bloquea una petición que cruza el cierre mientras se procesa',async t=>{const f=fixture(t),id=await f.enter();await f.enableSalary();await f.choose('owner',id);const path='/leagues/'+id+'/lineup',d=await f.json(f.call('owner',path)),ids=d.players.slice(0,11).map(p=>p.id);let calls=0;const response=await f.call('owner',path,{week:d.week,playerIds:ids,captainId:ids[0],revision:0},{clock:()=>++calls===1?d.closesAt-10:d.closesAt+1});assert.equal(response.status,409);assert.equal(f.sql.prepare('SELECT COUNT(*) n FROM fantasy_lineups').get().n,0)});
 test('viernes 23:59 de Madrid conserva el cierre en horario de verano y no lo adelantan los partidos',()=>{for(const date of ['2027-07-05T10:00Z','2027-03-22T10:00Z','2027-03-29T10:00Z','2027-10-25T10:00Z','2026-11-16T10:00Z']){const week=policy.weekKey(Date.parse(date)),end=policy.deadline(week,[{week,startsAt:Date.parse(date)}]),civil=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',weekday:'long',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(end);assert.equal(civil,'Friday 23:59:59');assert.equal(end%1000,999)}});
+
+test('traspaso administrativo mueve un jugador rival y asigna uno libre sin alterar saldos', async t => {
+ const f=fixture(t),id=await f.enter();
+ await f.enableSalary();
+ await f.choose('owner',id);
+ await f.enter('second');
+ await f.choose('second',id);
+ const path='/admin/leagues/'+id+'/transfer';
+ const data=await f.json(f.call('owner',path));
+ const player=data.players.find(p=>p.ownership?.ownerId==='owner');
+ const body={playerId:player.id,targetId:'second',ownershipId:player.ownership.id};
+ const denied={adminAuthorize:async()=>{throw Object.assign(Error('Solo administrador'),{status:403})}};
+ assert.equal((await f.call('second',path,undefined,denied)).status,403);
+ assert.equal((await f.call('second',path,body,denied)).status,403);
+ const lineupPath='/leagues/'+id+'/lineup',lineup=await f.json(f.call('owner',lineupPath));
+ const ids=[player.id,...lineup.players.filter(p=>p.id!==player.id).slice(0,10).map(p=>p.id)];
+ await f.json(f.call('owner',lineupPath,{playerIds:ids,captainId:player.id,revision:0}));
+ const balances=f.sql.prepare('SELECT * FROM fantasy_wallet_cents ORDER BY uid').all();
+ await f.json(f.call('owner',path,body));
+ assert.equal(f.sql.prepare('SELECT uid FROM fantasy_roster WHERE league_id=? AND player_id=?').get(id,player.id).uid,'second');
+ assert.equal((await f.call('owner',path,body)).status,409);
+ const revised=await f.json(f.call('owner',lineupPath));
+ assert.equal(revised.captainId,'');
+ assert(!revised.selected.includes(player.id));
+ const market=await f.json(f.call('owner','/leagues/'+id+'/market'));
+ const free=market.listings.find(p=>!p.owner);
+ const auction=market.auctions.find(a=>a.listingId===free.listingId);
+ await f.json(f.call('owner','/leagues/'+id+'/bid',{listingId:free.listingId,amount:auction.minBid,requestId:'test-admin-bid'}));
+ await f.json(f.call('owner',path,{playerId:free.id,targetId:'second',ownershipId:null}));
+ assert.equal(f.sql.prepare('SELECT COUNT(*) AS count FROM fantasy_roster WHERE uid=?').get('second').count,16);
+ assert.equal(f.sql.prepare('SELECT status FROM fantasy_auction_bids WHERE listing_id=?').get(free.listingId).status,'cancelled');
+ assert.deepEqual(f.sql.prepare('SELECT * FROM fantasy_wallet_cents ORDER BY uid').all(),balances);
+ const remaining=data.players.find(p=>p.id!==free.id&&!p.ownership);
+ assert.equal((await f.call('owner',path,{playerId:remaining.id,targetId:'second',ownershipId:null})).status,409);
+});

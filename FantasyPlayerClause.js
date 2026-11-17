@@ -1,20 +1,20 @@
 import React,{useRef,useState} from 'react';
-import {View,Text,TextInput,Modal,ScrollView} from 'react-native';
-import {Button,ErrorText,panel,title,text,input,theme,money} from './FantasyUI';
+import {View,Text,Modal,ScrollView,Pressable} from 'react-native';
+import {Button,ErrorText,panel,title,text,theme,money} from './FantasyUI';
 
 export default function FantasyPlayerClause({leagueId,player,request,onUpdated=()=>{}}){
  const [visible,show]=useState(false),[quote,setQuote]=useState(null),[amount,setAmount]=useState('1'),[busy,setBusy]=useState(false),[error,setError]=useState('');
- const locked=useRef(false),requestId=useRef(null);
+ const locked=useRef(false),requestId=useRef(null),wheel=useRef(null),steps=Array.from({length:100},(_,i)=>i+1),stepWidth=70;
  async function open(){
   if(locked.current)return;
-  show(true);setQuote(null);setError('');
+  show(true);setQuote(null);setError('');setAmount(1);
   try{
    const q=await request('/leagues/'+leagueId+'/clause?ownershipId='+encodeURIComponent(player.ownershipId),{cache:'reload'});
    setQuote(q);requestId.current='boost-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
   }catch(e){setError(e.message)}
  }
  async function confirm(){
-  const paid=Number(amount.replace(',','.'));
+  const paid=amount;
   if(locked.current||!quote?.enabled||!Number.isFinite(paid)||paid<0.01||paid>1000)return;
   locked.current=true;setBusy(true);setError('');
   try{
@@ -24,7 +24,7 @@ export default function FantasyPlayerClause({leagueId,player,request,onUpdated=(
   }catch(e){setError(e.message)}
   finally{locked.current=false;setBusy(false)}
  }
- const paid=Number(amount.replace(',','.')),valid=Number.isFinite(paid)&&paid>=0.01&&paid<=1000&&Math.abs(paid*100-Math.round(paid*100))<1e-6;
+ const paid=amount,valid=Number.isSafeInteger(paid)&&paid>=1&&paid<=100;
  return <>
   <Button secondary onPress={open}>🛡️ Subir cláusula</Button>
   <Modal visible={visible} transparent animationType="fade" onRequestClose={()=>{if(!busy)show(false)}}>
@@ -38,7 +38,19 @@ export default function FantasyPlayerClause({leagueId,player,request,onUpdated=(
        {!!quote.boostExpiresRound&&<Text style={text}>Protección aumentada hasta la jornada {quote.boostExpiresRound}.</Text>}
        {!quote.enabled&&<Text style={{...text,color:theme.negative}}>El club todavía no ha activado las cláusulas en esta liga.</Text>}
        <Text style={text}>¿Cuántos millones quieres invertir?</Text>
-       <TextInput accessibilityLabel="Millones para subir cláusula" keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={input}/>
+       <Text style={{...title,textAlign:'center',color:theme.accent}}>{paid} M</Text>
+       <Text style={{...text,textAlign:'center',color:theme.muted,fontSize:12}}>Desliza para elegir cuánto invertir</Text>
+       <View style={{borderRadius:14,overflow:'hidden',backgroundColor:theme.header,borderWidth:1,borderColor:theme.border}}>
+        <View pointerEvents="none" style={{position:'absolute',alignSelf:'center',width:70,height:'100%',backgroundColor:theme.panel,borderColor:theme.accent,borderWidth:2,borderRadius:10,zIndex:1}}/>
+        <ScrollView horizontal ref={wheel} showsHorizontalScrollIndicator={false} snapToInterval={stepWidth} decelerationRate="fast"
+          contentContainerStyle={{paddingHorizontal:stepWidth*1.5,paddingVertical:12,alignItems:'center'}}
+          onMomentumScrollEnd={event=>setAmount(Math.max(1,Math.min(100,Math.round(event.nativeEvent.contentOffset.x/stepWidth)+1)))}
+          onScrollEndDrag={event=>{if(!event.nativeEvent.velocity?.x)setAmount(Math.max(1,Math.min(100,Math.round(event.nativeEvent.contentOffset.x/stepWidth)+1)))}}>
+         {steps.map(value=><Pressable key={value} accessibilityRole="button" accessibilityLabel={'Invertir '+value+' millones'} onPress={()=>{setAmount(value);wheel.current?.scrollTo({x:(value-1)*stepWidth,animated:true})}} style={{width:stepWidth,alignItems:'center',justifyContent:'center',height:52}}>
+          <Text style={{color:value===paid?theme.accent:theme.text,fontSize:value===paid?19:15,fontWeight:value===paid?'900':'600'}}>{value} M</Text>
+         </Pressable>)}
+        </ScrollView>
+       </View>
        {valid&&<Text style={{...text,color:theme.accent,fontWeight:'900'}}>Añades {(paid*2).toLocaleString('es-ES',{maximumFractionDigits:2})} M · Nueva cláusula orientativa: {money(quote.amountCents+Math.round(paid*200))}</Text>}
       </>}
       <ErrorText>{error}</ErrorText>

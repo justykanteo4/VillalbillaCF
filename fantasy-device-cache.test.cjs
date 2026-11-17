@@ -58,3 +58,22 @@ test('marcar un fichaje como visto no invalida saldo ni copia de mercado',async(
 
 test('buzón se conserva por cuenta; marcar leído no invalida mercado y revocar borra su acceso offline',async()=>{const f=fixture();await f.request('a','/leagues/x/market',{},async()=>({balance:52}));await f.request('a','/inbox',{},async()=>({messages:[{id:1}],unread:1}));await f.request('a','/inbox',{method:'POST'},async()=>({saved:true}));assert.equal((await f.request('a','/leagues/x/market',{},()=>{throw Error('no red')})).balance,52);assert.equal((await f.request('a','/inbox',{},async()=>({messages:[],unread:0}))).unread,0);await f.request('a','/admin/access',{method:'POST'},async()=>({saved:true}));let shown=false;await assert.rejects(createFantasyCache(f.deps)('a','/inbox',{onCached:()=>shown=true},async()=>{throw Error('sin red')}));assert.equal(shown,false)});
 test('ranking y directorio privados reutilizan su copia sin ocultar una actualización explícita',async()=>{const f=fixture();let calls=0;for(const path of ['/leagues/x/players','/leagues/x/search','/leagues/x/table']){await f.request('a',path,{},async()=>({revision:++calls}));f.advance(20000);const before=calls;await f.request('a',path,{},()=>{throw Error('no red')});assert.equal(calls,before);await f.request('a',path,{cache:'reload'},async()=>({revision:++calls}));assert.equal(calls,before+1)}});
+
+
+test('Rivales, actas y clasificaciones se leen desde el dispositivo durante 5 minutos, sin mezclar ligas ni cuentas',async()=>{
+ const f=fixture();let network=0;
+ for(const path of ['/leagues/uno/rivals','/leagues/uno/table','/leagues/uno/players','/leagues/uno/search']){
+  const first=await f.request('a',path,{},async()=>({revision:++network}));
+  f.advance(180000);
+  const kept=await createFantasyCache(f.deps)('a',path,{},()=>{throw Error('No debe consultar Internet con datos recientes')});
+  assert.equal(kept.revision,first.revision);
+  const second=await f.request('b',path,{},async()=>({revision:++network}));
+  assert.notEqual(second.revision,first.revision);
+  const fresh=await f.request('a',path,{cache:'reload'},async()=>({revision:++network}));
+  assert.notEqual(fresh.revision,first.revision);
+ }
+ const before=await f.request('a','/leagues/uno/rivals',{},async()=>({rivals:[{id:'one'}]}));
+ await f.request('a','/leagues/uno/offers',{method:'POST'},async()=>({saved:true}));
+ const result=await f.request('a','/leagues/uno/rivals',{},async()=>({rivals:[{id:'two'}]}));
+ assert.deepEqual(result.rivals.map(x=>x.id),['two']);
+});

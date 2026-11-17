@@ -1,3 +1,4 @@
+import identity from './fantasy-team-identity.cjs';
 import {transferFantasyPlayer} from './fantasy-admin-transfer.mjs';
 import {inbox} from './fantasy-inbox.mjs';
 import {requestReadCache} from './d1-read-cache.mjs';
@@ -196,10 +197,10 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
    return reply({teams:members.results.map(m=>({...m,me:m.id===uid}))});
   }
   if(request.method!=='POST')throw fail('Método no permitido.',405);
-  const input=await body(request),name=String(input?.name||'').trim().replace(/\\s+/g,' ');
-  if(name.length<2||name.length>32||/[\\x00-\\x1f\\x7f<>]/.test(name))throw fail('El nombre debe tener entre 2 y 32 caracteres sin símbolos de control.');
+  const input=await body(request),name=identity.normalizeTeamName(input?.name);
+  if(!identity.validTeamName(name))throw fail('El nombre debe tener entre 2 y 32 caracteres sin símbolos de control.');
   const photo=input?.photo;
-  if(photo!==null&&photo!==undefined&&(!(/^data:image\\/(?:jpeg|png|webp);base64,[a-zA-Z0-9+/]+={0,2}$/.test(photo))||photo.length>65000))throw fail('La imagen debe ser JPG, PNG o WebP y ocupar menos de 48 KB.');
+  if(photo!==undefined&&!identity.validTeamPhoto(photo))throw fail('La imagen debe ser JPG, PNG o WebP y ocupar menos de 48 KB.');
   const member=await db.prepare('SELECT 1 FROM fantasy_members WHERE league_id=? AND uid=?').bind(leagueId,uid).first();
   if(!member)throw fail('Solo puedes editar tu propio equipo.',403);
   await db.prepare('UPDATE fantasy_members SET nickname=? WHERE league_id=? AND uid=?').bind(name,leagueId,uid).run();

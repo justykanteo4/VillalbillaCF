@@ -105,19 +105,25 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  ];
  for(const [child,key,parent,parentKey] of orphanJobs){
   const childTable=byName.get(child),parentTable=byName.get(parent);
-  if(!childTable||!parentTable||!scoped.has(parent))continue;
+  if(!childTable||!parentTable||!scoped.has(parent)||!counts[parent])continue;
   if(!childTable.columns.some(c=>c.name===key)||!parentTable.columns.some(c=>c.name===parentKey))continue;
   const parentScope=scoped.get(parent).where;
   statements.push(db.prepare('DELETE FROM '+identifier(child)+' WHERE "'+key+'" IN (SELECT "'+parentKey+'" FROM '+identifier(parent)+' WHERE '+parentScope+')').bind(leagueId));
  }
  for(const name of order){
-  const {where,joins}=scoped.get(name);
+  // D1 Workers Free has a limited per-request query budget. Skipping empty
+  // league-scoped tables preserves the result and reduces batch statements.
+  if(!counts[name])continue;
+  const {where}=scoped.get(name);
   statements.push(db.prepare('DELETE FROM '+identifier(name)+' WHERE '+where).bind(leagueId));
  }
  for(const [name,col] of walletFields)
   if(byName.has(name))statements.push(db.prepare('UPDATE '+identifier(name)+' SET "'+col+'"=0 WHERE league_id=?').bind(leagueId));
  statements.push(db.prepare('UPDATE fantasy_members SET joined_at=? WHERE league_id=?').bind(now,leagueId));
  statements.push(db.prepare('UPDATE fantasy_leagues SET created_at=? WHERE id=? AND created_at=?').bind(now,leagueId,league.created_at));
+ // Never start a large transaction that exceeds the supported D1 request
+ // budget. Authentication and preview queries also count toward that budget.
+ if(statements.length>35)throw Object.assign(Error('La liga tiene demasiados registros relacionados para este reinicio seguro. No se ha modificado nada; consulta al club.'),{status:409});
  await db.batch(statements);
  return {reset:true,leagueId,memberCount,resetAt:now};
 }

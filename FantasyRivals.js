@@ -1,3 +1,4 @@
+import {FantasyTeamPhoto} from './FantasyTeamIdentity';
 import React,{useEffect,useRef,useState} from 'react';
 import {View,Text,Pressable,TextInput,Modal,ScrollView,AppState} from 'react-native';
 import PlayerPortrait from './PlayerPortrait';
@@ -64,7 +65,7 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
   {data?.rivals?.length===0&&<Text style={text}>Todavía no hay otros participantes en esta liga.</Text>}
   {(data?.rivals||[]).map(rival=><View key={rival.id} style={panel}>
    <Pressable accessibilityRole="button" accessibilityLabel={'Ver plantilla de '+rival.name} accessibilityState={{expanded:expanded===rival.id}} onPress={()=>setExpanded(expanded===rival.id?null:rival.id)} style={{flexDirection:'row',alignItems:'center',gap:12,paddingVertical:6}}>
-    <View style={{flex:1,gap:4}}>
+    <FantasyTeamPhoto photo={rival.photo} size={52}/><View style={{flex:1,gap:4}}>
      <Text style={{...title,fontSize:19}}>{rival.name}</Text>
      <Text style={{...text,color:theme.muted,fontSize:13}}>{rival.players.length} jugadores en plantilla</Text>
     </View>

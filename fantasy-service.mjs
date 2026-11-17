@@ -1,3 +1,4 @@
+import identity from './fantasy-team-identity.cjs';
 import {transferFantasyPlayer} from './fantasy-admin-transfer.mjs';
 import {inbox} from './fantasy-inbox.mjs';
 import {requestReadCache} from './d1-read-cache.mjs';
@@ -187,18 +188,40 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
     playerId:url.searchParams.get('playerId')}));
  }
  const sale=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/sell$/);if(sale){const data=await detail(db,sale[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);return reply(await saleRoute({db,league:data.league,uid,now:clock(),getNow:clock,method:request.method,playerId:url.searchParams.get('playerId'),readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points)}))}
+ const profileMatch=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/team-profile$/);
+ if(profileMatch){
+  const leagueId=profileMatch[1];
+  await detail(db,leagueId,uid,currentTime,await allowedTeams());
+  if(request.method==='GET'){
+   const members=await db.prepare('SELECT m.uid AS id,m.nickname AS name,p.photo_data AS photo FROM fantasy_members m LEFT JOIN fantasy_team_photos p ON p.league_id=m.league_id AND p.uid=m.uid WHERE m.league_id=? ORDER BY m.nickname').bind(leagueId).all();
+   return reply({teams:members.results.map(m=>({...m,me:m.id===uid}))});
+  }
+  if(request.method!=='POST')throw fail('Método no permitido.',405);
+  const input=await body(request),name=identity.normalizeTeamName(input?.name);
+  if(!identity.validTeamName(name))throw fail('El nombre debe tener entre 2 y 32 caracteres sin símbolos de control.');
+  const photo=input?.photo;
+  if(photo!==undefined&&!identity.validTeamPhoto(photo))throw fail('La imagen debe ser JPG, PNG o WebP y ocupar menos de 48 KB.');
+  const member=await db.prepare('SELECT 1 FROM fantasy_members WHERE league_id=? AND uid=?').bind(leagueId,uid).first();
+  if(!member)throw fail('Solo puedes editar tu propio equipo.',403);
+  await db.prepare('UPDATE fantasy_members SET nickname=? WHERE league_id=? AND uid=?').bind(name,leagueId,uid).run();
+  if(photo!==undefined){
+   if(photo===null)await db.prepare('DELETE FROM fantasy_team_photos WHERE league_id=? AND uid=?').bind(leagueId,uid).run();
+   else await db.prepare('INSERT INTO fantasy_team_photos(league_id,uid,photo_data,updated_at) VALUES(?,?,?,?) ON CONFLICT(league_id,uid) DO UPDATE SET photo_data=excluded.photo_data,updated_at=excluded.updated_at').bind(leagueId,uid,photo,currentTime).run();
+  }
+  return reply({saved:true,name});
+ }
  const rivalsMatch=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/rivals$/);
  if(rivalsMatch){
   if(request.method!=='GET')throw fail('Método no permitido.',405);
   const data=await detail(db,rivalsMatch[1],uid,currentTime,await allowedTeams());
   await ensureManager(db,data.league,uid);
   const [members,roster,availablePlayers]=await Promise.all([
-   db.prepare('SELECT uid,nickname FROM fantasy_members WHERE league_id=? AND uid<>? ORDER BY nickname,uid').bind(rivalsMatch[1],uid).all(),
+   db.prepare('SELECT m.uid,m.nickname,p.photo_data AS photo FROM fantasy_members m LEFT JOIN fantasy_team_photos p ON p.league_id=m.league_id AND p.uid=m.uid WHERE m.league_id=? AND m.uid<>? ORDER BY m.nickname,m.uid').bind(rivalsMatch[1],uid).all(),
    db.prepare('SELECT id,uid,player_id,acquired_at FROM fantasy_roster WHERE league_id=? AND uid<>? ORDER BY acquired_at').bind(rivalsMatch[1],uid).all(),
    prices(db,data.league.pool,data.league.settings.points)
   ]);
   const directory=new Map(availablePlayers.map(p=>[p.id,p]));
-  const grouped=new Map(members.results.map(m=>[m.uid,{id:m.uid,name:m.nickname,players:[]}])); 
+  const grouped=new Map(members.results.map(m=>[m.uid,{id:m.uid,name:m.nickname,photo:m.photo||null,players:[]}])); 
   for(const own of roster.results){
    const rival=grouped.get(own.uid),player=directory.get(own.player_id);
    if(!rival||!player)continue;

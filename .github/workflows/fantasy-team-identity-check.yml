@@ -1,0 +1,35 @@
+name: Verify Fantasy team name and photo
+on:
+  push:
+    branches: [feature/fantasy-equipo-nombre-foto]
+  pull_request:
+    paths:
+      - 'FantasyTeamIdentity.js'
+      - 'FantasyArea.js'
+      - 'FantasyTable.js'
+      - 'FantasyRivals.js'
+      - 'fantasy-service.mjs'
+      - 'fantasy-game.mjs'
+      - 'fantasy-team-identity*'
+      - '.github/workflows/fantasy-team-identity-check.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate names, photos and Fantasy rules
+        run: |
+          node fantasy-team-identity.test.cjs
+          pnpm run check:fantasy-clauses
+          node official-cache.test.mjs
+      - name: Export web and Android
+        run: pnpm exec expo export --platform all --output-dir work/verify-team-identity

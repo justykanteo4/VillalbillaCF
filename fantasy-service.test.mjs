@@ -100,3 +100,22 @@ test('Rivales solo muestra plantillas de compañeros y prohíbe consultar otras 
  assert.equal(intruder.status,404);
  assert.equal((await handleFantasy(request('/leagues/'+id+'/rivals',{try:'edit'}),e,owner)).status,405);
 });
+
+test('cada usuario personaliza únicamente su nombre y foto pública de Fantasy',async t=>{
+ const {env:e,sql}=env(t);
+ const league=await fixtureLeague(e,'owner-uid',classic('team-profile-test'));
+ const id=league.league.id;
+ const photo='data:image/jpeg;base64,/9j/4AAQ';
+ const post=(identity,payload)=>handleFantasy(request('/leagues/'+id+'/team-profile',payload),e,identity);
+ assert.equal((await post(other,{name:'Intruso',photo})).status,404);
+ assert.equal((await post(owner,{name:'A',photo})).status,400);
+ assert.equal((await post(owner,{name:'Los Galácticos',photo})).status,200);
+ const saved=await (await handleFantasy(request('/leagues/'+id+'/team-profile'),e,owner)).json();
+ assert.equal(saved.teams[0].name,'Los Galácticos');
+ assert.equal(saved.teams[0].photo,photo);
+ assert.equal(saved.teams[0].me,true);
+ assert.equal(sql.prepare('SELECT nickname FROM fantasy_members WHERE league_id=?').get(id).nickname,'Los Galácticos');
+ assert.equal((await post(owner,{name:'Los Galácticos',photo:null})).status,200);
+ const after=await (await handleFantasy(request('/leagues/'+id+'/team-profile'),e,owner)).json();
+ assert.equal(after.teams[0].photo,null);
+});

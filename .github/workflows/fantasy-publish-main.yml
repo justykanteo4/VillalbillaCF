@@ -72,13 +72,24 @@ jobs:
           path: /tmp/prepared-release-data
       - name: Restore verified public data
         run: tar -xzf /tmp/prepared-release-data/release-data.tgz && pnpm run check:release
+      - name: Backup D1 and migrate Fantasy team photos
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          pnpm exec wrangler d1 export villalbilla-chats --remote --output /tmp/fantasy-backup-before-photos.sql
+          test -s /tmp/fantasy-backup-before-photos.sql
+          count=$(grep -ic 'CREATE TABLE' /tmp/fantasy-backup-before-photos.sql || true)
+          if [ "$count" -lt 80 ]; then echo "::error::Incomplete database backup; migration cancelled"; exit 1; fi
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-team-photos-schema.sql
+          echo "Created or verified Fantasy public team photo table; backup retained privately on runner."
       - name: Verify current D1 schema (read only)
         shell: bash
         run: |
           set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
-          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type IN ('table','trigger') AND name IN ('fantasy_clause_boosts','fantasy_clause_boost_events','fantasy_clause_purchases','fantasy_manager_listings','fantasy_clause_boost_guard','fantasy_clause_boost_apply','fantasy_clause_purchase_guard','fantasy_clause_offer_proof','fantasy_manager_listing_guard','fantasy_manager_offer_proof','fantasy_sale_manager_listing_guard') ORDER BY name;" > /tmp/schema.json
-          for name in fantasy_clause_boosts fantasy_clause_boost_events fantasy_clause_purchases fantasy_manager_listings fantasy_clause_boost_guard fantasy_clause_boost_apply fantasy_clause_purchase_guard fantasy_clause_offer_proof fantasy_manager_listing_guard fantasy_manager_offer_proof fantasy_sale_manager_listing_guard; do
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type IN ('table','trigger') AND name IN ('fantasy_clause_boosts','fantasy_clause_boost_events','fantasy_clause_purchases','fantasy_manager_listings','fantasy_clause_boost_guard','fantasy_clause_boost_apply','fantasy_clause_purchase_guard','fantasy_clause_offer_proof','fantasy_manager_listing_guard','fantasy_manager_offer_proof','fantasy_sale_manager_listing_guard','fantasy_team_photos') ORDER BY name;" > /tmp/schema.json
+          for name in fantasy_clause_boosts fantasy_clause_boost_events fantasy_clause_purchases fantasy_manager_listings fantasy_clause_boost_guard fantasy_clause_boost_apply fantasy_clause_purchase_guard fantasy_clause_offer_proof fantasy_manager_listing_guard fantasy_manager_offer_proof fantasy_sale_manager_listing_guard fantasy_team_photos; do
             grep -q "\"$name\"" /tmp/schema.json || { echo "::error::Missing D1 schema: $name. Deployment blocked."; exit 1; }
           done
       - name: Deploy Cloudflare Worker + web

@@ -3,7 +3,7 @@ import {View,Text,Modal,ScrollView,Pressable} from 'react-native';
 import {Button,ErrorText,panel,title,text,theme,money} from './FantasyUI';
 
 export default function FantasyPlayerClause({leagueId,player,request,onUpdated=()=>{}}){
- const [visible,show]=useState(false),[quote,setQuote]=useState(null),[amount,setAmount]=useState('1'),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const [visible,show]=useState(false),[quote,setQuote]=useState(null),[amount,setAmount]=useState(1),[wheelWidth,setWheelWidth]=useState(280),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const locked=useRef(false),requestId=useRef(null),wheel=useRef(null),steps=Array.from({length:100},(_,i)=>i+1),stepWidth=70;
  async function open(){
   if(locked.current)return;

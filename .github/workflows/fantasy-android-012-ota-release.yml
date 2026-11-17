@@ -1,0 +1,55 @@
+name: Fantasy Android 0.1.12 production OTA release
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fantasy-android-012-ota-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: villalbilla-fantasy-android-ota-release
+  cancel-in-progress: false
+jobs:
+  publish-android-012:
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/fantasy-clausulas-150')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      VILLALBILLA_UPDATE_RUNTIME: '0.1.12'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify business rules and released data
+        run: |
+          pnpm run check:fantasy-clauses
+          pnpm run check:release
+      - name: Pull Expo production variables without printing values
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          pnpm dlx eas-cli@25.3.0 env:pull --environment production --path .env.local --non-interactive > /tmp/eas-env-pull.log
+          node --env-file=.env.local scripts/check-update-config.cjs
+      - name: Verify runtime 0.1.12 and production channel
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec expo config --json > /tmp/fantasy-ota-config.json
+          node -e "const c=require('/tmp/fantasy-ota-config.json');if(c.runtimeVersion!=='0.1.12'||c.updates?.requestHeaders?.['expo-channel-name']!=='production')throw Error('Android OTA runtime or channel mismatch.');console.log('Android OTA runtime 0.1.12, channel production confirmed.')"
+      - name: Export Android-only JavaScript update for native runtime 0.1.12
+        run: pnpm exec expo export --platform android --output-dir work/ota-export
+      - name: Publish Android OTA on Expo production channel
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm dlx eas-cli@25.3.0 update --channel production --platform android --environment production --input-dir work/ota-export --skip-bundler --non-interactive --message "Villalbilla Fantasy · cláusulas y subastas (Android 0.1.12)"
+      - name: Report completed Android 0.1.12 OTA release
+        run: echo "Published Android runtime 0.1.12 update to Expo production."

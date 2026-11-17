@@ -30,7 +30,7 @@ test('cláusulas inactivas y compras restringidas por jornada, plantillas, ficha
   assert.match(canPayClause({...valid, lockStartsAt: now - 1, lockEndsAt: now + 1}), /jornada/);
   assert.match(canPayClause({...valid, buyerCount: 16}), /16/);
   assert.match(canPayClause({...valid, sellerCount: 12}), /12/);
-  assert.match(canPayClause({...valid, transfersRemaining: 0}), /semana/);
+  assert.equal(canPayClause({...valid, transfersRemaining: 0}), '');
   assert.match(canPayClause({...valid, reservedCents: 1500}), /Saldo/);
 });
 

@@ -111,8 +111,8 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
   statements.push(db.prepare('DELETE FROM '+identifier(child)+' WHERE "'+key+'" IN (SELECT "'+parentKey+'" FROM '+identifier(parent)+' WHERE '+parentScope+')').bind(leagueId));
  }
  for(const name of order){
-  // D1 Workers Free has a limited per-request query budget. Skipping empty
-  // league-scoped tables preserves the result and reduces batch statements.
+  // Avoid needless DELETE queries on empty league-scoped tables. This reduces
+  // transaction work and D1 row scans while preserving the same result.
   if(!counts[name])continue;
   const {where}=scoped.get(name);
   statements.push(db.prepare('DELETE FROM '+identifier(name)+' WHERE '+where).bind(leagueId));
@@ -121,9 +121,8 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
   if(byName.has(name))statements.push(db.prepare('UPDATE '+identifier(name)+' SET "'+col+'"=0 WHERE league_id=?').bind(leagueId));
  statements.push(db.prepare('UPDATE fantasy_members SET joined_at=? WHERE league_id=?').bind(now,leagueId));
  statements.push(db.prepare('UPDATE fantasy_leagues SET created_at=? WHERE id=? AND created_at=?').bind(now,leagueId,league.created_at));
- // Never start a large transaction that exceeds the supported D1 request
- // budget. Authentication and preview queries also count toward that budget.
- if(statements.length>35)throw Object.assign(Error('La liga tiene demasiados registros relacionados para este reinicio seguro. No se ha modificado nada; consulta al club.'),{status:409});
+ // D1 batch() is a single database subrequest and executes the statements
+ // transactionally; do not impose a per-statement Workers Free limit here.
  await db.batch(statements);
  return {reset:true,leagueId,memberCount,resetAt:now};
 }

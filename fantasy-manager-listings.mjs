@@ -26,11 +26,10 @@ export async function managerListingRoute({db,league,uid,now,method,readBody,pla
  if(value.cancel===true){
   if(!listed)throw fail('No hay ningún anuncio activo.');
   if(now<listed.expires_at-5*86400000)throw fail('El anuncio podrá retirarse 48 horas después de publicarlo.',409);
-  const reserved=await db.prepare("SELECT COUNT(*) AS n FROM fantasy_auction_bids b JOIN fantasy_auction_rounds r ON r.league_id=b.league_id AND r.listing_id=b.listing_id AND r.day=b.day WHERE b.league_id=? AND b.listing_id=? AND b.status='active' AND r.status='open'").bind(league.id,listed.listing_id).first();
-  if(reserved.n)throw fail('El anuncio tiene pujas activas y no puede retirarse para proteger a los compradores.');
   await db.batch([
-   db.prepare('UPDATE fantasy_market_listings SET retired_day=? WHERE id=? AND league_id=? AND retired_day IS NULL').bind(policy.madridDay(now),listed.listing_id,league.id),
-   db.prepare("UPDATE fantasy_auction_rounds SET status='closed',lease_until=0 WHERE league_id=? AND listing_id=? AND status='open'").bind(league.id,listed.listing_id)
+   db.prepare('UPDATE fantasy_market_listings SET retired_day=? WHERE id=? AND league_id=? AND retired_day IS NULL AND EXISTS (SELECT 1 FROM fantasy_manager_listings m WHERE m.listing_id=fantasy_market_listings.id AND m.uid=? AND m.ownership_id=? AND m.expires_at-?<=?)').bind(policy.madridDay(now),listed.listing_id,league.id,uid,own.id,5*86400000,now),
+   db.prepare("UPDATE fantasy_auction_rounds SET status='closed',lease_until=0 WHERE league_id=? AND listing_id=? AND status='open'").bind(league.id,listed.listing_id),
+   db.prepare("UPDATE fantasy_auction_bids SET status='cancelled',updated_at=? WHERE league_id=? AND listing_id=? AND status='active'").bind(now,league.id,listed.listing_id)
   ]);
   return {saved:true,cancelled:true};
  }

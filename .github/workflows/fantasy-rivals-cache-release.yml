@@ -1,8 +1,5 @@
 name: Fantasy Rivales + device cache production release
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/fantasy-rivals-cache-release.yml'
   workflow_dispatch:
 permissions:
   contents: read

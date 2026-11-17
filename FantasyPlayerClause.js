@@ -40,10 +40,10 @@ export default function FantasyPlayerClause({leagueId,player,request,onUpdated=(
        <Text style={text}>¿Cuántos millones quieres invertir?</Text>
        <Text style={{...title,textAlign:'center',color:theme.accent}}>{paid} M</Text>
        <Text style={{...text,textAlign:'center',color:theme.muted,fontSize:12}}>Desliza para elegir cuánto invertir</Text>
-       <View style={{borderRadius:14,overflow:'hidden',backgroundColor:theme.header,borderWidth:1,borderColor:theme.border}}>
+       <View onLayout={event=>setWheelWidth(event.nativeEvent.layout.width)} style={{borderRadius:14,overflow:'hidden',backgroundColor:theme.header,borderWidth:1,borderColor:theme.border}}>
         <View pointerEvents="none" style={{position:'absolute',alignSelf:'center',width:70,height:'100%',backgroundColor:theme.panel,borderColor:theme.accent,borderWidth:2,borderRadius:10,zIndex:1}}/>
         <ScrollView horizontal ref={wheel} showsHorizontalScrollIndicator={false} snapToInterval={stepWidth} decelerationRate="fast"
-          contentContainerStyle={{paddingHorizontal:stepWidth*1.5,paddingVertical:12,alignItems:'center'}}
+          contentContainerStyle={{paddingHorizontal:Math.max(0,(wheelWidth-stepWidth)/2),paddingVertical:12,alignItems:'center'}}
           onMomentumScrollEnd={event=>setAmount(Math.max(1,Math.min(100,Math.round(event.nativeEvent.contentOffset.x/stepWidth)+1)))}
           onScrollEndDrag={event=>{if(!event.nativeEvent.velocity?.x)setAmount(Math.max(1,Math.min(100,Math.round(event.nativeEvent.contentOffset.x/stepWidth)+1)))}}>
          {steps.map(value=><Pressable key={value} accessibilityRole="button" accessibilityLabel={'Invertir '+value+' millones'} onPress={()=>{setAmount(value);wheel.current?.scrollTo({x:(value-1)*stepWidth,animated:true})}} style={{width:stepWidth,alignItems:'center',justifyContent:'center',height:52}}>

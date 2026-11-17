@@ -31,13 +31,13 @@ export default function FantasyPlayerMarket({leagueId,player,request,onUpdated=(
  }
  const price=Number(amount.replace(',','.')),valid=Number.isFinite(price)&&price>=1&&price<=1000&&Math.abs(price*100-Math.round(price*100))<1e-6;
  return <>
-  <Button secondary disabled={rosterCount<=12} onPress={show}>🏷️ Poner en el mercado</Button>
+  <Button secondary disabled={rosterCount<=12&&!player.forSale} onPress={show}>{player.forSale?'🏷️ En venta · Ver anuncio':'🏷️ Poner en el mercado'}</Button>
   <Modal visible={open} transparent animationType="fade" onRequestClose={()=>{if(!busy)setOpen(false)}}>
    <View style={{flex:1,justifyContent:'center',padding:18,backgroundColor:'#000b'}}>
     <View style={{...panel,gap:12}}>
      <Text style={title}>{quote?.listing?'Anuncio en el mercado':'Poner jugador en el mercado'}</Text>
      <Text style={text}>{player.name}</Text>
-     {quote?.listing?<><Text style={text}>Precio de salida: {money(quote.listing.minCents)}</Text><Text style={text}>El jugador sigue en tu plantilla hasta que termine la subasta. No podrás retirar el anuncio cuando tenga pujas.</Text><Button secondary disabled={busy} onPress={()=>execute(true)}>Retirar anuncio sin pujas</Button></>:quote&&<>
+     {quote?.listing?<><Text style={text}>Precio de salida: {money(quote.listing.minCents)}</Text><Text style={text}>El jugador sigue en tu plantilla mientras esté en venta. Los rivales pueden hacer ofertas directas y pujar por él.</Text><Text style={{...text,color:theme.accent}}>{quote.listing.canWithdraw?'Ya puedes retirar el anuncio. Las pujas pendientes se cancelarán y los importes se liberarán.':'Podrás retirar el anuncio a partir del '+new Date(quote.listing.canWithdrawAt).toLocaleString('es-ES')+', si el jugador no se ha vendido.'}</Text><Button secondary disabled={busy||!quote.listing.canWithdraw} onPress={()=>execute(true)}>Retirar del mercado y mantener en plantilla</Button></>:quote&&<>
       <Text style={text}>Elige el precio mínimo de salida en millones:</Text>
       <Text style={{...title,textAlign:'center',color:theme.accent}}>{price.toLocaleString('es-ES',{maximumFractionDigits:2})} M</Text>
       <Text style={{...text,color:theme.muted,textAlign:'center',fontSize:12}}>Desliza la ruleta para aumentar el precio de salida</Text>

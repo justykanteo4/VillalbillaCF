@@ -51,7 +51,17 @@ export default function FantasyPlayerClause({leagueId,player,request,onUpdated=(
          </Pressable>)}
         </ScrollView>
        </View>
-       {valid&&<Text style={{...text,color:theme.accent,fontWeight:'900'}}>Añades {(paid*2).toLocaleString('es-ES',{maximumFractionDigits:2})} M · Nueva cláusula orientativa: {money(quote.amountCents+Math.round(paid*200))}</Text>}
+       {valid&&<View style={{gap:8,padding:12,borderRadius:12,borderWidth:1,borderColor:theme.accent,backgroundColor:theme.header}}>
+        <Text style={{...text,fontWeight:'800',textAlign:'center'}}>Cálculo de la nueva cláusula</Text>
+        <View style={{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',alignItems:'center',gap:8}}>
+         <View style={{alignItems:'center'}}><Text style={{...text,color:theme.muted,fontSize:12}}>Actual</Text><Text style={{...title,fontSize:19}}>{money(quote.amountCents)}</Text></View>
+         <Text style={{...title,fontSize:22}}>+</Text>
+         <View style={{alignItems:'center'}}><Text style={{...text,color:theme.muted,fontSize:12}}>Subida</Text><Text style={{...title,fontSize:19}}>{money(Math.round(paid*200))}</Text></View>
+         <Text style={{...title,fontSize:22}}>=</Text>
+         <View style={{alignItems:'center'}}><Text style={{...text,color:theme.accent,fontSize:12}}>Nueva cláusula</Text><Text style={{...title,fontSize:23,color:theme.accent}}>{money(quote.amountCents+Math.round(paid*200))}</Text></View>
+        </View>
+        <Text style={{...text,textAlign:'center',color:theme.muted}}>Inviertes {paid.toLocaleString('es-ES')} M · Aumenta {(paid*2).toLocaleString('es-ES')} M · Dura 2 jornadas</Text>
+       </View>}
       </>}
       <ErrorText>{error}</ErrorText>
      </ScrollView>

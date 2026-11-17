@@ -75,3 +75,28 @@ test('only admins can remove and restore a user’s Fantasy access',async t=>{
  assert.equal((await handleFantasy(request('/leagues'),e,owner)).status,200);
  assert.equal(sql.prepare('SELECT COUNT(*) AS count FROM fantasy_members WHERE uid=?').get('owner-uid').count,1);
 });
+
+
+test('Rivales solo muestra plantillas de compañeros y prohíbe consultar otras ligas',async t=>{
+ const {env:e,sql}=env(t);
+ const created=await fixtureLeague(e,'owner-uid',classic('rivals-fixture'));
+ const id=created.league.id;
+ sql.prepare('INSERT INTO fantasy_members(league_id,uid,nickname,joined_at) VALUES(?,?,?,?)').run(id,'second-uid','Equipo rival',Date.parse('2026-11-13T12:00:00Z'));
+ const playerId=catalog.teams[0].players[0].id;
+ sql.prepare('INSERT INTO fantasy_roster(id,league_id,uid,player_id,acquired_at,price_units) VALUES(?,?,?,?,?,?)').run('rival-ownership',id,'second-uid',playerId,Date.parse('2026-11-13T12:00:00Z'),2);
+ const response=await handleFantasy(request('/leagues/'+id+'/rivals'),e,owner);
+ assert.equal(response.status,200);
+ const data=await response.json();
+ assert.equal(data.rivals.length,1);
+ assert.equal(data.rivals[0].name,'Equipo rival');
+ assert.equal(data.rivals[0].players.length,1);
+ assert.equal(data.rivals[0].players[0].ownershipId,'rival-ownership');
+ assert.equal(data.rivals[0].players[0].mine,false);
+ assert.equal(data.rivals[0].players[0].id,playerId);
+ const second=await handleFantasy(request('/leagues/'+id+'/rivals'),e,other);
+ assert.equal(second.status,200);
+ assert.equal((await second.json()).rivals[0].name,'Creador');
+ const intruder=await handleFantasy(request('/leagues/'+id+'/rivals'),e,{authorize:async()=> 'intruder-uid'});
+ assert.equal(intruder.status,404);
+ assert.equal((await handleFantasy(request('/leagues/'+id+'/rivals',{try:'edit'}),e,owner)).status,405);
+});

@@ -1,0 +1,59 @@
+name: Fantasy Rivales + device cache production release
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fantasy-rivals-cache-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: villalbilla-fantasy-rivals-cache-production
+  cancel-in-progress: false
+jobs:
+  web-android:
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/fantasy-clausulas-150')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      VILLALBILLA_UPDATE_RUNTIME: '0.1.12'
+      EXPO_PUBLIC_FIREBASE_API_KEY: 'AIzaSyA88kjp4vnyNZMdN1gO6FI2wM2TsA0pbGQ'
+      EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: 'villalbillacf.firebaseapp.com'
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID: 'villalbillacf'
+      EXPO_PUBLIC_FIREBASE_APP_ID: '1:758134560563:web:fc2aaa8c8b9c38d60fd046'
+      EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '758134560563'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --no-frozen-lockfile
+      - name: Confirm safe production credentials and run Rivales / device cache tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID" && test -n "$EXPO_TOKEN"
+          grep -q '3299f93d-9059-41b8-946c-b2668d255cc9' wrangler.jsonc
+          node --test fantasy-device-cache.test.cjs fantasy-service.test.mjs
+          pnpm run check:fantasy-clauses
+          pnpm run check:release
+      - name: Deploy Cloudflare Worker + web assets with Firebase login
+        run: pnpm run deploy:cloudflare
+      - name: Pull Expo production config and verify existing APK runtime 0.1.12
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm dlx eas-cli@25.3.0 env:pull --environment production --path .env.local --non-interactive > /tmp/eas-env-pull.log
+          node --env-file=.env.local scripts/check-update-config.cjs
+          pnpm exec expo config --json > /tmp/expo-config.json
+          node -e "const c=require('/tmp/expo-config.json');if(c.runtimeVersion!=='0.1.12'||c.updates?.requestHeaders?.['expo-channel-name']!=='production')throw Error('Incorrect Android OTA runtime/channel');console.log('Android OTA channel and runtime verified.')"
+      - name: Export Android JavaScript update
+        run: pnpm exec expo export --platform android --output-dir work/ota-export
+      - name: Publish Android 0.1.12 production OTA
+        run: pnpm dlx eas-cli@25.3.0 update --channel production --platform android --environment production --input-dir work/ota-export --skip-bundler --non-interactive --message "Villalbilla Fantasy · Rivales y cache local para actas (Android 0.1.12)"

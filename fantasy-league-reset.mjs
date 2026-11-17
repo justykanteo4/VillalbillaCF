@@ -13,6 +13,18 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  const league=await db.prepare('SELECT id,name,created_at FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
  if(!league)throw Object.assign(Error('Liga no encontrada.'),{status:404});
  const memberCount=(await db.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').bind(leagueId).first()).n;
+ // GET is a read-only confirmation preview, not a schema audit. Production D1
+ // databases can have many more Fantasy tables than the isolated test schema.
+ // Avoid SQLite metadata PRAGMAs, compound SELECTs and long-running scans here.
+ if(!apply){
+  const rosterCount=(await db.prepare('SELECT COUNT(*) AS n FROM fantasy_roster WHERE league_id=?').bind(leagueId).first()).n;
+  return {leagueId,name:league.name,createdAt:league.created_at,
+   membersPreserved:memberCount,rowsToClear:{fantasy_roster:rosterCount},
+   instructions:'Se conservan los participantes, la configuración y los mensajes. El reinicio elimina las operaciones de juego de esta liga y restablece sus saldos.'};
+ }
+ if(confirm!=='REINICIAR '+league.name||expectedCreatedAt!==league.created_at||!Number.isSafeInteger(now)||now<=league.created_at)
+  throw Object.assign(Error('Confirmación no válida o la liga ha cambiado.'),{status:409});
+
  // One D1 query instead of 2 PRAGMA calls per Fantasy table. On Workers
  // Free each invocation is limited to 50 D1 subrequests. This preview must
  // remain available even when the database has dozens of Fantasy tables.
@@ -63,9 +75,7 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  }
  const preview={leagueId,name:league.name,createdAt:league.created_at,membersPreserved:memberCount,rowsToClear:counts,
     instructions:'Se mantienen la liga, sus participantes, la configuración, los mensajes y los precios globales. Se borran plantillas, saldos de prueba, operaciones, pujas, alineaciones y premios.'};
- if(!apply)return preview;
- if(confirm!=='REINICIAR '+league.name||expectedCreatedAt!==league.created_at||!Number.isSafeInteger(now)||now<=league.created_at)
-  throw Object.assign(Error('Confirmación no válida o la liga ha cambiado.'),{status:409});
+
  // Remove children before parents, and managers before roster, to preserve
  // the roster-minimum trigger while wiping a test squad.
  const dependencies=new Map([...scoped.keys()].map(name=>[name,new Set()]));

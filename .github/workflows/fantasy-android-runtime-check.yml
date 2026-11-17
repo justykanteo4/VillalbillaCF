@@ -1,0 +1,40 @@
+name: Fantasy Android runtime 0.1.12 compatibility check
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fantasy-android-runtime-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android-runtime-check:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'feat/fantasy-clausulas-150'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check Expo authentication, OTA runtime and production builds
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          VILLALBILLA_UPDATE_RUNTIME=0.1.12 pnpm exec expo config --json > /tmp/expo-runtime.json
+          node -e "const c=require('/tmp/expo-runtime.json'); if(c.runtimeVersion!=='0.1.12'||c.updates?.requestHeaders?.['expo-channel-name']!=='production') process.exit(1); console.log('Runtime 0.1.12 and production channel match requested target.')"
+          echo "Published Android builds (read-only):"
+          pnpm dlx eas-cli@25.3.0 build:list --platform android --limit 10 --json --non-interactive > /tmp/builds.json
+          node -e "const b=require('/tmp/builds.json'); for(const x of b){console.log(JSON.stringify({id:x.id,status:x.status,appVersion:x.appVersion,appBuildVersion:x.appBuildVersion,runtimeVersion:x.runtimeVersion,channel:x.channel,distribution:x.distribution,createdAt:x.createdAt,gitCommitHash:x.gitCommitHash}))}"
+          echo "Production updates (read-only):"
+          pnpm dlx eas-cli@25.3.0 update:list --branch production --limit 5 --json --non-interactive > /tmp/updates.json
+          node -e "let u=require('/tmp/updates.json');console.log(JSON.stringify(u).slice(0,7000))"
+      - name: No Android update published
+        run: echo "Read-only native compatibility inspection complete"

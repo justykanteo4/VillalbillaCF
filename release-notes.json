@@ -1,8 +1,10 @@
 {
-  "id": "2026.11.16.4",
-  "date": "2026-11-16",
-  "title": "Sobres animados para presentar jugadores Fantasy",
+  "id": "2026.11.17.mvp",
+  "date": "2026-11-17",
+  "title": "Fantasy: tres o más MVP por victoria",
   "changes": [
+    "En cada partido ganado se pueden elegir tres o más MVP entre los convocados, incluidos los suplentes.",
+    "Las tareas pendientes y el cierre de jornada reconocen cualquier selección válida de al menos tres MVP.",
     "La plantilla inicial se presenta a pantalla completa: toca cada sobre para descubrir al jugador y pulsa Siguiente para continuar, sin avance automático.",
     "Cada fichaje confirmado, tanto en el mercado como por una oferta a un rival, se revela con el mismo sobre y su foto, puntos, valor e importe pagado.",
     "El sobre y el estadio están incluidos en la app. Las presentaciones respetan el movimiento reducido y se coordinan con las ofertas y premios para evitar pantallas superpuestas."

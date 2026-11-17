@@ -1,0 +1,26 @@
+name: Fantasy reset table inventory (read only)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fantasy-reset-schema-inspection.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Inspect D1 schema only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT m.name,group_concat(f.[table]) AS parents FROM sqlite_master AS m LEFT JOIN pragma_foreign_key_list(m.name) AS f ON 1=1 WHERE m.type='table' AND m.name LIKE 'fantasy_%' GROUP BY m.name ORDER BY m.name;"

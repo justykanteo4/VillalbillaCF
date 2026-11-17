@@ -1,8 +1,5 @@
 name: Fantasy Android 0.1.12 production OTA release
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/fantasy-android-012-ota-release.yml'
   workflow_dispatch:
 permissions:
   contents: read

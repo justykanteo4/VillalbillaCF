@@ -35,7 +35,7 @@ export default function FantasyTeamIdentity({leagueId,request,onUpdated=()=>{}})
   }catch(e){setError(e.message||'No se pudo preparar la fotografía.')}
  }
  async function save(){
-  const next=name.trim().replace(/\\s+/g,' ');
+  const next=name.trim().replace(/\s+/g,' ');
   if(next.length<2||next.length>32){setError('Escribe entre 2 y 32 caracteres.');return}
   setBusy(true);setError('');setNotice('');
   try{

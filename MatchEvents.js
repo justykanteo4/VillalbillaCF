@@ -15,18 +15,18 @@ export default function MatchEvents({match,onVenue,onUpdate,forceRefresh=false})
    if(running||['background','inactive'].includes(AppState.currentState))return;
    running=true;sb(true);controller=new AbortController();
    try{
-    const value=await api('/api/match?team='+encodeURIComponent(match.team.id)+'&match='+encodeURIComponent(match.id)+(historical&&!retry&&!forceRefresh?'':'&refresh=1'),{signal:controller.signal,cache:historical&&!retry&&!forceRefresh?'archive':'no-store',onUpdate:value=>{if(active){set(value);if(!value.error)update.current?.(value)}}});
+    const value=await api('/api/match?team='+encodeURIComponent(match.team.id)+'&match='+encodeURIComponent(match.id)+(retry||forceRefresh?'&refresh=1':''),{signal:controller.signal,cache:retry||forceRefresh?'reload':historical?'archive':undefined,onUpdate:value=>{if(active){set(value);if(!value.error)update.current?.(value)}}});
     if(active){set(value);if(!value.error)update.current?.(value);if(value.venue)venue.current?.(value.venue)}
    }catch{if(active)set(previous=>({...previous,error:true}))}
    finally{running=false;if(active)sb(false)}
   };
-  void refresh();const timer=historical?null:setInterval(refresh,60000);
+  void refresh();const timer=historical?null:setInterval(refresh,900000);
   const listener=AppState.addEventListener('change',state=>{if(state==='active'&&(!historical||forceRefresh))void refresh()});
   return()=>{active=false;clearInterval(timer);listener.remove();controller?.abort()};
  },[match.team.id,match.id,retry,historical,forceRefresh]);
  return <View style={{gap:12}}>
   <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}>
-   <Text style={s.muted}>{data?.updatedAt?'Acta consultada: '+new Date(data.updatedAt).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}):historical?'Acta guardada en este dispositivo':'Actualización automática cada minuto'}</Text>
+   <Text style={s.muted}>{data?.updatedAt?'Acta consultada: '+new Date(data.updatedAt).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}):historical?'Acta guardada en este dispositivo':'Actualización automática cada 15 minutos los fines de semana'}</Text>
    <Pressable accessibilityRole="button" accessibilityLabel="Actualizar acta" disabled={busy} onPress={()=>sr(value=>value+1)}><Text style={s.link}>{busy?'Actualizando…':'Actualizar acta'}</Text></Pressable>
   </View>
   {busy&&!data?<Text style={s.muted}>Consultando goles y tarjetas del acta…</Text>:<>

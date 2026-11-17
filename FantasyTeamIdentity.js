@@ -27,10 +27,10 @@ export default function FantasyTeamIdentity({leagueId,request,onUpdated=()=>{}})
    const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:true,aspect:[1,1],quality:.6});
    if(result.canceled||!result.assets?.[0])return;
    const asset=result.assets[0];
-   const reduced=await manipulateAsync(asset.uri,[{resize:{width:180,height:180}}],{compress:.5,format:SaveFormat.JPEG,base64:true});
+   const reduced=await manipulateAsync(asset.uri,[{resize:{width:96,height:96}}],{compress:.3,format:SaveFormat.JPEG,base64:true});
    let encoded=reduced.base64;
    if(!encoded&&reduced.uri)encoded=await FileSystem.readAsStringAsync(reduced.uri,{encoding:FileSystem.EncodingType.Base64});
-   if(!encoded||encoded.length+23>65000)throw Error('La foto pesa demasiado. Prueba con otra imagen.');
+   if(!encoded||encoded.length+23>65000)throw Error('No se ha podido reducir la foto. Prueba con otra imagen.');
    setPhoto('data:image/jpeg;base64,'+encoded);setPhotoChanged(true);
   }catch(e){setError(e.message||'No se pudo preparar la fotografía.')}
  }

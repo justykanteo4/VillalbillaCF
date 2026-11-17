@@ -119,3 +119,13 @@ test('cada usuario personaliza únicamente su nombre y foto pública de Fantasy'
  const after=await (await handleFantasy(request('/leagues/'+id+'/team-profile'),e,owner)).json();
  assert.equal(after.teams[0].photo,null);
 });
+
+test('la foto comprimida cabe en la solicitud especial sin ampliar otros límites',async t=>{
+ const {env:e}=env(t);
+ const league=await fixtureLeague(e,'owner-uid',classic('photo-payload-001'));
+ const id=league.league.id,photo='data:image/jpeg;base64,'+'A'.repeat(12000);
+ const saved=await handleFantasy(request('/leagues/'+id+'/team-profile',{name:'Mi equipo',photo}),e,owner);
+ assert.equal(saved.status,200,JSON.stringify(await saved.clone().json()));
+ const ordinary=await handleFantasy(request('/team-league',{teamId:'680163',nickname:'Otro',blob:'x'.repeat(12000)}),e,other);
+ assert.equal(ordinary.status,413);
+});

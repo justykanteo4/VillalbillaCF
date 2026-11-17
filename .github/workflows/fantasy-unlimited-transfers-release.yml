@@ -1,8 +1,5 @@
 name: Fantasy unlimited transfers release (D1 web Android)
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/fantasy-unlimited-transfers-release.yml'
   workflow_dispatch:
 permissions:
   contents: read

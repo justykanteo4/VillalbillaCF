@@ -20,6 +20,7 @@ import {decodeJwt} from 'jose';
 import verification from './account-verification.cjs';
 import {verifyAccessUser} from './access-service.mjs';
 import {verifyAdmin} from './free-notifications.mjs';
+import {resetLeague} from './fantasy-league-reset.mjs';
 import {scheduleVoteCleanup} from './vote-cleanup.mjs';
 import {fantasyTeamIds} from './fantasy-teams.mjs';
 import config from './fantasy-config.cjs';
@@ -97,6 +98,18 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(!['GET','POST'].includes(request.method))return reply({error:'Método no permitido.'},405);
  if(!db)throw fail('No se pudo conectar con las ligas.',503);
  if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ if(path==='/api/fantasy/admin/leagues/reset'&&request.method==='GET'){
+   const leagues=await db.prepare('SELECT id,name,created_at FROM fantasy_leagues ORDER BY name,id').all();
+   return reply({leagues:leagues.results});
+ }
+ const resetMatch=path.match(/^\\/api\\/fantasy\\/admin\\/leagues\\/([a-zA-Z0-9-]{1,80})\\/reset$/);
+ if(resetMatch){
+   if(request.method==='GET')return reply(await resetLeague({db,leagueId:resetMatch[1]}));
+   if(request.method!=='POST')throw fail('Método no permitido.',405);
+   const value=await body(request);
+   return reply(await resetLeague({db,leagueId:resetMatch[1],confirm:value?.confirmation,
+      expectedCreatedAt:value?.expectedCreatedAt,now:currentTime,apply:true}));
+ }
  const clauseSwitch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/clauses$/);
  if(clauseSwitch){
   if(request.method!=='POST')throw fail('Método no permitido.',405);

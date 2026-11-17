@@ -1,4 +1,5 @@
 name: Publish Villalbilla Fantasy (verified)
+# Release includes optional admin-controlled creation of new Fantasy leagues.
 on:
   push:
     branches: [main]

@@ -38,3 +38,10 @@ const legacy={saveCopy:legacySaveCopy,readCopy:legacyReadCopy,listCopies:legacyL
 const device=Platform.OS==='web'&&globalThis.caches&&globalThis.location?.origin?createWebDeviceCache({legacy,cacheStorage:globalThis.caches,origin:globalThis.location.origin}):legacy;
 const coordinated=createCopyCoordinator(device);
 export const saveCopy=coordinated.saveCopy,readCopy=coordinated.readCopy,listCopies=coordinated.listCopies,updateCopy=coordinated.updateCopy;
+
+// Clear only public football copies; never erase login, squads, personal photos or preferences.
+export async function clearOfficialCopies(){
+ const keys=(await AsyncStorage.getAllKeys()).filter(key=>key.startsWith(PREFIX+'/api/')||key.startsWith('villalbilla.rffm-cache.v1:'));
+ if(keys.length)await AsyncStorage.multiRemove(keys);
+ memory.clear();reading.clear();
+}

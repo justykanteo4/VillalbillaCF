@@ -1,3 +1,4 @@
+import {transferFantasyPlayer} from './fantasy-admin-transfer.mjs';
 import {inbox} from './fantasy-inbox.mjs';
 import {requestReadCache} from './d1-read-cache.mjs';
 import {settleWeeklyPrizes} from './fantasy-weekly-prizes.mjs';
@@ -101,6 +102,32 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(path==='/api/fantasy/admin/leagues/reset'&&request.method==='GET'){
    const leagues=await db.prepare('SELECT id,name,created_at FROM fantasy_leagues ORDER BY name,id').all();
    return reply({leagues:leagues.results});
+ }
+ const transferMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/transfer$/);
+ if(transferMatch){
+  const leagueId=transferMatch[1];
+  if(request.method==='GET'){
+   const [members,roster]=await Promise.all([
+    db.prepare(`SELECT m.uid AS id,b.nickname AS name,COUNT(r.id) AS size
+     FROM fantasy_managers m JOIN fantasy_members b ON b.league_id=m.league_id AND b.uid=m.uid
+     LEFT JOIN fantasy_roster r ON r.league_id=m.league_id AND r.uid=m.uid
+     WHERE m.league_id=? AND NOT EXISTS(SELECT 1 FROM fantasy_excluded_users e WHERE e.uid=m.uid)
+     GROUP BY m.uid,b.nickname ORDER BY b.nickname,m.uid`).bind(leagueId).all(),
+    db.prepare(`SELECT r.id,r.player_id AS playerId,r.uid AS ownerId,b.nickname AS owner
+     FROM fantasy_roster r JOIN fantasy_members b ON b.league_id=r.league_id AND b.uid=r.uid
+     WHERE r.league_id=?`).bind(leagueId).all(),
+   ]);
+   const owned=new Map(roster.results.map(r=>[r.playerId,r]));
+   const players=new Map(catalog.teams.flatMap(t=>t.players.map(p=>[p.id,{id:p.id,name:p.name}])));
+   return reply({teams:members.results,players:[...players.values()].map(p=>({...p,ownership:owned.get(p.id)||null}))});
+  }
+  const value=await body(request);
+  if(!value||typeof value.targetId!=='string'||!value.targetId||value.targetId.length>128||
+     !(value.ownershipId===null||typeof value.ownershipId==='string'&&value.ownershipId.length<=128)||
+     !catalog.teams.some(t=>t.players.some(p=>p.id===value.playerId)))throw fail('Jugador o equipo de destino no válido.');
+  if(!await transferFantasyPlayer(db,leagueId,value,clock()))
+   throw fail('El propietario o el equipo ha cambiado, o el traspaso superaría los límites de 12 a 16 jugadores. Actualiza la selección.',409);
+  return reply({saved:true});
  }
  const resetMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/reset$/);
  if(resetMatch){

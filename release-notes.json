@@ -1,8 +1,9 @@
 {
-  "id": "2026.11.17.mvp",
+  "id": "2026.11.17.traspasos",
   "date": "2026-11-17",
-  "title": "Fantasy: tres o más MVP por victoria",
+  "title": "Fantasy: traspasos manuales",
   "changes": [
+    "Los administradores pueden asignar a un jugador libre o de un rival a otro equipo desde Ajustes de Fantasy.",
     "En cada partido ganado se pueden elegir tres o más MVP entre los convocados, incluidos los suplentes.",
     "Las tareas pendientes y el cierre de jornada reconocen cualquier selección válida de al menos tres MVP.",
     "La plantilla inicial se presenta a pantalla completa: toca cada sobre para descubrir al jugador y pulsa Siguiente para continuar, sin avance automático.",

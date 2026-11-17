@@ -1,0 +1,29 @@
+const SHELL_CACHE='villalbilla-shell-v1',IMAGE_CACHE='villalbilla-imagenes-v1';
+self.addEventListener('install',event=>{event.waitUntil((async()=>{
+ const cache=await caches.open(SHELL_CACHE),response=await fetch('/');
+ if(!response.ok)throw Error('No se pudo guardar la aplicación');
+ const html=await response.clone().text();await cache.put('/',response);
+ const assets=[...html.matchAll(/(?:src|href)=["']([^"']+\.(?:js|css|ico)(?:\?[^"']*)?)["']/g)].map(match=>new URL(match[1],self.location.origin).href).filter(url=>url.startsWith(self.location.origin+'/'));
+ await cache.addAll(assets);await self.skipWaiting();
+})())});
+self.addEventListener('activate',event=>{event.waitUntil(self.clients.claim())});
+self.addEventListener('fetch',event=>{
+ const url=new URL(event.request.url);
+ if(event.request.method==='GET'&&event.request.destination==='image'&&url.protocol==='https:'){event.respondWith(caches.open(IMAGE_CACHE).then(async cache=>{const saved=await cache.match(event.request);if(saved)return saved;const response=await fetch(event.request);if(response.ok||response.type==='opaque')event.waitUntil(cache.put(event.request,response.clone()).catch(()=>{}));return response}).catch(()=>fetch(event.request)));return}
+ if(event.request.method!=='GET'||url.origin!==self.location.origin||url.pathname.startsWith('/api/')||url.pathname.startsWith('/__/'))return;
+ if(event.request.mode==='navigate'){
+  event.respondWith(fetch(event.request).then(response=>{if(response.ok){const copy=response.clone();event.waitUntil(caches.open(SHELL_CACHE).then(cache=>cache.put('/',copy)))}return response}).catch(()=>caches.match('/')));return;
+ }
+ if(!url.pathname.startsWith('/assets/')&&!url.pathname.startsWith('/_expo/')&&!url.pathname.endsWith('.ico'))return;
+ event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request).then(response=>{if(response.ok){const copy=response.clone();event.waitUntil(caches.open(SHELL_CACHE).then(cache=>cache.put(event.request,copy)))}return response})));
+});
+const newsUrl=()=>self.location.origin+'/?aviso='+encodeURIComponent(JSON.stringify({type:'section',section:'news'}));
+function noticeUrl(value){try{const u=new URL(value,self.location.origin);if(u.origin===self.location.origin&&u.pathname==='/'&&u.searchParams.has('aviso')&&u.href.length<2000)return u.href}catch{}return newsUrl()}
+self.addEventListener('push',event=>{
+ let message={};try{message=event.data?.json()||{}}catch{message={body:event.data?.text()||''}}
+ event.waitUntil(self.registration.showNotification(message.title||'Villalbilla C.F.',{body:message.body||'Nuevo aviso del club',tag:message.id,icon:'/app-icon.png',data:{url:noticeUrl(message.url)}}));
+});
+self.addEventListener('notificationclick',event=>{
+ event.notification.close();
+ event.waitUntil((async()=>{const url=noticeUrl(event.notification.data?.url);const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});for(const client of windows){if(new URL(client.url).origin===self.location.origin){await client.navigate(url);return client.focus()}}return self.clients.openWindow(url)})());
+});

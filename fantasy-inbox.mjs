@@ -1,0 +1,21 @@
+import leaguePolicy from './fantasy-leagues.cjs';
+const fail=(message,status=400)=>Object.assign(Error(message),{status});
+const scope=`FROM fantasy_members member JOIN fantasy_leagues l ON l.id=member.league_id LEFT JOIN fantasy_league_groups g ON g.league_id=l.id JOIN fantasy_messages e ON e.league_id=member.league_id LEFT JOIN fantasy_message_reads r ON r.message_id=e.id AND r.uid=member.uid LEFT JOIN fantasy_members actor ON actor.league_id=e.league_id AND actor.uid=e.actor LEFT JOIN fantasy_members other ON other.league_id=e.league_id AND other.uid=e.other_actor LEFT JOIN fantasy_offers o ON o.id=e.offer_id WHERE member.uid=? AND COALESCE(g.team_id,json_extract(l.pool_json,'$.teamId')) IN(SELECT value FROM json_each(?)) AND (e.recipient IS NULL OR e.recipient=member.uid)`;
+const activeOffer=`e.kind='offer' AND o.status='pending' AND o.expires_at>? AND EXISTS(SELECT 1 FROM fantasy_roster own WHERE own.id=o.ownership_id AND own.league_id=e.league_id AND own.uid=member.uid AND own.player_id=e.player_id)`;
+export async function inbox({db,uid,allowed,method,value={},before,now,players,teams}){
+ const bindings=[uid,JSON.stringify(allowed)];
+ if(method==='POST'){
+  if(!['seen','postpone'].includes(value.action)||!Array.isArray(value.ids)||value.ids.length<1||value.ids.length>100||value.ids.some(id=>!Number.isSafeInteger(id)||id<1))throw fail('Mensaje no válido.');
+  const ids=JSON.stringify([...new Set(value.ids)]),postpone=value.action==='postpone';
+  await db.prepare(`INSERT INTO fantasy_message_reads(uid,message_id,seen_at,postponed_until) SELECT member.uid,e.id,?,? ${scope} AND e.id IN(SELECT value FROM json_each(?)) ON CONFLICT(uid,message_id) DO UPDATE SET seen_at=COALESCE(excluded.seen_at,fantasy_message_reads.seen_at),postponed_until=excluded.postponed_until`).bind(postpone?null:now,postpone?now+3600000:0,...bindings,ids).run();return {saved:true};
+ }
+ if(method!=='GET')throw fail('Método no permitido.',405);
+ let cursor=null;if(before!=null){if(!/^\d{1,16}:\d{1,16}$/.test(before))throw fail('Página no válida.');cursor=before.split(':').map(Number);if(cursor.some(n=>!Number.isSafeInteger(n)||n<0)||cursor[1]<1)throw fail('Página no válida.');}
+ const select=`SELECT e.*,actor.nickname AS actor_name,other.nickname AS other_name,l.name AS league_name,l.mode AS league_mode,COALESCE(g.team_id,json_extract(l.pool_json,'$.teamId')) AS team_id,r.seen_at,o.status AS offer_status,o.expires_at,EXISTS(SELECT 1 FROM fantasy_roster own WHERE own.id=o.ownership_id AND own.league_id=e.league_id AND own.uid=member.uid AND own.player_id=e.player_id) AS owns_player`;
+ const rows=(await db.prepare(`${select} ${scope} AND (? IS NULL OR e.created_at<? OR e.created_at=? AND e.id<?) ORDER BY e.created_at DESC,e.id DESC LIMIT 51`).bind(...bindings,cursor?.[0]??null,cursor?.[0]??null,cursor?.[0]??null,cursor?.[1]??null).all()).results;
+ const pending=await db.prepare(`${select} ${scope} AND r.seen_at IS NULL AND COALESCE(r.postponed_until,0)<=? AND ${activeOffer} ORDER BY e.id ASC LIMIT 1`).bind(...bindings,now,now).first();
+ const counts=await db.prepare(`SELECT COUNT(*) AS unread ${scope} AND r.seen_at IS NULL`).bind(...bindings).first();
+ const directory=new Map(players.map(p=>[String(p.id),p]));
+ const map=e=>{if(!e)return null;const p=directory.get(String(e.player_id)),team=teams.find(t=>t.id===e.team_id);return {id:e.id,kind:e.kind,leagueId:e.league_id,leagueName:e.league_mode==='classic'?leaguePolicy.classicLeagueName(team||{category:e.league_name}):e.league_name,playerId:e.player_id,playerName:p?.name||'Jugador',teamId:p?.teamId,actor:e.actor_name||'Participante',otherActor:e.other_name||'Mercado',amount:e.amount_cents==null?null:e.amount_cents/100,week:e.week,date:e.week==null?null:new Date((e.week*7-3)*86400000).toISOString().slice(0,10),position:e.position,offerId:e.offer_id,actionable:e.kind==='offer'&&e.offer_status==='pending'&&e.expires_at>now&&!!e.owns_player,status:e.offer_status==='pending'&&e.expires_at<=now?'expired':e.offer_status,at:e.created_at,read:e.seen_at!=null}};
+ return {messages:rows.slice(0,50).map(map),unread:counts?.unread||0,pendingOffer:map(pending),nextCursor:rows.length>50?rows[49].created_at+':'+rows[49].id:null};
+}

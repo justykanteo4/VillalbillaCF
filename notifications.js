@@ -1,0 +1,76 @@
+import {registerAccessPush} from './access-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {getRandomBytesAsync} from 'expo-crypto';
+import {AppState} from 'react-native';
+import {verifiedAccount} from './account-verification.cjs';
+import {auth} from './firebase';
+import {api} from './api';
+import {registerPush,onPushTokenChange} from './push';
+import {saveCopy,readCopy} from './offline';
+import {resolveDeviceTargets} from './notification-targets.cjs';
+export const NOTIFICATION_KEY='villalbilla.notifications.v1';
+let changes=Promise.resolve(),syncing=Promise.resolve();
+async function readPreferences(){const raw=await AsyncStorage.getItem(NOTIFICATION_KEY);return raw?JSON.parse(raw):null}
+export async function notificationPreferences(){await changes;return readPreferences()}
+function changePreferences(change){
+ const job=changes.then(async()=>{const previous=await readPreferences(),next=change(previous);if(next!==previous)await AsyncStorage.setItem(NOTIFICATION_KEY,JSON.stringify(next));return next});
+ changes=job.catch(()=>{});return job;
+}
+export function saveNotificationPreferences(value){return changePreferences(()=>value)}
+async function installationKey(){
+ let key=await AsyncStorage.getItem('villalbilla.push-installation-key');
+ if(!key){key=Array.from(await getRandomBytesAsync(32)).map(byte=>byte.toString(16).padStart(2,'0')).join('');await AsyncStorage.setItem('villalbilla.push-installation-key',key)}
+ return key;
+}
+async function saveSubscription(value){
+ await api('/api/push/subscription',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...value,teamIds:value.receiveTeams===false?[]:value.teamIds,playerIds:value.receivePlayers===false?[]:value.playerIds,installationKey:await installationKey()})});
+}
+function syncSavedPreferences({refreshRegistration=false,force=false}={}){
+ const job=syncing.then(async()=>{
+  let value=await notificationPreferences();
+  if(value?.enabled&&refreshRegistration){const age=Date.now()-Date.parse(value.registrationCheckedAt||''),due=force||!Number.isFinite(age)||age>(value.registrationError?300000:86400000);if(due){try{const push=await registerPush({prompt:false});value=await changePreferences(current=>current?.enabled?{...current,...push,registrationCheckedAt:new Date().toISOString(),registrationError:null,pendingSync:true}:current)}catch(error){value=await changePreferences(current=>current?.enabled?{...current,registrationCheckedAt:new Date().toISOString(),registrationError:error.message}:current);if(value?.enabled)throw error}}else if(value.registrationError)throw Error(value.registrationError)}
+  if(!value?.pendingSync)return value;
+  await saveSubscription(value);
+  return changePreferences(current=>JSON.stringify(current)===JSON.stringify(value)?{...current,pendingSync:false}:current);
+ });
+ syncing=job.catch(()=>{});return job;
+}
+export function watchPushRegistration({admin=false}={}){return onPushTokenChange(()=>{syncSavedPreferences({refreshRegistration:true,force:true}).catch(()=>{});registerAccessPush({prompt:false,admin}).catch(()=>{})})}
+export async function enableNotifications(teamIds,playerIds,{admin=false}={}){
+ const push=await registerPush();
+ await saveNotificationPreferences({...(await notificationPreferences()),enabled:true,teamIds,playerIds,teamSelection:'custom',playerSelection:'custom',...push,registrationCheckedAt:new Date().toISOString(),registrationError:null,consentedAt:new Date().toISOString(),pendingSync:true});
+ await syncSavedPreferences();await registerAccessPush({prompt:false,admin}).catch(()=>{});return notificationPreferences();
+}
+export async function updateNotificationTargets(teamIds,playerIds){
+ const next=await changePreferences(value=>{if(!value)return value;const targets=resolveDeviceTargets(value,teamIds,playerIds);if(JSON.stringify(value.teamIds)===JSON.stringify(targets.teamIds)&&JSON.stringify(value.playerIds)===JSON.stringify(targets.playerIds))return value;return {...value,...targets,pendingSync:!!(value.enabled||value.pendingSync)}});
+ if(next?.enabled||next?.pendingSync)await syncSavedPreferences({refreshRegistration:true});
+}
+export async function saveNotificationTeams(teamIds,playerIds,choices={}){
+ const next=await changePreferences(previous=>({...previous,receiveTeams:choices.receiveTeams??previous?.receiveTeams??true,receivePlayers:choices.receivePlayers??previous?.receivePlayers??true,enabled:!!previous?.enabled,...resolveDeviceTargets({teamSelection:'custom',teamIds,playerSelection:'custom',playerIds},teamIds,playerIds),teamSelection:'custom',playerSelection:'custom',pendingSync:!!(previous?.enabled||previous?.pendingSync)}));
+ if(next.pendingSync){try{await syncSavedPreferences()}catch{/* Retry with the saved selection when the app becomes active. */}}
+ return notificationPreferences();
+}
+export async function disableNotifications(){
+ await changePreferences(previous=>({...previous,enabled:false,pendingSync:true}));
+ try{await syncSavedPreferences()}catch{/* The saved opt-out will be retried on return to the app. */}
+ return notificationPreferences();
+}
+export function watchNotifications(callback,onError){
+ let active=true,running=false;
+ readCopy('Avisos').then(copy=>{if(active&&copy)callback(copy.data.messages)}).catch(()=>{});
+ const refresh=async()=>{
+  if(running||AppState.currentState==='background')return;running=true;
+  const apply=data=>{if(active){callback(data.messages);saveCopy('Avisos',data).catch(()=>{})}};
+  try{apply(await api('/api/notifications',{onUpdate:apply,onRefreshError:error=>{if(active)onError?.(error)}}))}catch(error){if(active)onError?.(error)}finally{running=false}
+ };
+ refresh();const timer=setInterval(refresh,60000),sub=AppState.addEventListener('change',state=>{if(state==='active')refresh()});
+ return()=>{active=false;clearInterval(timer);sub.remove()};
+}
+async function adminRequest(path,value={}){
+ if(!auth?.currentUser)throw Error('Inicia sesión como administrador.');
+ if(!await verifiedAccount(auth.currentUser))throw Error('Verifica tu cuenta antes de enviar notificaciones.');
+ const token=await auth.currentUser.getIdToken(true);
+ return api(path,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(value)});
+}
+export async function sendClubNotification(value){return adminRequest('/api/push/send',value)}
+export async function dispatchNotifications(){return adminRequest('/api/push/dispatch')}

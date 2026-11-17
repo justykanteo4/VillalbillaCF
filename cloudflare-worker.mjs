@@ -1,4 +1,32 @@
+import {scheduledIdealCash} from './fantasy-ideal-cash.mjs';
+import {dispatchOfferNotifications} from './fantasy-offer-notifications.mjs';
+import {ingestFantasyReport} from './fantasy-report-points.mjs';
+import {handleFantasyPositions} from './fantasy-player-positions.mjs';
+import {handleMatchTaskStatus} from './admin-match-task-service.mjs';
+import {handleResultEdits,overlayResultEdits} from './result-edits-service.mjs';
+import {scheduledWeeklyPrizes} from './fantasy-weekly-prizes.mjs';
+import {scheduledFantasy,syncFantasySports} from './fantasy-jobs.mjs';
+import {handleFantasy} from './fantasy-service.mjs';
+import {handleKeeperAdjustments} from './goalkeeper-adjustments-service.mjs';
+import {dispatchVoteNotifications} from './vote-notifications.mjs';
+import {handlePrivateSanctions} from './private-sanctions-service.mjs';
+import {scheduledOfficialSanctions} from './server/official-source.mjs';
+import {handleSocial} from './social-service.mjs';
+export {ChatRoom} from './chat-room.mjs';
+import offlinePolicy from './offline-policy.cjs';
+const requireOfflineCurrent=fixtures=>offlinePolicy.selectCurrent(fixtures,new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}));
+import {handleDiagnostics,saveDiagnostic} from './diagnostics-service.mjs';
+import {handleApkDownload} from './apk-download.mjs';
+import minuteReports from './server/minute-reports.cjs';
+import goalkeepers from './server/goalkeepers.cjs';
+import reportMembership from './server/report-membership.cjs';
+import {handleAccess,dispatchAccessNotifications} from './access-service.mjs';
+import {handleActivity} from './activity-service.mjs';
+import {handleVisits} from './visits-service.mjs';
+import {scheduledResults} from './result-alerts.mjs';
+import {handleFreeNotifications,scheduledNotifications} from './free-notifications.mjs';
 import news from './server/news.cjs';
+import clubStats from './server/club-stats.cjs';
 import calendar from './calendar-source.cjs';
 import standings from './server/standings.cjs';
 import matches from './server/match.cjs';
@@ -16,7 +44,7 @@ const json = (value, status = 200, origin = '*', maxAge = 0) => new Response(JSO
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': maxAge ? `public, max-age=0, s-maxage=${maxAge}` : 'no-store',
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     'X-Content-Type-Options': 'nosniff',
   },
@@ -24,7 +52,17 @@ const json = (value, status = 200, origin = '*', maxAge = 0) => new Response(JSO
 
 async function data(request, env) {
   const url = new URL(request.url), p = url.searchParams;
-  if (url.pathname === '/api/news') return [await news.refreshNews({ persistComments: false }), 200, 60];
+  if(url.pathname==='/api/team-minutes'){const offset=Number(p.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida'},400,0];const value=await minuteReports.minuteReports(p.get('team'),offset,env.VISITS_DB,{refresh:p.get('refresh')==='1',current:p.get('current')==='1',pending:(p.get('pending')||'').split(',').filter(id=>/^\d{1,20}$/.test(id)).slice(0,20)});return value?[value,200,value.error?0:60]:[{error:'Equipo no encontrado'},404,0]}
+  if(url.pathname==='/api/goalkeepers'){const offset=Number(p.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida'},400,0];const value=await goalkeepers.goalkeeperReports(p.get('team'),offset,env.VISITS_DB,{refresh:p.get('refresh')==='1',current:p.get('current')==='1',pending:(p.get('pending')||'').split(',').filter(id=>/^\d{1,20}$/.test(id)).slice(0,20)});return value?[value,200,value.error?0:60]:[{error:'Equipo no encontrado'},404,0]}
+  if (url.pathname === '/api/club-stats') {
+    const offset=Number(p.get('offset')||0);
+    if(!Number.isSafeInteger(offset)||offset<0||offset>1000)return [{error:'Página no válida.'},400,0];
+    const result=await clubStats.clubStats(p.get('team'),offset,env.VISITS_DB,{pending:p.has('pending')?(p.get('pending')||'').split(',').filter(id=>/^\d{1,20}$/.test(id)).slice(0,20):null});
+    return result?[result,200,result.error?0:300]:[{error:'Equipo no encontrado.'},404,0];
+  }
+  if(url.pathname==='/api/report-membership'){const value=await reportMembership.reportMembership(p.get('team'),p.get('name'),Number(p.get('offset')||0),env.VISITS_DB);return value?[value,200,value.error?0:300]:[{error:'Consulta no válida.'},400,0]}
+  if (url.pathname === '/api/team-calendar') {const result=await news.teamCalendar(p.get('team'),p.get('current')==='1',{db:env.VISITS_DB,refresh:p.get('refresh')==='1'});return result?[result,200,result.error?0:60]:[{error:'Equipo no encontrado.'},404,0] }
+  if (url.pathname === '/api/news') {const value=await news.refreshNews({persistComments:false,db:env.VISITS_DB,refresh:p.get('refresh')==='1'});return [p.get('current')==='1'?{...value,teams:value.teams.map(t=>({...t,fixtures:requireOfflineCurrent(t.fixtures)}))}:value,200,60]}
   if (url.pathname === '/api/instagram') return [await news.instagram(env.INSTAGRAM_ACCESS_TOKEN, env.INSTAGRAM_FACEBOOK_ACCESS_TOKEN), 200, 60];
   if (url.pathname === '/api/calendar') {
     const response = await fetch(calendar.SOURCE, { signal: AbortSignal.timeout(20000) });
@@ -36,11 +74,11 @@ async function data(request, env) {
     return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/match') {
-    const result = await matches.matchDetails(p.get('team'), p.get('match'));
-    return result ? [result, 200, 300] : [{ error: 'Partido no encontrado.' }, 404, 0];
+    const result = await matches.matchDetails(p.get('team'), p.get('match'),{refresh:p.get('refresh')==='1',db:env.VISITS_DB});
+    return result ? [result, 200, result.error||p.get('refresh')==='1'?0:60] : [{ error: 'Partido no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/sanctions') {
-    const result = await sanctions.sanctions(p.get('team'));
+    const result = await sanctions.sanctions(p.get('team'),{scope:p.get('scope')==='team'?'team':'all',db:env.VISITS_DB});
     return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/scorers') return [await scorers.scorers(), 200, 300];
@@ -50,19 +88,19 @@ async function data(request, env) {
   }
   if (url.pathname === '/api/field') {
     const result = await fields.field(p.get('id'));
-    return result ? [result, 200, 86400] : [{ error: 'Campo no encontrado.' }, 404, 0];
+    return result ? [result, 200, result.error?0:86400] : [{ error: 'Campo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/weather') return [await weather.weather(p.get('field'), p.get('date'), p.get('time')), 200, 1800];
   if (url.pathname === '/api/players') {
-    const result = await players.getPlayers(p.get('team'));
-    return result ? [result, 200, 1800] : [{ error: 'Equipo no encontrado.' }, 404, 0];
+    const result = await players.getPlayers(p.get('team'),{refresh:p.get('refresh')==='1'});
+    return result ? [result, 200, result.partial?30:300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/player-minutes') {
     const result = await minutes.playerMinutes(p.get('team'), p.get('player'));
-    return result ? [result, 200, 1800] : [{ error: 'Jugador no encontrado.' }, 404, 0];
+    return result ? [result, 200, result.partial?30:300] : [{ error: 'Jugador no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/team-roster') {
-    const result = await players.teamRoster(p.get('team'));
+    const result = await players.teamRoster(p.get('team'),{refresh:p.get('refresh')==='1'});
     return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/team-staff') {
@@ -70,7 +108,7 @@ async function data(request, env) {
     return result ? [result, 200, 300] : [{ error: 'Equipo no encontrado.' }, 404, 0];
   }
   if (url.pathname === '/api/team-ranking') {
-    const result = await players.getPlayers(p.get('team'));
+    const result = await players.getPlayers(p.get('team'),{refresh:p.get('refresh')==='1'});
     if (!result) return [{ error: 'Equipo no encontrado.' }, 404, 0];
     let minutesError = false;
     const rows = result.players.map(player => ({ ...player, minutes: null }));
@@ -95,33 +133,57 @@ async function data(request, env) {
 }
 
 export default {
+  async scheduled(event,env,ctx){ctx.waitUntil(Promise.allSettled([scheduledIdealCash(env),dispatchOfferNotifications(env),scheduledWeeklyPrizes(env),scheduledFantasy(env),syncFantasySports(env),dispatchVoteNotifications(env),scheduledNotifications(env),dispatchAccessNotifications(env),scheduledOfficialSanctions(env),scheduledResults(env)]))},
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const download=await handleApkDownload(request,env.ASSETS);if(download)return download;
     const origin = request.headers.get('Origin') || '*';
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: {
       'Access-Control-Allow-Origin': origin,
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Platform',
     } });
+    if(url.pathname.startsWith('/api/chats/'))return Response.json({error:'El chat se ha eliminado.'},{status:410,headers:{'Cache-Control':'no-store'}});
+    const fantasyPositionResponse=await handleFantasyPositions(request,env);if(fantasyPositionResponse)return fantasyPositionResponse;
+    const taskStatusResponse=await handleMatchTaskStatus(request,env);if(taskStatusResponse)return taskStatusResponse;
+    const resultEditResponse=await handleResultEdits(request,env);if(resultEditResponse)return resultEditResponse;
+    const fantasyResponse=await handleFantasy(request,env,{ctx});if(fantasyResponse)return fantasyResponse;
+    const privateSanctions=await handlePrivateSanctions(request,env,ctx);if(privateSanctions)return privateSanctions;
+    const keeperAdjustmentResponse=await handleKeeperAdjustments(request,env);if(keeperAdjustmentResponse)return keeperAdjustmentResponse;
+    const socialResponse=await handleSocial(request,env,{ctx});if(socialResponse)return socialResponse;
+    const diagnosticResponse=await handleDiagnostics(request,env);if(diagnosticResponse)return diagnosticResponse;
+    const accessResponse=await handleAccess(request,env,ctx);if(accessResponse)return accessResponse;
+    const activityResponse=await handleActivity(request,env);if(activityResponse)return activityResponse;
+    const visitResponse=await handleVisits(request,env);
+    if(visitResponse)return visitResponse;
+    const notificationResponse=await handleFreeNotifications(request,env,ctx);
+    if(notificationResponse)return notificationResponse;
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (request.method !== 'GET') return json({ error: 'Método no permitido.' }, 405, origin);
-    const cacheKey = new Request(url.toString(), { method: 'GET' });
+    const cacheUrl=new URL(url);if(url.pathname==='/api/news')cacheUrl.searchParams.set('__source','report-scores-v2');if(url.pathname==='/api/team-calendar')cacheUrl.searchParams.set('__source','team-report-scores-v1');if(url.pathname==='/api/field')cacheUrl.searchParams.set('__source','field-alias-v2');
+    if(['/api/players','/api/team-ranking','/api/team-roster','/api/goalkeepers'].includes(url.pathname))cacheUrl.searchParams.set('__source','rankings-v3');
+    const cacheKey = new Request(cacheUrl.toString(), { method: 'GET' });
     try {
-      const cached = await caches.default.match(cacheKey);
+      const cached = ['/api/match','/api/news','/api/team-calendar','/api/players','/api/team-ranking','/api/team-roster','/api/goalkeepers'].includes(url.pathname)&&url.searchParams.get('refresh')==='1'?null:await caches.default.match(cacheKey);
       if (cached) {
+        if(url.pathname==='/api/match')ctx.waitUntil(cached.clone().json().then(value=>ingestFantasyReport(env.CHAT_DB,url.searchParams.get('team'),value)).catch(()=>{}));
         const headers = new Headers(cached.headers);
         headers.set('Access-Control-Allow-Origin', origin);
-        return new Response(cached.body, { status: cached.status, headers });
+        if(['/api/news','/api/team-calendar'].includes(url.pathname)){headers.set('Cache-Control','no-store');headers.delete('Content-Length');headers.delete('ETag');headers.delete('Last-Modified');return new Response(JSON.stringify(await overlayResultEdits(await cached.json(),url.pathname,env.VISITS_DB)),{status:cached.status,headers})}return new Response(cached.body, { status: cached.status, headers });
       }
     } catch { /* Local development may not provide the Cloudflare cache API. */ }
     try {
       const [value, status, maxAge] = await data(request, env);
+      if(status>=500||value?.error)ctx.waitUntil(saveDiagnostic(env.VISITS_DB,{category:/match|goalkeepers|team-minutes|report-membership/.test(url.pathname)?'actas':'conexion',code:'SOURCE',resource:url.pathname+url.search,status,platform:'servidor'}).catch(()=>{}));
+      if(status===200&&url.pathname==='/api/match')ctx.waitUntil(ingestFantasyReport(env.CHAT_DB,url.searchParams.get('team'),value).catch(()=>{}));
       const response = json(value, status, origin, maxAge);
-      if (status === 200 && maxAge) {
+      if (status === 200 && maxAge && !value?.error) {
         try { ctx.waitUntil(caches.default.put(cacheKey, response.clone())); } catch { /* Cache is an optimization. */ }
       }
+      if(status===200&&['/api/news','/api/team-calendar'].includes(url.pathname))return json(await overlayResultEdits(value,url.pathname,env.VISITS_DB),status,origin,0);
       return response;
     } catch {
+      ctx.waitUntil(saveDiagnostic(env.VISITS_DB,{category:/match|goalkeepers|team-minutes|report-membership/.test(url.pathname)?'actas':'conexion',code:'SOURCE',resource:url.pathname+url.search,status:502,platform:'servidor'}).catch(()=>{}));
       return json({ error: 'No se pudo consultar la fuente. Inténtalo más tarde.' }, 502, origin);
     }
   },

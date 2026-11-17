@@ -1,0 +1,38 @@
+name: Fantasy Android OTA publication preflight (no publish)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fantasy-android-ota-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  expo-read-only:
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/fantasy-clausulas-150')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify Expo credentials are available and show target native runtime
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const a=require('./app.json').expo;console.log('Expo version:',a.version,'runtime policy:',JSON.stringify(a.runtimeVersion),'project:',a.extra.eas.projectId)"
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Missing repository secret EXPO_TOKEN. Android OTA cannot be published yet."
+            exit 1
+          fi
+          echo "Expo token present (hidden). Checking Expo authentication."
+          pnpm dlx eas-cli@25.3.0 whoami --non-interactive
+      - name: No OTA update was published
+        run: echo "Expo authentication checked only. Published APK runtime and production channel must be verified separately."

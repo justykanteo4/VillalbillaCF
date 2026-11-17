@@ -48,3 +48,18 @@ yarn-error.*
 
 server/data/
 work/
+
+# Local verification build
+dist-audit/
+dist-audit-native/
+dist-audit-all/
+
+.dev.vars
+
+.wrangler/
+firebase-debug.log
+.push-runtime-check.mjs
+
+# Local Firebase native configuration
+/google-services.json
+/GoogleService-Info.plist

@@ -1,3 +1,7 @@
+import {api} from './api';
+import {identityClaim} from './access-identity.cjs';
+import teamCatalog from './teams.json';
+import {mergeChanges} from './workspace-sync.cjs';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initializeApp, getApps } from 'firebase/app';
@@ -7,7 +11,7 @@ import {
 } from 'firebase/auth';
 import {
   getFirestore, collection, doc, getDoc, getDocs, onSnapshot,
-  serverTimestamp, setDoc, updateDoc,
+  serverTimestamp, setDoc, updateDoc, runTransaction,
 } from 'firebase/firestore';
 
 const config = {
@@ -42,13 +46,18 @@ export const adminEmail = ADMIN_EMAIL;
 export const adminEmails = ADMIN_EMAILS;
 
 export async function getProfile(user) {
+ try{const profile=await getProfileOnline(user);await AsyncStorage.setItem('villalbilla.profile.'+user.uid,JSON.stringify(profile)).catch(()=>{});return profile}
+ catch(error){if(user&&['unavailable','deadline-exceeded','network-request-failed'].includes(error.code)){const cached=await AsyncStorage.getItem('villalbilla.profile.'+user.uid);if(cached)return JSON.parse(cached)}throw error}
+}
+async function getProfileOnline(user) {
   if (!db || !user) throw Error('Firebase todavía no está conectado.');
   const email = (user.email || '').trim().toLowerCase();
   const verifiedIdentity = user.emailVerified || user.providerData?.some(provider => provider.providerId === 'google.com');
-  const dynamicAdmin = email && verifiedIdentity
-    ? (await getDoc(doc(db, 'clubAdmins', email))).exists()
-    : false;
-  const ref = doc(db, 'trainerProfiles', user.uid), snap = await getDoc(ref);
+  const ref = doc(db, 'trainerProfiles', user.uid);
+  const [dynamicAdmin,snap] = await Promise.all([
+    email && verifiedIdentity ? getDoc(doc(db, 'clubAdmins', email)).then(value=>value.exists()) : Promise.resolve(false),
+    getDoc(ref),
+  ]);
   if (!snap.exists()) {
     const profile = {
       uid: user.uid,
@@ -63,27 +72,24 @@ export async function getProfile(user) {
   }
   const profile = { id: snap.id, ...snap.data() };
   if (isAdminEmail(user.email) || dynamicAdmin) profile.status = 'admin';
+  else if(profile.status==='admin')profile.status=profile.claim?.teamId?'approved':'unassigned';
   return profile;
 }
 
 export function watchProfile(user, callback, onError) {
-  if (!db || !user) return () => {};
-  return onSnapshot(doc(db, 'trainerProfiles', user.uid), async snapshot => {
-    if (!snapshot.exists()) {
-      try { callback(await getProfile(user)); } catch (error) { onError?.(error); }
-      return;
-    }
-    const profile = { id: snapshot.id, ...snapshot.data() };
-    if (isAdminEmail(user.email)) profile.status = 'admin';
-    callback(profile);
-  }, onError);
+ if(!db||!user)return()=>{};
+ let active=true,base=null,admin=isAdminEmail(user.email),adminReady=admin||!user.email||!(user.emailVerified||user.providerData?.some(p=>p.providerId==='google.com'));
+ const publish=()=>{if(!active||!base||!adminReady)return;const profile={...base};if(admin)profile.status='admin';else if(profile.status==='admin')profile.status=profile.claim?.teamId?'approved':'unassigned';AsyncStorage.setItem('villalbilla.profile.'+user.uid,JSON.stringify(profile)).catch(()=>{});callback(profile)};
+ const stopProfile=onSnapshot(doc(db,'trainerProfiles',user.uid),snapshot=>{if(!active)return;if(snapshot.exists()){base={id:snapshot.id,...snapshot.data()};publish()}else getProfile(user).then(profile=>{if(active){base=profile;publish()}}).catch(error=>onError?.(error))},error=>onError?.(error));
+ const stopAdmin=adminReady?()=>{}:onSnapshot(doc(db,'clubAdmins',user.email.toLowerCase()),snapshot=>{admin=snapshot.exists();adminReady=true;publish()},error=>{admin=false;adminReady=true;publish();onError?.(error)});
+ return()=>{active=false;stopProfile();stopAdmin()};
 }
 
 export function watchProfiles(callback, onError) {
   if (!db) return () => {};
   return onSnapshot(collection(db, 'trainerProfiles'), async snapshot => {
     let currentAdmins = ADMIN_EMAILS;
-    try { currentAdmins = [...new Set([...ADMIN_EMAILS, ...(await listClubAdmins()).map(admin => admin.email)])]; } catch {}
+    try { currentAdmins = [...new Set([...ADMIN_EMAILS, ...(await listClubAdmins(false)).map(admin => admin.email)])]; } catch {}
     const profiles = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
       .filter(profile => !currentAdmins.includes((profile.email || '').trim().toLowerCase()));
     profiles.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
@@ -95,7 +101,7 @@ export async function getProfiles() {
   if (!db) throw Error('Firebase todavía no está conectado.');
   const [snapshot, admins] = await Promise.all([
     getDocs(collection(db, 'trainerProfiles')),
-    listClubAdmins(),
+    listClubAdmins(false),
   ]);
   const adminEmailsSet = new Set(admins.map(admin => admin.email));
   return snapshot.docs
@@ -104,15 +110,18 @@ export async function getProfiles() {
     .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
 }
 
-export async function listClubAdmins() {
-  if (!db) throw Error('Firebase todavía no está conectado.');
-  const snapshot = await getDocs(collection(db, 'clubAdmins'));
-  const admins = new Map(ADMIN_EMAILS.map(email => [email, { email, primary: true }]));
-  snapshot.docs.forEach(item => {
-    const email = (item.data().email || item.id).trim().toLowerCase();
-    if (email) admins.set(email, { email, primary: false });
-  });
-  return [...admins.values()].sort((a, b) => a.email.localeCompare(b.email));
+export async function listClubAccounts(){
+ if(!db)throw Error('Firebase todavía no está conectado.');
+ const snapshot=await getDocs(collection(db,'trainerProfiles'));
+ return snapshot.docs.map(row=>({id:row.id,email:(row.data().email||'').trim().toLowerCase(),name:row.data().claim?.name||row.data().name||''})).filter(row=>row.email);
+}
+export async function listClubAdmins(includeNames=true){
+ if(!db)throw Error('Firebase todavía no está conectado.');
+ const [snapshot,profiles]=await Promise.all([getDocs(collection(db,'clubAdmins')),includeNames?listClubAccounts():Promise.resolve([])]);
+ const names=new Map(profiles.map(p=>[p.email,p.name])),ids=new Map(profiles.map(p=>[p.email,p.id]));
+ const admins=new Map(ADMIN_EMAILS.map(email=>[email,{email,name:names.get(email)||'',primary:true}]));
+ snapshot.docs.forEach(item=>{const email=(item.data().email||item.id).trim().toLowerCase();if(email)admins.set(email,{email,name:names.get(email)||'',profileId:ids.get(email)||null,profileIds:profiles.filter(p=>p.email===email).map(p=>p.id),primary:isAdminEmail(email)})});
+ return [...admins.values()].sort((a,b)=>(a.name||a.email).localeCompare(b.name||b.email,'es'));
 }
 
 export async function addClubAdmin(value) {
@@ -131,10 +140,22 @@ export async function addClubAdmin(value) {
   return email;
 }
 
-export async function claimTeam(user, team, name) {
+export async function removeClubAdmin(value,profileIds){
+ if(!db||!auth?.currentUser)throw Error('Inicia sesión como administrador para continuar.');
+ const email=(value||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error('Correo no válido.');if(isAdminEmail(email))throw Error('Los administradores principales están protegidos.');
+ const user=auth.currentUser,ids=[...new Set((Array.isArray(profileIds)?profileIds:profileIds?[profileIds]:[]).filter(id=>typeof id==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(id)))],ref=doc(db,'clubAdmins',email),profileRefs=ids.map(id=>doc(db,'trainerProfiles',id));
+ await runTransaction(db,async tx=>{const member=await tx.get(ref);if(!member.exists())return;const profiles=await Promise.all(profileRefs.map(ref=>tx.get(ref)));profiles.forEach((profile,index)=>{if(profile.exists()){const data=profile.data();if((data.email||'').trim().toLowerCase()!==email)throw Error('La cuenta ha cambiado. Actualiza la lista antes de continuar.');if(data.status==='admin')tx.update(profileRefs[index],{status:data.claim?.teamId?'approved':'unassigned',updatedAt:Date.now()})}});tx.delete(ref)});
+ let noticesCleaned=true;
+ for(const profileId of ids){const actor=user.uid,key='villalbilla.admin-revocations.'+actor;try{const pending=JSON.parse(await AsyncStorage.getItem(key)||'[]');if(!pending.includes(profileId))pending.push(profileId);await AsyncStorage.setItem(key,JSON.stringify(pending))}catch{}try{const token=await user.getIdToken();await api('/api/access/admin-revoked',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({uid:profileId})});const pending=JSON.parse(await AsyncStorage.getItem(key)||'[]');await AsyncStorage.setItem(key,JSON.stringify(pending.filter(id=>id!==profileId)))}catch{noticesCleaned=false}}
+ return {email,noticesCleaned};
+}
+export async function flushAdminRevocations(){const user=auth?.currentUser;if(!user)return;const key='villalbilla.admin-revocations.'+user.uid,pending=JSON.parse(await AsyncStorage.getItem(key)||'[]');for(const uid of pending){if(auth.currentUser?.uid!==user.uid)return;try{const token=await user.getIdToken();await api('/api/access/admin-revoked',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({uid})});const latest=JSON.parse(await AsyncStorage.getItem(key)||'[]');await AsyncStorage.setItem(key,JSON.stringify(latest.filter(id=>id!==uid)))}catch{}}}
+
+export async function claimTeam(user, team, name, assignments=[]) {
   if (!db || !user || !team || !name?.trim()) throw Error('Indica tu equipo y tu nombre.');
   const ref = doc(db, 'trainerProfiles', user.uid), current = await getDoc(ref);
-  const claim = { teamId: team.id, name: name.trim(), category: team.category, teamName: team.name };
+  const selected=assignments.length?assignments:[{teamId:team.id,name:name.trim(),category:team.category,teamName:team.name}];
+  const claim = { teamId: team.id, name: name.trim(), category: selected.map(t=>t.category).join(' · '), teamName: team.name, role:'trainer',teamIds:[...new Set(selected.map(t=>String(t.teamId)))],assignments:selected };
   const status = 'pending', updatedAt = Date.now();
   try {
     if (current.exists()) {
@@ -153,7 +174,7 @@ export async function claimTeam(user, team, name) {
     if (!saved.exists() || saved.data().status !== 'pending' || saved.data().claim?.teamId !== team.id) {
       throw Error('Firebase no confirmó la solicitud. Comprueba la conexión y vuelve a enviarla.');
     }
-    return { id: user.uid, ...saved.data() };
+    const result={id:user.uid,...saved.data()};try{await queueAccessRequest(result)}catch{}return result;
   } catch (error) {
     if (error.code === 'permission-denied') {
       throw Error('Firebase ha rechazado la solicitud. Comprueba que has iniciado sesión con una cuenta verificada y vuelve a intentarlo.');
@@ -191,7 +212,7 @@ export async function claimPlayer(user, team, player) {
     if (!saved.exists() || saved.data().status !== 'pending' || saved.data().claim?.playerId !== String(player.id)) {
       throw Error('Firebase no confirmó la solicitud. Comprueba la conexión y vuelve a intentarlo.');
     }
-    return { id: user.uid, ...saved.data() };
+    const result={id:user.uid,...saved.data()};try{await queueAccessRequest(result)}catch{}return result;
   } catch (error) {
     if (error.code === 'permission-denied') throw Error('Firebase ha rechazado la solicitud. Comprueba que has iniciado sesión con una cuenta verificada y vuelve a intentarlo.');
     if (error.code === 'not-found') throw Error('No se encontró tu perfil. Cierra sesión, vuelve a entrar y solicita acceso de nuevo.');
@@ -199,10 +220,35 @@ export async function claimPlayer(user, team, player) {
   }
 }
 
-export async function decideRequest(id, action) {
-  if (!db || !['approve', 'reject', 'revoke'].includes(action)) throw Error('Solicitud inválida.');
-  const status = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'revoked';
-  await updateDoc(doc(db, 'trainerProfiles', id), { status, updatedAt: Date.now() });
+export async function decideRequest(id,action){
+ if(!db||!['approve','reject','revoke'].includes(action))throw Error('Solicitud inválida.');
+ const ref=doc(db,'trainerProfiles',id);
+ await runTransaction(db,async transaction=>{
+  const snap=await transaction.get(ref);if(!snap.exists())throw Error('La solicitud ya no existe.');
+  const old=snap.data();if(action!=='revoke'&&old.status!=='pending')return;
+  const updatedAt=Date.now(),status=action==='approve'?'approved':action==='reject'?'rejected':'revoked';
+  transaction.update(ref,{status,updatedAt,...(action==='approve'?{accessNotice:{id:String(updatedAt),createdAt:updatedAt,title:'Acceso aceptado',body:'El administrador ha aceptado tu solicitud. Ya puedes acceder a tu espacio del club.',queued:false}}:{})});
+ });
+ if(action==='approve'){try{await queueAccessApproval(id)}catch{/* Admin lifecycle retries durable unqueued approvals. */}}
+ else{try{const token=await auth.currentUser.getIdToken();await api('/api/access/request-resolved',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({uid:id})})}catch{}}
+}
+export async function queueAccessRequest(profile){
+ const user=auth?.currentUser;if(!user||profile?.status!=='pending')return;
+ const key='villalbilla.access-request.queued.'+user.uid+'.'+profile.id,revision=String(profile.updatedAt||'');if(revision&&await AsyncStorage.getItem(key)===revision)return;
+ const token=await user.getIdToken(),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);try{const result=await api('/api/access/request',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({uid:profile.id}),signal:controller.signal});if(revision&&auth.currentUser?.uid===user.uid)await AsyncStorage.setItem(key,revision);return result}finally{clearTimeout(timer)}
+}
+export async function queueAccessApproval(uid){
+ if(!auth?.currentUser)throw Error('Inicia sesión como administrador.');
+ const token=await auth.currentUser.getIdToken();
+ const result=await api('/api/access/notify',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({uid})});
+ await runTransaction(db,async transaction=>{const ref=doc(db,'trainerProfiles',uid),snap=await transaction.get(ref);if(snap.exists()&&snap.data().accessNotice?.id===result.noticeId)transaction.update(ref,{'accessNotice.queued':true})});
+ return result;
+}
+export async function claimOfficialIdentity(user,identity){
+ if(!db||!user)throw Error('Inicia sesión antes de seleccionar tu ficha.');
+ const claim=identityClaim(identity,teamCatalog),ref=doc(db,'trainerProfiles',user.uid);
+ await runTransaction(db,async transaction=>{const snap=await transaction.get(ref);if(!snap.exists())throw Error('No se encontró tu cuenta. Vuelve a iniciar sesión.');if(['approved','admin','pending'].includes(snap.data().status))throw Error('Tu cuenta ya tiene acceso o una solicitud pendiente.');transaction.update(ref,{claim,status:'pending',updatedAt:Date.now()})});
+ const saved=await getDoc(ref),result={id:user.uid,...saved.data()};try{await queueAccessRequest(result)}catch{}return result;
 }
 
 export async function getTeamWorkspace(teamId) {
@@ -212,7 +258,35 @@ export async function getTeamWorkspace(teamId) {
   return snap.exists() ? snap.data().data : null;
 }
 
-export function saveTeamWorkspace(teamId, data) {
-  if (!db || !teamId) return Promise.resolve();
-  return setDoc(doc(db, 'teamWorkspaces', teamId), { data, updatedAt: serverTimestamp() });
+export function watchTeamWorkspace(teamId,callback,onError) {
+ if(!db)return ()=>{};
+ return onSnapshot(doc(db,'teamWorkspaces',teamId),snapshot=>callback(snapshot.exists()?snapshot.data().data:null),onError);
+}
+
+export function saveTeamWorkspace(teamId, data, base={}) {
+  if (!db || !teamId) return Promise.reject(Error('Firebase todavía no está conectado.'));
+  const ref=doc(db,'teamWorkspaces',teamId);
+  return runTransaction(db,async transaction=>{
+   const snap=await transaction.get(ref);
+   const merged=mergeChanges(base,data,snap.exists()?snap.data().data:base);
+   transaction.set(ref,{data:merged,updatedAt:serverTimestamp()});
+   return merged;
+  });
+}
+
+export async function migratePlayerDetails(teamId,players,aliases,positions){
+ if(!db||!teamId)return;
+ const {mergeLegacyDetails}=await import('./player-details.cjs');
+ return runTransaction(db,async transaction=>{const ref=doc(db,'teamWorkspaces',teamId),snap=await transaction.get(ref);if(!snap.exists())return false;const data=snap.data().data;const old=data.playerDetails||{},details=mergeLegacyDetails(old,players,aliases,positions);if(details!==old)transaction.set(ref,{data:{...data,playerDetails:details},updatedAt:serverTimestamp()});return true});
+}
+
+export async function adminSetProfileTeams(profile,teamIds,player=null,playerTeams=null){
+ if(!db||!auth?.currentUser)throw Error('Inicia sesión como administrador.');
+ const catalog=(await import('./teams.json')).default;
+ const selected=[...new Set(teamIds)].map(id=>catalog.find(t=>t.id===id));
+ if(!selected.length||selected.some(t=>!t))throw Error('Selecciona al menos un equipo válido o retira el acceso.');
+ const old=profile.claim||{},first=selected[0],isPlayer=old.role==='player';
+ if(isPlayer&&(!player?.id||String(player.teamId)!==first.id))throw Error('Selecciona la ficha oficial del jugador en su equipo.');
+ const claim=isPlayer?{teamIds:selected.map(t=>t.id),isPlayer:true,playerTeams:playerTeams||selected.map(t=>({teamId:t.id,playerId:String(player.id),name:player.name})),teamId:first.id,playerId:String(player.id),name:player.name,category:first.category,teamName:first.name,role:'player'}:{...old,isPlayer:playerTeams!==null?playerTeams.length>0:!!old.isPlayer,playerTeams:playerTeams||old.playerTeams||[],name:old.name||profile.name,role:'trainer',teamId:first.id,teamIds:selected.map(t=>t.id),category:selected.map(t=>t.category).join(' · '),teamName:first.name,assignments:selected.map(t=>({teamId:t.id,teamName:t.name,category:t.category,name:old.assignments?.find(a=>a.teamId===t.id)?.name||old.name||profile.name}))};
+ await updateDoc(doc(db,'trainerProfiles',profile.id),{claim,updatedAt:Date.now()});
 }

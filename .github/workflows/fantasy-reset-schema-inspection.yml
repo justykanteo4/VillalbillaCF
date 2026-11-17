@@ -1,0 +1,26 @@
+name: Fantasy reset table inventory (read only)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fantasy-reset-schema-inspection.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Inspect D1 schema only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name,sql FROM sqlite_master WHERE type='table' AND name IN ('fantasy_market_push_jobs','fantasy_offer_push_jobs','fantasy_offer_response_jobs','fantasy_offer_notice_events','fantasy_prize_seen','fantasy_purchase_seen','fantasy_message_reads','fantasy_market_notices') ORDER BY name;"

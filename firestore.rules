@@ -28,19 +28,23 @@ service cloud.firestore {
         && claim.name is string
         && claim.name.size() > 0
         && claim.category is string
-        && claim.teamName is string;
+        && claim.teamName is string
+        && (!('teamIds' in claim) || (claim.teamIds is list && claim.teamIds.size() > 0 && claim.teamIds.size() <= 30 && claim.teamId in claim.teamIds));
     }
 
     function approvedFor(teamId) {
       let path = /databases/$(database)/documents/trainerProfiles/$(request.auth.uid);
       return verifiedAccount() && exists(path)
         && get(path).data.status == 'approved'
-        && get(path).data.claim.teamId == teamId;
+        && (get(path).data.claim.teamId == teamId
+          || ('teamIds' in get(path).data.claim && teamId in get(path).data.claim.teamIds))
+        && (!('role' in get(path).data.claim) || get(path).data.claim.role == 'trainer');
     }
 
     match /trainerProfiles/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if signedIn() && request.auth.uid == uid
+        && !('accessNotice' in request.resource.data)
         && request.resource.data.uid == uid
         && request.resource.data.email == request.auth.token.email
         && ((request.resource.data.status == 'unassigned'
@@ -60,6 +64,39 @@ service cloud.firestore {
       allow read, write: if isAdmin() || approvedFor(teamId);
     }
 
+    match /notificationSubscriptions/{id} {
+      allow read, delete: if signedIn() && resource.data.owner == request.auth.uid;
+      allow create, update: if signedIn()
+        && request.resource.data.owner == request.auth.uid
+        && (!exists(/databases/$(database)/documents/notificationSubscriptions/$(id)) || resource.data.owner == request.auth.uid)
+        && request.resource.data.keys().hasOnly(['owner','enabled','teamIds','playerIds','token','provider','consentedAt','updatedAt'])
+        && request.resource.data.enabled is bool
+        && request.resource.data.teamIds is list && request.resource.data.teamIds.size() <= 100
+        && request.resource.data.playerIds is list && request.resource.data.playerIds.size() <= 500
+        && request.resource.data.token is string && request.resource.data.token.size() < 4096
+        && request.resource.data.provider in ['expo','fcm']
+        && request.resource.data.updatedAt == request.time;
+    }
+    match /clubNotifications/{id} {
+      allow read: if true;
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['title','body','all','teamIds','playerIds','createdBy','createdAt'])
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 120
+        && request.resource.data.body is string && request.resource.data.body.size() > 0 && request.resource.data.body.size() <= 2000
+        && request.resource.data.all is bool
+        && request.resource.data.teamIds is list && request.resource.data.teamIds.size() <= 100
+        && request.resource.data.playerIds is list && request.resource.data.playerIds.size() <= 500
+        && (request.resource.data.all || request.resource.data.teamIds.size() > 0 || request.resource.data.playerIds.size() > 0);
+      allow update, delete: if false;
+    }
+
+
+    match /teamChats/{document=**} {
+      allow read, write: if false;
+    }
+
     match /clubAdmins/{email} {
       allow get: if verifiedAccount() && request.auth.token.email == email || isAdmin();
       allow list: if isAdmin();
@@ -68,7 +105,8 @@ service cloud.firestore {
         && request.resource.data.email == email
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.createdAt is timestamp;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isAdmin() && !(email in ['albaresfernandez@gmail.com', 'appvillalbilla@gmail.com']);
     }
   }
 }

@@ -1,0 +1,15 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.villalbilla.fantasytorch'
+version = '0.1.0'
+
+android {
+  namespace 'com.villalbilla.fantasytorch'
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+}

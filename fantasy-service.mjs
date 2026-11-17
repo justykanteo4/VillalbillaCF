@@ -1,0 +1,200 @@
+import {inbox} from './fantasy-inbox.mjs';
+import {requestReadCache} from './d1-read-cache.mjs';
+import {settleWeeklyPrizes} from './fantasy-weekly-prizes.mjs';
+import {settleAwardEconomy} from './fantasy-award-settlement.mjs';
+import {settleIdealCash} from './fantasy-ideal-cash.mjs';
+import {dispatchOfferNotifications} from './fantasy-offer-notifications.mjs';
+import {playerOwnership} from './fantasy-player-ownership.mjs';
+import {weeklyEleven} from './fantasy-weekly-eleven.mjs';
+import {pendingPrize,acknowledgePrize} from './fantasy-prize-receipts.mjs';
+import {applyFantasyPositions} from './fantasy-player-positions.mjs';
+import {pendingPurchase,acknowledgePurchase} from './fantasy-purchase-receipts.mjs';
+import {marketHistory} from './fantasy-market-history.mjs';
+import {saleRoute} from './fantasy-sales.mjs';
+import {clauseRoute} from './fantasy-clause-routes.mjs';
+import {managerListingRoute} from './fantasy-manager-listings.mjs';
+import {reservedBids} from './fantasy-auctions.mjs';
+import {economyPolicy} from './fantasy-economy.mjs';
+import {gameRoute,adminGame,settleSalaries,ensureManager,playerTotals,sports} from './fantasy-game.mjs';
+import {decodeJwt} from 'jose';
+import verification from './account-verification.cjs';
+import {verifyAccessUser} from './access-service.mjs';
+import {verifyAdmin} from './free-notifications.mjs';
+import {resetLeague} from './fantasy-league-reset.mjs';
+import {scheduleVoteCleanup} from './vote-cleanup.mjs';
+import {fantasyTeamIds} from './fantasy-teams.mjs';
+import config from './fantasy-config.cjs';
+import {marketRoute} from './fantasy-market.mjs';
+import leaguePolicy from './fantasy-leagues.cjs';
+import teams from './teams.json' with {type:'json'};
+import catalog from './fantasy-players.json' with {type:'json'};
+const reply=(value,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store'}}),fail=(message,status=400)=>Object.assign(Error(message),{status});
+async function verifyFantasyUser(request){const uid=await verifyAccessUser(request);if(!verification.verifiedClaims(decodeJwt(request.headers.get('Authorization').slice(7))))throw fail('Verifica tu cuenta para jugar en Fantasy.',403);return uid}
+function randomCode(){const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from(crypto.getRandomValues(new Uint8Array(8)),n=>alphabet[n%32]).join('')}
+async function body(request){const text=await request.text();if(text.length>6000)throw fail('Solicitud demasiado grande.',413);try{return JSON.parse(text)}catch{throw fail('Datos no válidos.')}}
+function publicLeague(row,uid,now,economy){const stored=JSON.parse(row.settings_json),settings={...stored,...(row.mode==='classic'?{budget:52}:{}),weeklyIncome:(economy?.weeklyIncomeCents??200)/100,...(economy?{weeklyChange:economy}:{})};const finance=leaguePolicy.weeklyBudget(settings,row.joinedAt,now);finance.tradingDelta=(row.delta_cents||0)/100;finance.cashBalance=Math.round((finance.balance+finance.tradingDelta)*100)/100;finance.reservedBids=(row.reserved_cents||0)/100;finance.balance=Math.round((finance.cashBalance-finance.reservedBids)*100)/100;return {id:row.id,name:row.mode==='classic'?leaguePolicy.classicLeagueName(teams.find(t=>t.id===row.group_team_id)):row.name,mode:row.mode,pool:{type:'club'},teamId:row.group_team_id,teamName:leaguePolicy.classicLeagueName(teams.find(t=>t.id===row.group_team_id)).replace('Liga de ',''),settings,finance,code:row.code,createdAt:row.created_at,isOwner:row.owner_uid===uid,memberCount:row.memberCount||0}}
+async function detail(db,id,uid,now,allowed){const row=await db.prepare('SELECT l.*,COALESCE(v.delta_cents,ROUND(w.delta_units*50),0) AS delta_cents,COALESCE(g.team_id,json_extract(l.pool_json,\'$.teamId\')) AS group_team_id,m.joined_at AS joinedAt FROM fantasy_leagues l JOIN fantasy_members m ON m.league_id=l.id LEFT JOIN fantasy_wallets w ON w.league_id=l.id AND w.uid=m.uid LEFT JOIN fantasy_wallet_cents v ON v.league_id=l.id AND v.uid=m.uid LEFT JOIN fantasy_league_groups g ON g.league_id=l.id WHERE l.id=? AND m.uid=?').bind(id,uid).first();if(!row)throw fail('Liga no encontrada o no perteneces a ella.',404);if(!allowed.includes(row.group_team_id))throw fail('Esta liga está reservada a compañeros del mismo equipo aprobado.',403);await settleSalaries(db,id,now);await settleIdealCash(db,id,now);const prizeState=await db.prepare('SELECT next_at FROM fantasy_prize_state WHERE league_id=?').bind(id).first();if(!prizeState||prizeState.next_at<=now)await settleWeeklyPrizes(db,id,now);const [wallet,held,members,economy]=await Promise.all([db.prepare('SELECT delta_cents FROM fantasy_wallet_cents WHERE league_id=? AND uid=?').bind(id,uid).first(),reservedBids(db,id,uid),db.prepare('SELECT nickname,joined_at AS joinedAt,CASE WHEN uid=? THEN 1 ELSE 0 END AS me,CASE WHEN uid=? THEN 1 ELSE 0 END AS creator FROM fantasy_members WHERE league_id=? ORDER BY joined_at,nickname').bind(uid,row.owner_uid,id).all(),economyPolicy(db)]);row.delta_cents=wallet?.delta_cents||0;row.reserved_cents=held;return {league:{...publicLeague(row,uid,now,economy),memberCount:members.results.length},members:members.results.map(m=>({...m,me:!!m.me,creator:!!m.creator}))}}
+async function prices(db,pool,points=leaguePolicy.classicSettings.points,snapshot=null){const [rows,totals,live,awards]=await Promise.all([db.prepare('SELECT player_id,price_cents,revision,updated_at FROM fantasy_player_cents').all(),db.prepare("SELECT candidate_id,SUM(points_total) AS points FROM social_candidate_totals WHERE season='2026-27' AND category IN('player','goalkeeper') GROUP BY candidate_id").all(),sports(db),db.prepare('SELECT * FROM fantasy_awards').all()]),overrides=new Map(rows.results.map(r=>[r.player_id,r])),votes=Object.fromEntries(totals.results.map(r=>[r.candidate_id,r.points])),byTeamPlayer=new Map();for(const m of live.matches)for(const p of m.players){const key=m.teamId+':'+p.id,row=byTeamPlayer.get(key)||{goals:0,wins:0,played:0,cleanSheets:0,red:0,yellow:0,partial:false};row.goals+=p.goals||0;row.wins+=p.played&&p.win?1:0;row.played+=p.played||0;row.cleanSheets+=p.cleanSheet?1:0;row.red+=p.red||0;row.yellow+=p.yellow||0;row.partial||=!!p.partial;byTeamPlayer.set(key,row)}if(snapshot){snapshot.live=live;snapshot.awards=awards.results}const current={...catalog,teams:catalog.teams.map(t=>({...t,players:t.players.map(p=>{const row=byTeamPlayer.get(t.id+':'+p.id);return row?{...p,...row,partial:p.partial||row.partial}:p})}))};const priced=leaguePolicy.playersForPool(current,{type:'club'},votes).filter(p=>!pool||pool.type==='club'||p.teams.some(t=>t.id===pool.teamId)).map(p=>{const edit=overrides.get(p.id);return {...p,automaticPrice:p.price,price:edit?.price_cents!=null?edit.price_cents/100:p.price,manualPrice:edit?.price_cents!=null,priceRevision:edit?.revision||0,priceUpdatedAt:edit?.updated_at||null}}).sort((a,b)=>b.price-a.price||b.performance-a.performance||a.name.localeCompare(b.name,'es'));return playerTotals(await applyFantasyPositions(db,priced),live,points,awards.results)}
+
+async function manageFantasyUsers(db,request,url,adminUid,now){
+ if(!db)throw fail('No se pudo conectar con Fantasy.',503);
+ if(request.method==='GET'){
+  const query=(url.searchParams.get('q')||'').trim().slice(0,80);
+  const after=(url.searchParams.get('after')||'').slice(0,128);
+  const {results}=await db.prepare(`
+   SELECT m.uid,MIN(m.nickname) AS nickname,COUNT(*) AS leagues,
+          x.excluded_at AS excludedAt
+   FROM fantasy_members m
+   LEFT JOIN fantasy_excluded_users x ON x.uid=m.uid
+   WHERE m.uid>? AND m.uid<>?
+   GROUP BY m.uid
+   HAVING ?='' OR MAX(INSTR(LOWER(m.nickname),LOWER(?)))>0 OR INSTR(m.uid,?)>0
+   ORDER BY m.uid LIMIT 31
+  `).bind(after,adminUid,query,query,query).all();
+  const users=results.slice(0,30);
+  return reply({users,next:results.length>30?users[users.length-1].uid:null});
+ }
+ if(request.method!=='POST')throw fail('Método no permitido.',405);
+ const value=await body(request),target=value?.uid;
+ if(typeof target!=='string'||!target.trim()||target.length>128||typeof value.excluded!=='boolean')throw fail('Usuario o acción no válidos.');
+ if(target===adminUid)throw fail('No puedes cambiar tu propio acceso desde aquí.');
+ if(!await db.prepare('SELECT 1 FROM fantasy_members WHERE uid=? LIMIT 1').bind(target).first())throw fail('No se encontró al usuario en Fantasy.',404);
+ if(value.excluded){
+  await db.batch([
+   db.prepare('INSERT OR IGNORE INTO fantasy_excluded_users(uid,excluded_at,excluded_by) VALUES(?,?,?)').bind(target,now,adminUid),
+   db.prepare('DELETE FROM fantasy_participant_teams WHERE uid=?').bind(target),
+  ]);
+ }else{
+  await db.prepare('DELETE FROM fantasy_excluded_users WHERE uid=?').bind(target).run();
+ }
+ return reply({uid:target,excluded:value.excluded});
+}
+
+export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adminAuthorize=verifyAdmin,makeCode=randomCode,clock=Date.now,getTeams=fantasyTeamIds,ctx}={}){
+ const url=new URL(request.url),path=url.pathname;if(path!=='/api/fantasy'&&!path.startsWith('/api/fantasy/'))return null;
+ try{const uid=await authorize(request,env),currentTime=clock();if(request.method!=='GET'){const origin=request.headers.get('Origin');if(origin&&origin!==url.origin)throw fail('Origen no permitido.',403)}
+ let admin=false;try{admin=(await adminAuthorize(request,env))===uid}catch(e){if(e.status!==401&&e.status!==403)throw e}
+ const db=requestReadCache(env.CHAT_DB);let allowed;
+ const access=db?await db.prepare('SELECT disabled,revision,updated_at FROM fantasy_access_settings WHERE id=1').first():null;
+ const accessSettings={disabled:access?!!access.disabled:true,revision:access?.revision||0,updatedAt:access?.updated_at||null};
+ if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ if(path==='/api/fantasy/admin/users')return await manageFantasyUsers(db,request,url,uid,currentTime);
+ if(db&&!path.startsWith('/api/fantasy/admin/')&&await db.prepare('SELECT 1 FROM fantasy_excluded_users WHERE uid=?').bind(uid).first()){
+  if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path))return reply({rules:config.rules,canPlay:false,isAdmin:admin,excluded:true});
+  throw fail('Tu acceso a Fantasy está desactivado.',403);
+ }
+ if(path==='/api/fantasy/admin/access'){
+ if(!db)throw fail('No se pudo consultar el acceso de Fantasy.',503);
+ if(request.method==='GET')return reply(accessSettings);
+ if(request.method!=='POST')throw fail('Método no permitido.',405);
+ const value=await body(request);if(typeof value?.disabled!=='boolean'||!Number.isSafeInteger(value.revision)||value.revision<0)throw fail('Actualiza el ajuste antes de guardarlo.');
+ const saved=await db.prepare('UPDATE fantasy_access_settings SET disabled=?,revision=revision+1,updated_at=? WHERE id=1 AND revision=? RETURNING disabled,revision,updated_at').bind(value.disabled?1:0,currentTime,value.revision).first();
+ if(!saved)throw fail('Otro administrador ha cambiado el acceso. Actualiza el ajuste antes de guardar.',409);
+ return reply({disabled:!!saved.disabled,revision:saved.revision,updatedAt:saved.updated_at});
+ }
+ if(accessSettings.disabled&&!admin){if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path))return reply({rules:config.rules,canPlay:false,isAdmin:false,disabled:true,features:{leagues:false,prices:false,market:false,offers:false,play:false}});throw fail('Fantasy está deshabilitado temporalmente. Acceso reservado a administradores.',403)}
+ const allowedTeams=async()=>{if(allowed)return allowed;allowed=(await getTeams(request,uid,{isAdmin:admin})).filter(id=>teams.some(t=>t.id===id));if(db)await db.batch([db.prepare('DELETE FROM fantasy_participant_teams WHERE uid=?').bind(uid),db.prepare('INSERT INTO fantasy_participant_teams SELECT ?,CAST(value AS TEXT),? FROM json_each(?) WHERE NOT EXISTS(SELECT 1 FROM fantasy_excluded_users WHERE uid=?)').bind(uid,currentTime,JSON.stringify(allowed),uid)]);return allowed};
+ if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path)){if(admin)await scheduleVoteCleanup(request,env,uid,async()=>uid,ctx);return reply({rules:config.rules,canPlay:(await allowedTeams()).length>0,isAdmin:admin,disabled:accessSettings.disabled,features:{leagues:false,prices:true,market:true,offers:true,play:false}})}
+ if(!['GET','POST'].includes(request.method))return reply({error:'Método no permitido.'},405);
+ if(!db)throw fail('No se pudo conectar con las ligas.',503);
+ if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ if(path==='/api/fantasy/admin/leagues/reset'&&request.method==='GET'){
+   const leagues=await db.prepare('SELECT id,name,created_at FROM fantasy_leagues ORDER BY name,id').all();
+   return reply({leagues:leagues.results});
+ }
+ const resetMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/reset$/);
+ if(resetMatch){
+   if(request.method==='GET')return reply(await resetLeague({db,leagueId:resetMatch[1]}));
+   if(request.method!=='POST')throw fail('Método no permitido.',405);
+   const value=await body(request);
+   return reply(await resetLeague({db,leagueId:resetMatch[1],confirm:value?.confirmation,
+      expectedCreatedAt:value?.expectedCreatedAt,now:currentTime,apply:true}));
+ }
+ const clauseSwitch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/clauses$/);
+ if(clauseSwitch){
+  if(!['GET','POST'].includes(request.method))throw fail('Método no permitido.',405);
+  const old=await db.prepare('SELECT settings_json FROM fantasy_leagues WHERE id=?').bind(clauseSwitch[1]).first();
+  if(!old)throw fail('Liga no encontrada.',404);
+  if(request.method==='GET')return reply({enabled:JSON.parse(old.settings_json).clausesEnabled===true});
+  const value=await body(request);
+  if(typeof value?.enabled!=='boolean')throw fail('Indica si el club activa las cláusulas.');
+  const next=JSON.stringify({...JSON.parse(old.settings_json),clausesEnabled:value.enabled});
+  const saved=await db.prepare('UPDATE fantasy_leagues SET settings_json=? WHERE id=? AND settings_json=? RETURNING id')
+    .bind(next,clauseSwitch[1],old.settings_json).first();
+  if(!saved)throw fail('La configuración cambió. Actualiza antes de reintentar.',409);
+  return reply({saved:true,enabled:value.enabled});
+ }
+ if(['/api/fantasy/admin/salaries','/api/fantasy/admin/awards'].includes(path)){let matchScope=null;if(path.endsWith('/awards')&&(url.searchParams.has('match')||url.searchParams.has('team'))){const matchId=url.searchParams.get('match'),teamId=url.searchParams.get('team');if(!/^\d{1,20}$/.test(matchId||'')||!teams.some(t=>t.id===teamId))throw fail('Partido no válido.');matchScope={matchId,teamId}}const result=await adminGame({db,path,method:request.method,readBody:()=>body(request),matchScope});if(path.endsWith('/awards')&&request.method==='POST'){await db.prepare('UPDATE fantasy_prize_state SET next_at=0,fingerprint=NULL').run();await db.prepare('UPDATE fantasy_ideal_reward_state SET next_at=0,fingerprint=NULL').run();ctx?.waitUntil?.(settleAwardEconomy(env,currentTime));}return reply(result)}
+ if(path==='/api/fantasy/admin/players'&&request.method==='GET'){const teamId=url.searchParams.get('team');if(teamId&&!teams.some(t=>t.id===teamId))throw fail('Equipo no válido.');return reply({players:await prices(db,teamId?{type:'team',teamId}:{type:'club'}),updatedAt:catalog.updatedAt})}
+ if(path==='/api/fantasy/admin/prices'&&request.method==='POST'){const value=await body(request),id=String(value.playerId||'');if(!catalog.teams.some(t=>t.players.some(p=>p.id===id)))throw fail('Jugador no encontrado.',404);if(value.price!==null&&(!Number.isFinite(value.price)||value.price<1||value.price>234||Math.abs(value.price*100-Math.round(value.price*100))>1e-7))throw fail('El precio debe estar entre 1 y 234 M, en pasos de 0,01 M.');if(!Number.isSafeInteger(value.revision)||value.revision<0)throw fail('Actualiza los precios antes de guardar.');const now=currentTime;const saved=await db.prepare('INSERT INTO fantasy_player_cents(player_id,price_cents,revision,updated_at,changed_by) SELECT ?,?,1,?,? WHERE ?=0 OR EXISTS(SELECT 1 FROM fantasy_player_cents WHERE player_id=?) ON CONFLICT(player_id) DO UPDATE SET price_cents=excluded.price_cents,revision=fantasy_player_cents.revision+1,updated_at=excluded.updated_at,changed_by=excluded.changed_by WHERE fantasy_player_cents.revision=? RETURNING player_id,price_cents,revision,updated_at').bind(id,value.price===null?null:Math.round(value.price*100),now,uid,value.revision,id,value.revision).first();if(!saved)throw fail('Otro administrador ha cambiado este precio. Actualiza la lista antes de guardar.',409);return reply({playerId:saved.player_id,price:saved.price_cents==null?null:saved.price_cents/100,revision:saved.revision,updatedAt:saved.updated_at})}
+ if(path==='/api/fantasy/leagues'&&request.method==='GET'){const rows=await db.prepare('SELECT l.*,COALESCE(v.delta_cents,ROUND(w.delta_units*50),0) AS delta_cents,COALESCE(g.team_id,json_extract(l.pool_json,\'$.teamId\')) AS group_team_id,m.joined_at AS joinedAt,(SELECT COUNT(*) FROM fantasy_members x WHERE x.league_id=l.id) AS memberCount FROM fantasy_leagues l JOIN fantasy_members m ON m.league_id=l.id LEFT JOIN fantasy_wallets w ON w.league_id=l.id AND w.uid=m.uid LEFT JOIN fantasy_wallet_cents v ON v.league_id=l.id AND v.uid=m.uid LEFT JOIN fantasy_league_groups g ON g.league_id=l.id WHERE m.uid=? ORDER BY l.created_at DESC').bind(uid).all();const ids=await allowedTeams();const economy=await economyPolicy(db),holds=(await db.prepare("SELECT b.league_id,SUM(b.amount_cents) AS held FROM fantasy_auction_bids b JOIN fantasy_auction_rounds r ON r.league_id=b.league_id AND r.listing_id=b.listing_id AND r.day=b.day WHERE b.uid=? AND b.status='active' AND r.status='open' GROUP BY b.league_id").bind(uid).all()).results;const official=(await db.prepare('SELECT o.team_id,o.league_id,l.settings_json,(SELECT COUNT(*) FROM fantasy_members m WHERE m.league_id=l.id) AS member_count FROM fantasy_official_leagues o JOIN fantasy_leagues l ON l.id=o.league_id').all()).results,joined=new Set(rows.results.map(r=>r.id));return reply({eligibleTeams:teams.filter(t=>ids.includes(t.id)),availableLeagues:official.filter(r=>ids.includes(r.team_id)&&!joined.has(r.league_id)).map(r=>({id:r.league_id,teamId:r.team_id,name:leaguePolicy.classicLeagueName(teams.find(t=>t.id===r.team_id)),memberCount:r.member_count,maxMembers:JSON.parse(r.settings_json).maxMembers||15})),leagues:rows.results.filter(r=>ids.includes(r.group_team_id)).map(r=>publicLeague({...r,reserved_cents:holds.find(h=>h.league_id===r.id)?.held||0},uid,currentTime,economy))})}
+ if(path==='/api/fantasy/leagues'&&request.method==='POST')throw fail('Crear liga · Próximamente. Ahora puedes entrar en la liga de tu equipo confirmado por las actas.',410);
+ if(path==='/api/fantasy/team-league'&&request.method==='POST'){
+ const value=await body(request),teamId=String(value.teamId||''),nickname=String(value.nickname||'').trim();
+ if(!(await allowedTeams()).includes(teamId))throw fail('Solo jugadores y cuerpo técnico identificados en las actas de este equipo pueden entrar.',403);
+ if(nickname.length<2||nickname.length>32)throw fail('Escribe tu nombre en la liga (2–32 caracteres).');
+ let existing=await db.prepare('SELECT league_id FROM fantasy_official_leagues WHERE team_id=?').bind(teamId).first();
+ if(value.leagueId&&!existing)throw fail('La liga disponible ha cambiado. Actualiza la lista antes de entrar.',409);
+ if(!existing){const id='official-2026-27-'+teamId,code=makeCode(),settings=JSON.stringify(leaguePolicy.classicSettings);await db.batch([
+ db.prepare('INSERT OR IGNORE INTO fantasy_leagues VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,'club-system',id,id,leaguePolicy.classicLeagueName(teams.find(t=>t.id===teamId)),'classic',JSON.stringify({type:'club'}),settings,code,currentTime),
+ db.prepare('INSERT OR IGNORE INTO fantasy_league_groups VALUES(?,?)').bind(id,teamId),
+ db.prepare('INSERT OR IGNORE INTO fantasy_official_leagues VALUES(?,?)').bind(teamId,id)
+ ]);existing=await db.prepare('SELECT league_id FROM fantasy_official_leagues WHERE team_id=?').bind(teamId).first()}
+ if(value.leagueId&&value.leagueId!==existing.league_id)throw fail('La liga disponible ha cambiado. Actualiza la lista antes de entrar.',409);
+ await db.prepare('INSERT OR IGNORE INTO fantasy_members VALUES(?,?,?,?)').bind(existing.league_id,uid,nickname,currentTime).run();
+ return reply(await detail(db,existing.league_id,uid,currentTime,await allowedTeams()))
+ }
+ if(path==='/api/fantasy/join'&&request.method==='POST'){const value=await body(request),code=String(value.code||'').trim().toUpperCase(),nickname=String(value.nickname||'').trim();if(!/^[A-HJ-NP-Z2-9]{8}$/.test(code)||nickname.length<2||nickname.length>32)throw fail('Escribe el código de ocho caracteres y tu nombre en la liga.');const league=await db.prepare('SELECT l.id,COALESCE(g.team_id,json_extract(l.pool_json,\'$.teamId\')) AS team_id FROM fantasy_leagues l LEFT JOIN fantasy_league_groups g ON g.league_id=l.id WHERE l.code=?').bind(code).first();if(!league)throw fail('Código de invitación no válido.',404);if(!(await allowedTeams()).includes(league.team_id))throw fail('El código solo permite entrar a compañeros de ese equipo aprobado.',403);await db.prepare('INSERT OR IGNORE INTO fantasy_members(league_id,uid,nickname,joined_at) VALUES(?,?,?,?)').bind(league.id,uid,nickname,currentTime).run();return reply(await detail(db,league.id,uid,currentTime,await allowedTeams()))}
+ if(path==='/api/fantasy/inbox')return reply(await inbox({db,uid,allowed:await allowedTeams(),method:request.method,value:request.method==='POST'?await body(request):{},before:url.searchParams.get('before'),now:currentTime,players:catalog.teams.flatMap(t=>t.players.map(p=>({...p,teamId:t.id}))),teams}));
+ if(path==='/api/fantasy/prize-receipts'){if(request.method!=='GET')throw fail('Método no permitido.',405);const row=await pendingPrize(db,uid,await allowedTeams());return reply({receipt:row?{id:row.id,leagueId:row.league_id,leagueName:row.mode==='classic'?leaguePolicy.classicLeagueName(teams.find(t=>t.id===row.team_id)):row.name,week:row.week,date:new Date((row.week*7-3)*86400000).toISOString().slice(0,10),amount:row.amount_cents/100,total:row.total_cents/100,position:row.position,adjustment:!row.initial,provisional:!!row.provisional,at:row.created_at}:null})}
+ if(path==='/api/fantasy/prize-receipts/seen'){if(request.method!=='POST')throw fail('Método no permitido.',405);const value=await body(request);return reply(await acknowledgePrize(db,uid,await allowedTeams(),value?.eventId,currentTime))}
+ if(path==='/api/fantasy/purchase-receipts'){if(request.method!=='GET')throw fail('Método no permitido.',405);const row=await pendingPurchase(db,uid,await allowedTeams());if(!row)return reply({receipt:null});const settings=JSON.parse(row.settings_json),player=(await prices(db,{type:'club'},settings.points)).find(p=>p.id===row.player_id);return reply({receipt:{id:row.id,leagueId:row.league_id,leagueName:row.mode==='classic'?leaguePolicy.classicLeagueName(teams.find(t=>t.id===row.team_id)):row.name,playerId:row.player_id,player:player||{id:row.player_id,name:'Jugador',stats:{},partial:true},paid:row.paid_cents/100,auction:!!row.auction,at:row.created_at}})}
+ if(path==='/api/fantasy/purchase-receipts/seen'){if(request.method!=='POST')throw fail('Método no permitido.',405);const value=await body(request);return reply(await acknowledgePurchase(db,uid,await allowedTeams(),value?.tradeId,currentTime))}
+ const history=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/market-history$/);if(history){if(request.method!=='GET')throw fail('Método no permitido.',405);await detail(db,history[1],uid,currentTime,await allowedTeams());return reply(await marketHistory({db,leagueId:history[1],uid,players:catalog.teams.flatMap(t=>t.players.map(p=>({...p,teamId:t.id}))),mine:url.searchParams.get('mine')==='1',cursor:url.searchParams.get('cursor')}))}
+ const listing=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/list-player$/);
+ if(listing){
+  const data=await detail(db,listing[1],uid,currentTime,await allowedTeams());
+  await ensureManager(db,data.league,uid);
+  return reply(await managerListingRoute({db,league:data.league,uid,now:currentTime,
+    getNow:clock,method:request.method,readBody:()=>body(request),
+    playerId:url.searchParams.get('playerId')}));
+ }
+ const sale=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/sell$/);if(sale){const data=await detail(db,sale[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);return reply(await saleRoute({db,league:data.league,uid,now:clock(),getNow:clock,method:request.method,playerId:url.searchParams.get('playerId'),readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points)}))}
+ const rivalsMatch=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/rivals$/);
+ if(rivalsMatch){
+  if(request.method!=='GET')throw fail('Método no permitido.',405);
+  const data=await detail(db,rivalsMatch[1],uid,currentTime,await allowedTeams());
+  await ensureManager(db,data.league,uid);
+  const [members,roster,availablePlayers]=await Promise.all([
+   db.prepare('SELECT uid,nickname FROM fantasy_members WHERE league_id=? AND uid<>? ORDER BY nickname,uid').bind(rivalsMatch[1],uid).all(),
+   db.prepare('SELECT id,uid,player_id,acquired_at FROM fantasy_roster WHERE league_id=? AND uid<>? ORDER BY acquired_at').bind(rivalsMatch[1],uid).all(),
+   prices(db,data.league.pool,data.league.settings.points)
+  ]);
+  const directory=new Map(availablePlayers.map(p=>[p.id,p]));
+  const grouped=new Map(members.results.map(m=>[m.uid,{id:m.uid,name:m.nickname,players:[]}])); 
+  for(const own of roster.results){
+   const rival=grouped.get(own.uid),player=directory.get(own.player_id);
+   if(!rival||!player)continue;
+   rival.players.push({...player,ownershipId:own.id,acquiredAt:own.acquired_at,mine:false});
+  }
+  const rivals=[...grouped.values()].map(rival=>({...rival,players:rival.players.sort((a,b)=>(b.fantasyPoints||0)-(a.fantasyPoints||0)||a.name.localeCompare(b.name,'es'))}));
+  return reply({rivals,clausesEnabled:data.league.settings.clausesEnabled===true});
+ }
+ const game=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(squad|coaches|coach|presentation|search|favourites|alerts|lineup|table|transactions)$/);if(game){const data=await detail(db,game[1],uid,currentTime,await allowedTeams());return reply(await gameRoute({db,league:data.league,uid,now:currentTime,action:game[2],getNow:clock,targetNext:url.searchParams.get('next')==='1',method:request.method,readBody:()=>body(request),players:['table','alerts','presentation','coaches'].includes(game[2])?[]:await prices(db,data.league.pool,data.league.settings.points)}))}
+ const clause=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(clause(?:\/boost)?)$/);
+ if(clause){
+  const data=await detail(db,clause[1],uid,currentTime,await allowedTeams());
+  await ensureManager(db,data.league,uid);
+  const [allPlayers,live]=await Promise.all([prices(db,data.league.pool,data.league.settings.points),sports(db)]);
+  return reply(await clauseRoute({db,league:data.league,uid,now:currentTime,
+    action:clause[2],method:request.method,readBody:()=>body(request),
+    ownershipId:url.searchParams.get('ownershipId'),players:allPlayers,
+    schedule:live.schedule,getNow:clock,
+    canPlay:async target=>!!await db.prepare('SELECT 1 FROM fantasy_participant_teams WHERE uid=? AND team_id=?').bind(target,data.league.teamId).first()
+  }));
+ }
+ const market=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(market|roster|buy|bid|offers(?:\/[a-zA-Z0-9-]{1,80}\/(?:accept|reject|cancel))?)$/);if(market){const data=await detail(db,market[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);const result=await marketRoute({db,league:data.league,uid,now:currentTime,action:market[2],method:request.method,readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points),getNow:clock,catalogVersion:catalog.version+'-actas-30-v2',canPlay:async target=>!!await db.prepare('SELECT 1 FROM fantasy_participant_teams WHERE uid=? AND team_id=?').bind(target,data.league.teamId).first()});if((market[2]==='offers'||/^offers\/[^/]+\/(accept|reject)$/.test(market[2]))&&request.method==='POST')ctx?.waitUntil?.(dispatchOfferNotifications(env).catch(()=>{}));return reply(result)}
+ const match=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})(\/players)?$/);if(match&&request.method==='GET'){const data=await detail(db,match[1],uid,currentTime,await allowedTeams());if(match[2]){const snapshot={},[players,owners]=await Promise.all([prices(db,data.league.pool,data.league.settings.points,snapshot),playerOwnership(db,match[1],uid)]);return reply({players:players.map(p=>({...p,...(owners.get(p.id)||{ownershipId:null,owner:null,mine:false})})),finance:data.league.finance,weeklyEleven:weeklyEleven(players,snapshot.live.matches,snapshot.awards,data.league.settings.points,currentTime),version:catalog.version,updatedAt:catalog.updatedAt})}return reply(data)}
+ return reply({error:'Apartado no disponible.'},404);
+ }catch(e){if(/FANTASY_GIFT_CHANGED|fantasy_award_changes|fantasy_coach_changes|fantasy_roster.league_id, fantasy_roster.player_id/.test(e.message))return reply({error:'La elección o el reparto cambiaron en otro dispositivo. Actualiza y vuelve a elegir.'},409);if(/FANTASY_FULL/.test(e.message))return reply({error:'La liga ya está completa.'},409);return reply({error:e.status?e.message:'No se pudo guardar o consultar la liga. Vuelve a intentarlo.'},e.status||503)}
+}

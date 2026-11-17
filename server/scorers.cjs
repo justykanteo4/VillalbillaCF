@@ -4,10 +4,10 @@ function parseScorers(html,team){const p=pageData(html);if(String(p.season?.cod_
 function rankTeams(sources){const players=new Map();for(const team of sources)for(const p of team.players||[]){if(p.goals<=0)continue;let row=players.get(p.id);if(!row){row={id:p.id,name:p.name,goals:0,teams:[]};players.set(p.id,row)}if(row.teams.some(t=>t.id===p.teamId))continue;row.goals+=p.goals;row.teams.push({id:p.teamId,name:p.teamName,category:p.category,goals:p.goals})}const rows=[...players.values()].sort((a,b)=>b.goals-a.goals||a.name.localeCompare(b.name,'es'));let rank=0;rows.forEach((r,i)=>{if(i===0||r.goals!==rows[i-1].goals)rank=i+1;r.position=rank});return rows}
 async function scorers(){if(pending)return pending;if(Date.now()-checked<300000)return snapshot;pending=(async()=>{const groups=[...new Set(teams.map(t=>t.competition+':'+t.group))],pages=new Map();for(let i=0;i<groups.length;i+=3)await Promise.all(groups.slice(i,i+3).map(async key=>{const t=teams.find(t=>t.competition+':'+t.group===key);try{const r=await fetch(`https://www.rffm.es/competicion/goleadores?competicion=${t.competition}&grupo=${t.group}&temporada=22&tipojuego=${t.gameType}`,{signal:AbortSignal.timeout(20000)});if(!r.ok)throw Error();pages.set(key,await r.text())}catch{pages.set(key,null)}}));const sources=teams.map(t=>{try{return parseScorers(pages.get(t.competition+':'+t.group)||'',t)}catch{return {...(snapshot.sources.find(s=>s.id===t.id)||{...t,players:[],available:null}),error:true}}});snapshot={sources,rows:rankTeams(sources),partial:sources.some(t=>t.error||!t.available),checkedAt:new Date().toISOString()};checked=Date.now();return snapshot})().finally(()=>pending=null);return pending}
 const leagueCache=new Map(),leaguePending=new Map();
-async function leagueScorers(teamId){
+async function leagueScorers(teamId,{refresh=false}={}){
  const team=teams.find(t=>t.id===String(teamId));if(!team)return null;
  const key=team.competition+':'+team.group,old=leagueCache.get(key);
- if(old&&Date.now()-old.checked<300000)return old.data;
+ if(!refresh&&old&&Date.now()-old.checked<300000)return old.data;
  if(leaguePending.has(key))return leaguePending.get(key);
  const request=(async()=>{
   try{

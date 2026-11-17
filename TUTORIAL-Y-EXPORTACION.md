@@ -1,0 +1,17 @@
+# Tutorial y exportación de Plantilla
+
+Ajustes incluye Tutorial de la app para todas las cuentas y visitantes. Explicaciones paso a paso de primeros pasos, hincha, entrenador, jugador, ajustes y administración (este último solo para administradores). tutorial-data.cjs contiene instrucciones y enlaces internos; tutorial-navigation.cjs valida rol, estado y destino. Las guías de los tres perfiles son legibles para cualquiera, pero los enlaces privados se desactivan si no hay acceso. Los enlaces a pestañas del entrenador/jugador abren la sección correspondiente y permiten volver con Atrás. No conceden permisos ni cambian reglas.
+
+Siete imágenes locales en assets/tutorial: esquema de acceso y ejemplos de resultados, Plantilla, minutos, exportación, presentación y días de entrenamiento. Se amplían en modal; nombres/cifras son datos de ejemplo. Las imágenes se incluyen en la app y no requieren red. tutorial-images.js conserva su proporción en móvil y navegador.
+
+Plantilla retira Tu vestuario, el buscador y la categoría repetida en cada tarjeta. Foto y dorsal van juntos en horizontal y se reduce el relleno de las tarjetas. Se conservan ordenación, datos desplegables y edición de jugadores.
+
+Al final de Plantilla, Descargar datos de la plantilla aparece únicamente en la gestión que recibe onPlayerDetail (entrenadores autorizados y administradores gestionando un equipo). Permite seleccionar campos, PDF o PNG. Nombre siempre incluido; opciones para dorsal, alias, posición, foto, partidos, convocatorias, goles, tarjetas, porteros, minutos oficiales/manuales/totales e identificador federativo. Respeta alias/posiciones y minutos compartidos del equipo. No incluye correos o cuentas de usuarios.
+
+roster/runtime.js dibuja una tabla simplificada en una sola hoja, ajustando anchos y tamaño del texto al número de jugadores y campos elegidos. Las cabeceras usan abreviaturas con leyenda. El PDF A4 apaisado contiene exactamente una página; PNG genera una única imagen. No se omiten jugadores ni columnas seleccionadas. Los datos incompletos se señalan y las fotos se incrustan antes de renderizar.
+
+Se usa WebView existente y generación JavaScript: no requiere expo-print ni módulos nativos nuevos. npm run build:roster-export genera roster-export-bundle.cjs, que debe versionarse. roster-export-html.cjs protege el JSON contra cierres de script. Navegador descarga archivos; Android/iOS los guarda en documentos/plantillas y ofrece Guardar o compartir mediante el selector del sistema. No envía documentos automáticamente. La preparación bloquea reinicios por actualización hasta terminar los guardados pendientes.
+
+Validación: tests de destinos/permisos, imágenes, selección/paginación de columnas, estadísticas, estructura/offsets PDF y escape de HTML. Playwright comprueba tarjetas compactas, ausencia de buscador/categoría, selector, PDF/PNG descargables, tutorial para visitante/entrenador/jugador, ampliación y enlaces. pdfinfo confirma PDF A4 apaisado válido de una sola página al exportar todos los campos. Pendiente comprobar el selector de compartir y consumo de memoria en teléfono físico.
+
+Los días habituales se configuran solo en Asistencia. Calendario restringido, validación en No por defecto, contadores, descarga y tops compartidos se documentan en ASISTENCIA-Y-PARTICIPACION.md. El tutorial incluye diez imágenes, con asistencia, calendario y ranking de participación.

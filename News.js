@@ -1,153 +1,106 @@
+import SponsorCarousel from './SponsorCarousel';
+import {publishAdminTaskNews,subscribeAdminTaskNews} from './AdminPendingTasks';
+import AdminMatchMvp from './AdminMatchMvp';
+import AdminResultEditor from './AdminResultEditor';
+import FantasyNewsAccess from './FantasyNewsAccess';
+import {useBackAction} from './useBackNavigation';
 import React,{useState,useEffect,useRef} from 'react';
-import {View,Text,Pressable,Image,StyleSheet,AppState} from 'react-native';
+import {View,Text,Pressable,StyleSheet,AppState,Linking} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {api} from './api';
+import {readCopy,saveCopy} from './offline';
+import {mergeResults,refreshResults} from './results-refresh.cjs';
+import {matchWithReport} from './match-report.cjs';
+import clubTeams from './teams.json';
 import seed from './news-seed.json';
-import MatchSummary,{buildSummary} from './MatchSummary';
 import VenueDirections from './VenueDirections';
 import MatchWeather from './MatchWeather';
 import FavoritePlayers from './FavoritePlayers';
+import ClubNewsSummary from './ClubNewsSummary';
+import CachedImage from './ViewportImage';
+import {instagramPostUrl} from './instagram-post.cjs';
+import MatchEvents from './MatchEvents';
+import {datePeriod,periodEnd,resultDateOptions,matchesByDate,toggleResultTeam,hasResult,resultTeamName} from './result-dates.cjs';
+import ResultTeamSelector from './ResultTeamSelector';
+import TeamSelector from './TeamSelector';
+import {VisitCounter} from './AppVisits';
 
-const dayKey=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-function week(offset){
-  const end=new Date();end.setHours(12,0,0,0);end.setDate(end.getDate()-end.getDay()+offset*7);
-  const start=new Date(end);start.setDate(start.getDate()-6);
-  return {start:dayKey(start),end:dayKey(end),label:`${start.toLocaleDateString('es-ES',{day:'numeric',month:'short'})} — ${end.toLocaleDateString('es-ES',{day:'numeric',month:'short'})}`};
+function UpcomingMatchCard({match:sourceMatch,initialExpanded=false,account,onEdited}){
+  const [expanded,setExpanded]=useState(initialExpanded),[report,setReport]=useState(null),[edited,setEdited]=useState(null);
+  const match={...matchWithReport(sourceMatch,report),...edited};
+  const home=resultTeamName(match.home,match.homeId,match.team),away=resultTeamName(match.away,match.awayId,match.team);
+  useBackAction(()=>{setExpanded(false);return true},20,expanded);
+  return <View style={s.upcomingCard}><Pressable accessibilityRole="button" accessibilityState={{expanded}} accessibilityLabel={'Detalles: '+home+(hasResult(match)?' '+match.homeScore+' a '+match.awayScore+' ':' vs ')+away} onPress={()=>setExpanded(v=>!v)} style={{gap:10}}><View style={s.scoreboard}><Text style={[s.team,s.scoreTeam]}>{home}</Text><Text style={hasResult(match)?s.score:s.vs}>{hasResult(match)?match.homeScore+' — '+match.awayScore:'VS'}</Text><Text style={[s.team,s.scoreTeam]}>{away}</Text></View><Text style={s.link}>{expanded?'Ocultar detalles −':'Ver detalles +'}</Text></Pressable>{expanded&&<View style={{gap:12}}><Text style={s.kicker}>{match.team.category} · Jornada {match.round}</Text><Text style={s.muted}>{match.date?match.date.split('-').reverse().join('/'):'Fecha por confirmar'}{!hasResult(match)?' · '+(match.time||'Hora por confirmar'):''}</Text>{!hasResult(match)&&<><VenueDirections fieldId={match.venueId} venue={match.venue}/><MatchWeather fieldId={match.venueId} date={match.date} time={match.time}/></>}<AdminMatchMvp match={match} account={account}/><AdminResultEditor match={match} account={account} onSaved={fixture=>{setEdited(fixture);onEdited?.(sourceMatch.team.id,fixture)}}/><MatchEvents match={match} onVenue={()=>{}} onUpdate={setReport} forceRefresh={initialExpanded}/></View>}</View>;
 }
 
-function UpcomingMatchCard({match}){
-  const [expanded,setExpanded]=useState(false);
-  return <View style={s.upcomingCard}>
-    <Pressable accessibilityRole="button" accessibilityState={{expanded}} accessibilityLabel={'Detalles del partido entre '+match.home+' y '+match.away} onPress={()=>setExpanded(value=>!value)} style={{gap:9}}>
-      <View style={[s.row,{justifyContent:'space-between'}]}><Text style={s.kicker}>{match.team.category} · JORNADA {match.round}</Text><Text style={s.expandIcon}>{expanded?'−':'+'}</Text></View>
-      <Text style={s.upcomingDate}>{match.date.split('-').reverse().join('/')} · {match.time||'Hora por confirmar'}</Text>
-      <Text style={s.team}>{match.home}</Text><Text style={s.vs}>VS</Text><Text style={s.team}>{match.away}</Text>
-      <MatchWeather compact fieldId={match.venueId} date={match.date} time={match.time}/>
-      <Text style={s.link}>{expanded?'Ocultar detalles':'Ver campo y cómo llegar'} →</Text>
-    </Pressable>
-    {expanded&&<View style={s.venueDetails}><VenueDirections fieldId={match.venueId} venue={match.venue}/></View>}
-  </View>;
+export function NotificationMatch({target,onClose,account,onEdited}){
+ const find=calendar=>{const fixture=calendar?.fixtures?.find(m=>String(m.id)===target.matchId);return fixture?{...fixture,team:{...clubTeams.find(t=>t.id===target.teamId),...calendar}}:null};
+ const [match,setMatch]=useState(()=>find(seed.teams.find(t=>t.id===target.teamId))),[retry,setRetry]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ useEffect(()=>{let active=true;const controller=new AbortController();setBusy(true);setError('');const apply=value=>{if(!active)return;const found=find(value);if(found)setMatch(found);if(value.error)setError('No se pudo actualizar. Mostramos la información disponible.');else if(!found)setError('Este partido no está disponible en el calendario consultado. Puedes reintentar o ver todos los resultados.')};api('/api/team-calendar?team='+target.teamId,{signal:controller.signal,cache:retry?'reload':undefined,onUpdate:apply}).then(apply).catch(()=>{if(active)setError('No se pudo consultar el partido. Comprueba la conexión o reintenta.')}).finally(()=>{if(active)setBusy(false)});return()=>{active=false;controller.abort()}},[target.teamId,target.matchId,retry]);
+ return <View style={{gap:14}}><Text style={s.kicker}>Partido del aviso</Text><Pressable accessibilityRole="button" onPress={onClose} style={s.chip}><Text style={s.white}>Ver todos los resultados</Text></Pressable>{!!error&&<Text style={s.warning}>{error}</Text>}{match?<UpcomingMatchCard key={target.teamId+':'+target.matchId} match={match} initialExpanded account={account} onEdited={onEdited}/>:<Text style={s.muted}>{busy?'Buscando el partido del aviso…':'No hay información disponible de este partido.'}</Text>}<Pressable accessibilityRole="button" disabled={busy} onPress={()=>setRetry(n=>n+1)} style={s.chip}><Text style={s.white}>{busy?'Comprobando partido…':'Volver a consultar el partido'}</Text></Pressable></View>;
 }
 
-export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[],favoritesOnly=false}){
-  const [news,setNews]=useState(seed),[ig,setIg]=useState({connected:false,posts:[]}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[offset,so]=useState(0),[team,st]=useState('Todos');
-  const alive=useRef(true),inFlight=useRef(false),summaries=useRef(new Map()),variants=useRef([]);
-  const [summary,setSummary]=useState(null);
-
-  function openSummary(match){
-    const key=match.team.id+':'+match.id+':'+match.homeScore+':'+match.awayScore;
-    if(!summaries.current.has(key)){
-      if(!variants.current.length)variants.current=[0,1,2,3,4,5].sort(()=>Math.random()-.5);
-      summaries.current.set(key,buildSummary(match,variants.current.pop()));
-    }
-    setSummary({match,text:summaries.current.get(key)});
-  }
-
+export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[],favoritesOnly=false,initialMatch=null,onOpenFantasy=null,account=null}){
+  const [target,setTarget]=useState(initialMatch);
+  useBackAction(()=>{setTarget(null);return true},25,!!target);
+  const [news,setNews]=useState(seed),[ig,setIg]=useState({connected:false,posts:[]}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[teamIds,setTeamIds]=useState([]),[dateSelection,setDateSelection]=useState('auto');
+  const newsRef=useRef(seed),refreshController=useRef(null),persistTimer=useRef(null);
+  const persistNews=()=>{clearTimeout(persistTimer.current);const value=newsRef.current;AsyncStorage.setItem('villalbilla.public.news',JSON.stringify(value)).catch(()=>{});saveCopy('/api/news',value).catch(()=>{})};
+  const alive=useRef(true),newsUpdated=useRef(false),inFlight=useRef(false);
+  useEffect(()=>subscribeAdminTaskNews(value=>{if(alive.current){newsRef.current=mergeResults(newsRef.current,value);setNews(newsRef.current);persistNews()}}),[]);
   async function refresh(force=false){
     if(inFlight.current)return;
-    inFlight.current=true;setBusy(true);
-    const [results,photos]=await Promise.allSettled([api('/api/news',{forceRefresh:force===true}),api('/api/instagram')]);
-    if(alive.current){
-      if(results.status==='fulfilled'){setNews(results.value);setError('');AsyncStorage.setItem('villalbilla.public.news',JSON.stringify(results.value)).catch(()=>{})}
-      else setError('No se pudo actualizar. Mostramos la última información disponible.');
-      if(photos.status==='fulfilled')setIg(photos.value);else setIg(value=>({...value,error:true}));
-      setBusy(false);
-    }
+    inFlight.current=true;setBusy(true);const controller=new AbortController();refreshController.current=controller;
+    const applyNews=value=>{if(alive.current){newsUpdated.current=true;newsRef.current=mergeResults(newsRef.current,value);setNews(newsRef.current);publishAdminTaskNews(newsRef.current);if(newsRef.current.teams.every(t=>!t.error&&!t.offline))setError('');clearTimeout(persistTimer.current);persistTimer.current=setTimeout(persistNews,250)}};
+    setError('');
+    if(mode==='news')api('/api/instagram',{onUpdate:value=>{if(alive.current)setIg({...value,posts:(value.posts||[]).slice(0,8)})}}).then(value=>{if(alive.current)setIg({...value,posts:(value.posts||[]).slice(0,8)})}).catch(()=>{if(alive.current)setIg(value=>({...value,error:true}))});
+    const result=await refreshResults(newsRef.current.teams,{loadTeam:api,force,signal:controller.signal,onTeam:team=>applyNews({teams:[team]})});
+    if(alive.current&&result.failed)setError('Algunos equipos no se pudieron actualizar. Se conservan sus resultados guardados.');
+    if(alive.current){setBusy(false);persistNews()}
     inFlight.current=false;
   }
 
   useEffect(()=>{
     alive.current=true;
-    AsyncStorage.getItem('villalbilla.public.news').then(value=>{if(value&&alive.current){const stored=JSON.parse(value);if(Array.isArray(stored.teams)&&!inFlight.current)setNews(stored)}}).catch(()=>{});
+    AsyncStorage.getItem('villalbilla.public.news').then(value=>{if(value&&alive.current){const stored=JSON.parse(value);if(Array.isArray(stored.teams)&&!newsUpdated.current)setNews(newsRef.current=mergeResults(newsRef.current,stored))}}).catch(()=>{});
+    readCopy('/api/news').then(copy=>{if(alive.current&&copy?.data?.teams){newsRef.current=mergeResults(newsRef.current,copy.data);setNews(newsRef.current)}}).catch(()=>{});
     refresh();const timer=setInterval(refresh,300000),subscription=AppState.addEventListener('change',state=>{if(state==='active')refresh()});
-    return()=>{alive.current=false;clearInterval(timer);subscription.remove()};
+    return()=>{alive.current=false;persistNews();refreshController.current?.abort();clearInterval(timer);subscription.remove()};
   },[]);
 
+  const editedResult=(teamId,fixture)=>{const next={...newsRef.current,teams:newsRef.current.teams.map(team=>({...team,fixtures:(team.fixtures||[]).map(m=>String(m.id)===String(fixture.id)?{...m,...fixture}:m)}))};newsRef.current=next;setNews(next);publishAdminTaskNews(next);persistNews()};
   const favoriteSet=new Set(favoriteTeamIds),orderedTeams=[...news.teams].sort((a,b)=>Number(favoriteSet.has(b.id))-Number(favoriteSet.has(a.id))||a.category.localeCompare(b.category,'es'));
-  const availableTeams=favoritesOnly?orderedTeams.filter(item=>favoriteSet.has(item.id)):orderedTeams;
-  const range=week(offset),activeTeam=availableTeams.some(item=>item.id===team)?team:'Todos',selected=availableTeams.filter(item=>activeTeam==='Todos'||item.id===activeTeam);
+  const availableTeams=mode!=='results'&&favoritesOnly?orderedTeams.filter(item=>favoriteSet.has(item.id)):orderedTeams;
+  const activeIds=teamIds.filter(id=>availableTeams.some(item=>item.id===id)),selected=availableTeams.filter(item=>!activeIds.length||activeIds.includes(item.id));
   const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
-  const upcomingMatches=selected.flatMap(item=>item.fixtures
-    .filter(match=>match.date&&match.date>=today&&!(typeof match.homeScore==='number'&&typeof match.awayScore==='number'))
-    .map(match=>({...match,team:item})))
-    .sort((a,b)=>Number(favoriteSet.has(b.team.id))-Number(favoriteSet.has(a.team.id))||a.date.localeCompare(b.date)||(a.time||'99:99').localeCompare(b.time||'99:99'))
-    .slice(0,3);
 
-  const results=(<>
-    <View style={s.card}>
-      <Text style={s.heading}>La jornada del club</Text>
-      <View style={[s.row,{justifyContent:'space-between'}]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Semana anterior" onPress={()=>so(offset-1)} style={s.chip}><Text style={s.white}>←</Text></Pressable>
-        <Text style={s.white}>{range.label}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Semana siguiente" onPress={()=>so(offset+1)} style={s.chip}><Text style={s.white}>→</Text></Pressable>
-      </View>
-      <Pressable accessibilityRole="button" onPress={()=>refresh(true)} disabled={busy} style={s.chip}><Text style={s.white}>{busy?'Actualizando…':'Actualizar resultados y calendario'}</Text></Pressable><Text style={s.muted}>Fuente: RFFM · Temporada 2026/27. Consulta de calendario y resultados a la RFFM cada 30 minutos los sábados y domingos; de lunes a viernes se muestran los datos guardados.</Text>
-      {news.checkedAt&&<Text style={s.muted}>Última consulta: {new Date(news.checkedAt).toLocaleString('es-ES',{timeZone:'Europe/Madrid'})}</Text>}
-      {!!error&&<Text style={s.warning}>{error}</Text>}
-    </View>
-    <View style={s.row}>
-      <Pressable style={[s.chip,activeTeam==='Todos'&&s.active]} onPress={()=>st('Todos')}><Text style={s.white}>Todos</Text></Pressable>
-      {availableTeams.map(item=><Pressable key={item.id} style={[s.chip,activeTeam===item.id&&s.active]} onPress={()=>st(item.id)}><Text style={s.filter}>{favoriteSet.has(item.id)?'★ ':''}{item.category.replace('VILLALBILLA','')} {item.name.match(/'([^']+)'/)?.[1]||''}</Text></Pressable>)}
-    </View>
-    {!availableTeams.length&&<Text style={s.muted}>{news.teams.length?'No hay equipos favoritos seleccionados. Añade alguno en Ajustes.':'Cargando los equipos del club…'}</Text>}
-    {selected.map(item=>{
-      const matches=item.fixtures.filter(match=>match.date&&match.date>=range.start&&match.date<=range.end);
-      return <View style={s.card} key={item.id}>
-        <Text style={s.kicker}>{item.category}</Text><Text style={s.heading}>{item.name}</Text>
-        {item.error&&<Text style={s.warning}>La consulta de este equipo ha fallado. {item.updatedAt?'Datos conservados del '+new Date(item.updatedAt).toLocaleDateString('es-ES'):'Sin datos disponibles.'}</Text>}
-        {!matches.length&&<Text style={s.muted}>{item.error?'No se puede confirmar si hay partido.':'Sin partido publicado para esta semana.'}</Text>}
-        {matches.map(match=><View style={s.match} key={match.id}>
-          <Text style={s.muted}>Jornada {match.round} · {match.date.split('-').reverse().join('/')} {match.time||''}</Text>
-          <Text style={s.team}>{match.home}</Text>
-          <Text style={s.score}>{match.homeScore!==null&&match.awayScore!==null?`${match.homeScore} — ${match.awayScore}`:'Pendiente de resultado'}</Text>
-          <Text style={s.team}>{match.away}</Text>
-        </View>)}
-      </View>;
-    })}
-    <View style={s.card}>
-      <Text style={s.heading}>Próximos partidos</Text>
-      <Text style={s.muted}>El tiempo aparece junto a cada encuentro. Toca un partido para consultar el campo y abrir la ruta.</Text>
-      {!upcomingMatches.length&&<Text style={s.muted}>No hay próximos partidos publicados para esta selección.</Text>}
-      {upcomingMatches.map(match=><UpcomingMatchCard key={match.team.id+':'+match.id} match={match}/>)}
-    </View>
-  </>);
+  const dates=resultDateOptions(selected,today),activeDate=dateSelection==='auto'||!dates.includes(dateSelection)?datePeriod(today):dateSelection,dateIndex=dates.indexOf(activeDate),matches=matchesByDate(selected,activeDate);
+  const dateLabel=value=>value==='undated'?'Fecha por confirmar':value.split('-').reverse().join('/')+' — '+periodEnd(value).split('-').reverse().join('/');
+  const results=(<><Pressable accessibilityRole="button" disabled={busy} onPress={()=>refresh(true)} style={s.chip}><Text style={s.white}>{busy?'Actualizando…':'Actualizar resultados'}</Text></Pressable><ResultTeamSelector selected={activeIds} onChange={id=>setTeamIds(toggleResultTeam(activeIds,id,availableTeams.map(t=>t.id)))} options={availableTeams}/><View style={s.dateNavigation}><Pressable accessibilityRole="button" accessibilityLabel="Fechas anteriores" disabled={dateIndex<=0} onPress={()=>setDateSelection(dates[dateIndex-1])} style={[s.chip,dateIndex<=0&&s.disabled]}><Text style={s.white}>←</Text></Pressable><View style={{flex:1,minWidth:0}}><TeamSelector label="Fechas" value={activeDate} onChange={setDateSelection} options={dates.map(date=>({id:date,category:dateLabel(date),name:date===datePeriod(today)?'Actual':'Partidos'}))}/></View><Pressable accessibilityRole="button" accessibilityLabel="Fechas siguientes" disabled={dateIndex<0||dateIndex>=dates.length-1} onPress={()=>setDateSelection(dates[dateIndex+1])} style={[s.chip,(dateIndex<0||dateIndex>=dates.length-1)&&s.disabled]}><Text style={s.white}>→</Text></Pressable></View><Text style={s.muted}>Primero aparecen los partidos con resultado. Los resultados del fin de semana se mantienen hasta el lunes. Desde el martes aparece el siguiente intervalo de fechas.</Text>{!!error&&<Text style={s.warning}>{error}</Text>}{matches.map((match,index)=><View key={match.team.id+':'+match.id} style={{gap:10}}>{(index===0||matches[index-1].date!==match.date)&&<Text style={s.upcomingDate}>{match.date?match.date.split('-').reverse().join('/'):'Fecha por confirmar'}</Text>}<UpcomingMatchCard match={match} account={account} onEdited={editedResult}/></View>)}{!matches.length&&<Text style={s.muted}>No hay partidos publicados para estas fechas.</Text>}</>);
 
   const instagram=(<>
-    <View style={s.card}>
-      <Text style={s.kicker}>INSTAGRAM · @VILLALBILLACF</Text><Text style={s.heading}>El club en imágenes</Text>
-      {!ig.connected&&<Text style={s.muted}>Estamos preparando las publicaciones del club. Falta autorizar la cuenta de Instagram para mostrar automáticamente sus fotos aquí.</Text>}
-      {ig.error&&<Text style={s.warning}>Instagram no está disponible ahora. {ig.posts.length?'Se mantiene la última consulta.':''}</Text>}
-      {ig.connected&&!ig.posts.length&&<Text style={s.muted}>No hay publicaciones disponibles.</Text>}
-    </View>
-    {ig.posts.map(post=><View key={post.id} style={s.card}>
-      {post.images.map((url,index)=><Image key={index} source={{uri:url}} accessibilityLabel={post.caption||'Foto de Villalbilla C.F.'} style={{width:'100%',aspectRatio:1,borderRadius:12}} resizeMode="contain"/>)}
-      <Text style={s.muted}>{new Date(post.date).toLocaleDateString('es-ES')}</Text><Text style={s.team}>{post.caption}</Text>
-    </View>)}
+    {!ig.posts.length&&<Text style={s.muted}>{ig.error?'No se pudieron actualizar las fotos.':'Todavía no hay fotos disponibles.'}</Text>}
+    {ig.posts.slice(0,8).filter(post=>post.images?.length).map(post=><Pressable key={post.id} accessibilityRole="link" accessibilityLabel="Abrir publicación de Instagram y ver más información" onPress={()=>Linking.openURL(instagramPostUrl(post)).catch(()=>setError('No se pudo abrir Instagram.'))} style={s.photo}>
+      <CachedImage uri={post.images[0]} accessibilityLabel={post.caption||'Publicación de Villalbilla C.F.'} style={{width:'100%',aspectRatio:1}} resizeMode="contain"/>
+    </Pressable>)}
   </>);
 
-  const highlights=availableTeams.flatMap(item=>item.fixtures
-    .filter(match=>match.date&&match.date>=range.start&&match.date<=range.end&&match.homeScore!==null&&match.awayScore!==null)
-    .map(match=>({...match,team:item})))
-    .sort((a,b)=>Number(favoriteSet.has(b.team.id))-Number(favoriteSet.has(a.team.id))||b.date.localeCompare(a.date));
-
   return <View style={{gap:18}}>
-    <MatchSummary entry={summary} onClose={()=>setSummary(null)}/>
-    {mode==='results'?<><Text style={s.title}>Resultados</Text>{results}<FavoritePlayers favoritePlayerIds={favoritePlayerIds}/></>:<>
-      {instagram}<Text style={s.heading}>Los partidos de la jornada</Text><Text style={s.muted}>{range.label}</Text>
+    {mode==='results'?<><Text style={s.title}>Resultados</Text>{target?<NotificationMatch account={account} onEdited={editedResult} target={target} onClose={()=>setTarget(null)}/>:results}</>:<>
+      <ClubNewsSummary teams={news.teams}/>
+      {onOpenFantasy&&<FantasyNewsAccess onPress={onOpenFantasy}/>}
+      {instagram}
       {!!error&&<Text style={s.warning}>{error}</Text>}
-      {!highlights.length&&<View style={s.card}><Text style={s.muted}>Todavía no hay resultados publicados para esta semana.</Text></View>}
-      {highlights.map(match=><Pressable accessibilityRole="button" accessibilityLabel={'Leer resumen: '+match.home+' contra '+match.away} onPress={()=>openSummary(match)} style={s.card} key={match.team.id+':'+match.id}>
-        <Text style={s.kicker}>{match.team.category}</Text><Text style={s.heading}>{match.home}</Text><Text style={s.score}>{match.homeScore} — {match.awayScore}</Text><Text style={s.heading}>{match.away}</Text>
-        <Text style={s.muted}>Jornada {match.round} · {match.date.split('-').reverse().join('/')}</Text>
-        {match.comment&&<Text style={[s.team,{borderTopWidth:1,borderColor:'#2d3e52',paddingTop:14}]}>{match.comment}</Text>}
-        {match.team.error&&<Text style={s.warning}>Actualización pendiente: mostramos el último resultado disponible.</Text>}
-        <Text style={s.link}>Leer resumen →</Text>
-      </Pressable>)}
       <FavoritePlayers favoritePlayerIds={favoritePlayerIds}/>
+      <VisitCounter/>
+      <SponsorCarousel/>
     </>}
   </View>;
 }
 
 const s=StyleSheet.create({
-  title:{fontSize:32,lineHeight:38,fontWeight:'900',color:'#fff'},kicker:{fontSize:11,letterSpacing:1,color:'#91adff',fontWeight:'800'},muted:{fontSize:13,lineHeight:21,color:'#aab8cb'},row:{flexDirection:'row',alignItems:'center',gap:9,flexWrap:'wrap'},chip:{backgroundColor:'#25364c',borderRadius:10,padding:12},active:{backgroundColor:'#b42122'},white:{color:'#fff',fontWeight:'700'},link:{color:'#91adff',fontWeight:'700',paddingVertical:8},card:{padding:20,borderRadius:20,backgroundColor:'#151f2d',borderWidth:1,borderColor:'#2d3e52',gap:13},heading:{color:'#fff',fontSize:18,fontWeight:'800'},warning:{color:'#ffc1c9',lineHeight:21},filter:{color:'#dce6f2',fontSize:10},team:{color:'#eaf0fa',fontSize:15,lineHeight:23,fontWeight:'600'},score:{color:'#91adff',fontWeight:'900',fontSize:25},match:{borderTopWidth:1,borderColor:'#2d3e52',paddingTop:13,gap:10},upcomingCard:{backgroundColor:'#0b121d',padding:15,borderRadius:15,borderWidth:1,borderColor:'#2d3e52',gap:10},upcomingDate:{color:'#91adff',fontSize:13,fontWeight:'700'},vs:{fontSize:11,color:'#ff9995',fontWeight:'900'},expandIcon:{fontSize:18,color:'#91adff'},venueDetails:{borderTopWidth:1,borderColor:'#2d3e52',paddingTop:13},
+  scoreboard:{flexDirection:'row',alignItems:'center',gap:10},scoreTeam:{flex:1,minWidth:0,textAlign:'center'},
+  dateNavigation:{flexDirection:'row',alignItems:'center',gap:8},disabled:{opacity:0.35},
+  photo:{borderRadius:16,overflow:'hidden',backgroundColor:'#0b121d'},
+  title:{fontSize:32,lineHeight:38,fontWeight:'900',color:'#fff'},kicker:{fontSize:11,letterSpacing:1,color:'#91adff',fontWeight:'800'},muted:{fontSize:13,lineHeight:21,color:'#aab8cb'},row:{flexDirection:'row',alignItems:'center',gap:9,flexWrap:'wrap'},chip:{backgroundColor:'#25364c',borderRadius:10,padding:12},active:{backgroundColor:'#b42122'},white:{color:'#fff',fontWeight:'700'},link:{color:'#91adff',fontWeight:'700',paddingVertical:8},card:{padding:20,borderRadius:20,backgroundColor:'#151f2d',borderWidth:1,borderColor:'#2d3e52',gap:13},heading:{color:'#fff',fontSize:18,fontWeight:'800'},warning:{color:'#ffc1c9',lineHeight:21},filter:{color:'#dce6f2',fontSize:10},team:{color:'#eaf0fa',fontSize:15,lineHeight:23,fontWeight:'600'},score:{color:'#50EBEC',fontWeight:'900',fontSize:25},match:{borderTopWidth:1,borderColor:'#2d3e52',paddingTop:13,gap:10},upcomingCard:{backgroundColor:'#0b121d',padding:15,borderRadius:15,borderWidth:1,borderColor:'#2d3e52',gap:10},upcomingDate:{color:'#91adff',fontSize:13,fontWeight:'700'},vs:{fontSize:11,color:'#ff9995',fontWeight:'900'},expandIcon:{fontSize:18,color:'#91adff'},venueDetails:{borderTopWidth:1,borderColor:'#2d3e52',paddingTop:13},
 });

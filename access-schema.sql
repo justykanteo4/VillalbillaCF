@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS access_push_tokens(id TEXT PRIMARY KEY,uid TEXT NOT NULL,token TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 1,updated_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS access_token_uid ON access_push_tokens(uid);
+CREATE TABLE IF NOT EXISTS access_notice_events(id TEXT PRIMARY KEY,uid TEXT NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS access_push_jobs(notice_id TEXT NOT NULL,subscription_id TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,next_at INTEGER NOT NULL DEFAULT 0,claimed_at INTEGER,ticket TEXT,PRIMARY KEY(notice_id,subscription_id));
+CREATE TABLE IF NOT EXISTS access_admin_devices(token_id TEXT PRIMARY KEY,uid TEXT NOT NULL,updated_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS admin_access_events(id TEXT PRIMARY KEY,uid TEXT NOT NULL,revision TEXT NOT NULL,created_at INTEGER NOT NULL,resolved INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX IF NOT EXISTS admin_access_event_user ON admin_access_events(uid,created_at);
+CREATE TABLE IF NOT EXISTS admin_access_jobs(event_id TEXT NOT NULL,subscription_id TEXT NOT NULL,admin_uid TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,next_at INTEGER NOT NULL DEFAULT 0,claimed_at INTEGER,ticket TEXT,PRIMARY KEY(event_id,subscription_id,admin_uid));
+CREATE INDEX IF NOT EXISTS admin_access_job_queue ON admin_access_jobs(status,next_at);
+CREATE TABLE IF NOT EXISTS vote_notification_preferences(uid TEXT PRIMARY KEY,enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN(0,1)),updated_at INTEGER NOT NULL);
+
+CREATE INDEX IF NOT EXISTS admin_access_event_date ON admin_access_events(created_at,id);
+CREATE INDEX IF NOT EXISTS admin_access_event_unresolved ON admin_access_events(resolved,created_at,id);
+CREATE INDEX IF NOT EXISTS access_notice_user_date ON access_notice_events(uid,created_at,id);
+CREATE INDEX IF NOT EXISTS access_job_queue ON access_push_jobs(status,next_at);

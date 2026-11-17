@@ -20,7 +20,7 @@ export default function MatchWeather({fieldId,date,time,compact=false}){
   const [data,set]=useState(null);
   useEffect(()=>{
     let active=true;set(null);if(!fieldId)return;
-    async function refresh(){try{const result=await api('/api/weather?field='+fieldId+'&date='+date+'&time='+encodeURIComponent(time||''));if(active)set(result)}catch{if(active)set({available:false,reason:'service'})}}
+    async function refresh(){try{const result=await api('/api/weather?field='+fieldId+'&date='+date+'&time='+encodeURIComponent(time||''),{onUpdate:value=>{if(active)set(value)}});if(active)set(result)}catch{if(active)set({available:false,reason:'service'})}}
     refresh();const timer=setInterval(refresh,1800000);
     return()=>{active=false;clearInterval(timer)};
   },[fieldId,date,time]);

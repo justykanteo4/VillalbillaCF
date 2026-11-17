@@ -1,0 +1,2 @@
+import {Asset} from 'expo-asset';
+export async function readBundledData(){const asset=Asset.fromModule(require('./assets/offline/club.clubdata')),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);try{const response=await fetch(asset.uri,{signal:controller.signal});if(!response.ok)throw Error('Copia incluida no disponible');return await response.json()}finally{clearTimeout(timer)}}

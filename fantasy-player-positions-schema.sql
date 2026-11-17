@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS fantasy_player_positions(player_id TEXT PRIMARY KEY,position TEXT NOT NULL,source_team_id TEXT NOT NULL,source_at INTEGER NOT NULL,actor_uid TEXT NOT NULL,updated_at INTEGER NOT NULL);

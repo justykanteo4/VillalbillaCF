@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS goalkeeper_adjustments(season TEXT NOT NULL,team_id TEXT NOT NULL,player_id TEXT NOT NULL,delta INTEGER NOT NULL DEFAULT 0 CHECK(delta BETWEEN -1000 AND 1000),version INTEGER NOT NULL DEFAULT 1,updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL,PRIMARY KEY(season,team_id,player_id));

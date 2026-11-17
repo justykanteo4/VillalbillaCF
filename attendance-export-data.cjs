@@ -1,0 +1,5 @@
+const {materialDates}=require('./team-participation.cjs');
+const {attendanceValue,attendanceValidated,attendedDates}=require('./training-dates.cjs');
+const attendanceFields=[['number','Dorsal'],['alias','Alias'],['position','Posición'],['photo','Foto'],['attendanceStatus','Estado de la fecha elegida'],['attendedDays','Total de días asistidos'],['attendanceDates','Fechas de asistencia validadas'],['materialDays','Días de recogida de material']].map(([id,label])=>({id,label}));
+function attendanceExportRows(players,details,data,date){const validated=attendanceValidated(data,date);return players.map(p=>{const dates=attendedDates(data,p.id),d=details[p.federationId||p.id]||details[p.id]||{};return {id:p.id,name:p.name,number:p.number??null,alias:d.alias||'',position:d.position||p.position||null,attendanceStatus:attendanceValue(data.attendance?.[date],p.id)+(validated?'':' (sin validar)'),attendedDays:dates.length,materialDays:materialDates(data,p).length,attendanceDates:dates.map(d=>d.split('-').reverse().join('/')).join(', ')||'—',partial:false}})}
+module.exports={attendanceFields,attendanceExportRows};

@@ -1,0 +1,7 @@
+const {attendedDates,validISO}=require('./training-dates.cjs');
+const canonical=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean).sort().join(' ');
+function linkedPlayer(holder,players,details={}){const key=canonical(holder);if(!key)return null;const matches=players.filter(p=>{const detail=details[p.federationId||p.id]||details[p.id]||{};return [p.name,detail.alias].some(name=>canonical(name)===key)});return matches.length===1?matches[0]:null}
+function workspacePlayer(workspace,player){return workspace?.players?.find(p=>String(p.id)===String(player.id)||String(p.federationId||'')===String(player.id))||player}
+function materialDates(workspace,player){const row=workspacePlayer(workspace,player),ids=new Set([String(row.id),String(row.federationId||row.id)]),dates=new Set();for(const m of workspace?.materials||[]){if(!validISO(m.date))continue;let matches;if(m.playerId||m.federationId)matches=ids.has(String(m.playerId))||ids.has(String(m.federationId));else matches=String(linkedPlayer(m.holder,workspace.players||[],workspace.playerDetails)?.id||'')===String(row.id);if(matches)dates.add(m.date)}return [...dates].sort()}
+function participation(workspace,player){if(!workspace)return {attendanceDays:null,materialDays:null};const row=workspacePlayer(workspace,player);return {attendanceDays:attendedDates(workspace,row.id).length,materialDays:materialDates(workspace,row).length}}
+module.exports={linkedPlayer,workspacePlayer,materialDates,participation};

@@ -1,3 +1,4 @@
+import {matchesPersonQuery} from './name-search.cjs';
 import React,{useMemo,useState} from 'react';
 import {View,Text,TextInput,Pressable,StyleSheet} from 'react-native';
 import roster from './players-seed.json';
@@ -10,7 +11,7 @@ export const favoritePlayerIdsAvailable=new Set(players.map(player=>String(playe
 
 export default function FavoritePlayerPicker({selectedIds=[],onToggle}){
  const [query,setQuery]=useState('');
- const results=useMemo(()=>{const q=normalize(query.trim());if(q.length<2)return [];return players.filter(player=>normalize(`${player.name} ${player.number||''} ${player.category} ${player.teamName}`).includes(q)).slice(0,18)},[query]);
+ const results=useMemo(()=>{const q=normalize(query.trim());if(q.length<2)return [];return players.filter(player=>matchesPersonQuery(`${player.name} ${player.number||''} ${player.category} ${player.teamName}`,query)).slice(0,18)},[query]);
  const selected=players.filter((player,index)=>selectedIds.includes(String(player.id))&&players.findIndex(item=>String(item.id)===String(player.id))===index);
  return <View style={s.container}><Text style={s.heading}>Jugadores favoritos</Text><Text style={s.muted}>Busca por nombre, dorsal o equipo y marca a los jugadores que quieras seguir.</Text><TextInput accessibilityLabel="Buscar jugador favorito" placeholder="Buscar jugador…" placeholderTextColor="#91a5be" value={query} onChangeText={setQuery} style={s.input}/>{selected.length>0&&<View style={{gap:7}}><Text style={s.label}>SELECCIONADOS</Text>{selected.map(player=><PlayerRow key={'selected:'+player.id} player={player} selected onPress={()=>onToggle(String(player.id))}/>)}</View>}{query.trim().length<2?<Text style={s.muted}>{selected.length?'Escribe al menos dos letras para buscar más jugadores.':'Escribe al menos dos letras para buscar entre los jugadores del club.'}</Text>:!results.length?<Text style={s.muted}>No encontramos jugadores con esa búsqueda.</Text>:<View style={{gap:7}}>{results.map(player=><PlayerRow key={`${player.id}:${player.teamId}`} player={player} selected={selectedIds.includes(String(player.id))} onPress={()=>onToggle(String(player.id))}/>)}</View>}</View>;
 }

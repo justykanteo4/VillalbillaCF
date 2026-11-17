@@ -1,0 +1,54 @@
+name: Fantasy production access preflight
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fantasy-production-preflight.yml'
+  push:
+    branches:
+      - feat/fantasy-clausulas-150
+    paths:
+      - '.github/workflows/fantasy-production-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-production-access:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - name: Verify necessary credentials are configured
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$CF_TOKEN" ]; then
+            echo "::error::Missing repository secret CLOUDFLARE_API_TOKEN; production DB and web cannot be updated from Actions."
+            exit 1
+          fi
+          if [ -z "$CF_ACCOUNT" ]; then
+            echo "::error::Missing repository secret CLOUDFLARE_ACCOUNT_ID."
+            exit 1
+          fi
+          echo "Cloudflare credentials are configured (values hidden)."
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::notice::EXPO_TOKEN is absent; Android OTA update cannot be published noninteractively."
+          else
+            echo "Expo token is configured (value hidden)."
+          fi
+      - run: pnpm install --frozen-lockfile
+      - name: Verify remote D1 read-only access and existing schema
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('fantasy_leagues','fantasy_roster','fantasy_clause_purchases','fantasy_manager_listings') ORDER BY name" --yes
+      - name: Production deployment remains manual and disabled in this preflight
+        run: echo "No migrations or deployments were performed."

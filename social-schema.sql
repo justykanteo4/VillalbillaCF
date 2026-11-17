@@ -1,0 +1,58 @@
+CREATE TABLE IF NOT EXISTS social_likes(match_id TEXT NOT NULL,uid TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(match_id,uid));
+CREATE TABLE IF NOT EXISTS social_comments(id TEXT PRIMARY KEY,match_id TEXT NOT NULL,uid TEXT NOT NULL,author TEXT NOT NULL,body TEXT NOT NULL,created_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS social_comments_match ON social_comments(match_id,created_at);
+CREATE INDEX IF NOT EXISTS social_comments_rate ON social_comments(uid,created_at);
+CREATE TABLE IF NOT EXISTS social_votes(season TEXT NOT NULL,category TEXT NOT NULL,uid TEXT NOT NULL,candidate_id TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(season,category,uid));
+CREATE INDEX IF NOT EXISTS social_votes_top ON social_votes(season,category,candidate_id);
+CREATE TABLE IF NOT EXISTS social_ballots(season TEXT NOT NULL,category TEXT NOT NULL,uid TEXT NOT NULL,points INTEGER NOT NULL CHECK(points IN (1,2,3)),candidate_id TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(season,category,uid,points),UNIQUE(season,category,uid,candidate_id));
+CREATE INDEX IF NOT EXISTS social_ballots_top ON social_ballots(season,category,candidate_id);
+CREATE TABLE IF NOT EXISTS social_migrations(id TEXT PRIMARY KEY);
+INSERT OR IGNORE INTO social_ballots(season,category,uid,points,candidate_id,updated_at) SELECT season,category,uid,1,candidate_id,updated_at FROM social_votes WHERE NOT EXISTS(SELECT 1 FROM social_migrations WHERE id='points-321');
+INSERT OR IGNORE INTO social_migrations VALUES('points-321');
+CREATE TABLE IF NOT EXISTS social_ballot_limits(season TEXT NOT NULL,category TEXT NOT NULL,uid TEXT NOT NULL,changes INTEGER NOT NULL DEFAULT 0 CHECK(changes BETWEEN 0 AND 4),seen_mask INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(season,category,uid));
+INSERT OR IGNORE INTO social_ballot_limits(season,category,uid,changes,seen_mask) SELECT season,category,uid,0,SUM(1 << points) FROM social_ballots GROUP BY season,category,uid;
+CREATE TRIGGER IF NOT EXISTS social_ballot_insert_limit BEFORE INSERT ON social_ballots BEGIN
+ INSERT OR IGNORE INTO social_ballot_limits VALUES(NEW.season,NEW.category,NEW.uid,0,0);
+ SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM social_ballots WHERE season=NEW.season AND category=NEW.category AND uid=NEW.uid AND points=NEW.points) AND EXISTS(SELECT 1 FROM social_ballot_limits WHERE season=NEW.season AND category=NEW.category AND uid=NEW.uid AND changes>=4 AND (seen_mask & (1 << NEW.points))<>0) THEN RAISE(ABORT,'VOTE_CHANGE_LIMIT') END;
+END;
+CREATE TRIGGER IF NOT EXISTS social_ballot_insert_count AFTER INSERT ON social_ballots BEGIN
+ UPDATE social_ballot_limits SET changes=changes+CASE WHEN (seen_mask & (1 << NEW.points))<>0 THEN 1 ELSE 0 END,seen_mask=seen_mask | (1 << NEW.points) WHERE season=NEW.season AND category=NEW.category AND uid=NEW.uid;
+END;
+CREATE TRIGGER IF NOT EXISTS social_ballot_update_limit BEFORE UPDATE OF candidate_id ON social_ballots WHEN NEW.candidate_id<>OLD.candidate_id BEGIN
+ SELECT CASE WHEN EXISTS(SELECT 1 FROM social_ballot_limits WHERE season=OLD.season AND category=OLD.category AND uid=OLD.uid AND changes>=4) THEN RAISE(ABORT,'VOTE_CHANGE_LIMIT') END;
+END;
+CREATE TRIGGER IF NOT EXISTS social_ballot_update_count AFTER UPDATE OF candidate_id ON social_ballots WHEN NEW.candidate_id<>OLD.candidate_id BEGIN
+ UPDATE social_ballot_limits SET changes=changes+1 WHERE season=OLD.season AND category=OLD.category AND uid=OLD.uid;
+END;
+CREATE TRIGGER IF NOT EXISTS social_ballot_delete_limit BEFORE DELETE ON social_ballots BEGIN
+ SELECT CASE WHEN EXISTS(SELECT 1 FROM social_ballot_limits WHERE season=OLD.season AND category=OLD.category AND uid=OLD.uid AND changes>=4) THEN RAISE(ABORT,'VOTE_CHANGE_LIMIT') END;
+END;
+CREATE TRIGGER IF NOT EXISTS social_ballot_delete_count AFTER DELETE ON social_ballots BEGIN
+ UPDATE social_ballot_limits SET changes=changes+1 WHERE season=OLD.season AND category=OLD.category AND uid=OLD.uid;
+END;
+-- Separate tables keep old app clients and existing comments compatible.
+CREATE TABLE IF NOT EXISTS social_comment_profiles(id TEXT PRIMARY KEY,photo TEXT,player_id TEXT,team_id TEXT);
+CREATE TABLE IF NOT EXISTS social_media(id TEXT PRIMARY KEY,uid TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,created_at INTEGER NOT NULL,digest TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS social_media_user_date ON social_media(uid,created_at);
+CREATE TABLE IF NOT EXISTS social_media_chunks(id TEXT NOT NULL,part INTEGER NOT NULL,content BLOB NOT NULL,PRIMARY KEY(id,part));
+CREATE TRIGGER IF NOT EXISTS social_media_quota BEFORE INSERT ON social_media BEGIN
+ SELECT CASE WHEN (SELECT COALESCE(SUM(size),0) FROM social_media)+NEW.size>67108864 THEN RAISE(ABORT,'MEDIA_STORAGE_LIMIT') END;
+ SELECT CASE WHEN (SELECT COALESCE(SUM(size),0) FROM social_media WHERE uid=NEW.uid AND created_at>NEW.created_at-86400000)+NEW.size>16777216 THEN RAISE(ABORT,'MEDIA_USER_LIMIT') END;
+END;
+
+CREATE TABLE IF NOT EXISTS social_candidate_totals(season TEXT NOT NULL,category TEXT NOT NULL,candidate_id TEXT NOT NULL,points_total INTEGER NOT NULL,votes_total INTEGER NOT NULL,PRIMARY KEY(season,category,candidate_id));
+INSERT INTO social_candidate_totals SELECT season,category,candidate_id,SUM(points),COUNT(*) FROM social_ballots GROUP BY season,category,candidate_id HAVING 1 ON CONFLICT(season,category,candidate_id) DO UPDATE SET points_total=excluded.points_total,votes_total=excluded.votes_total;
+DELETE FROM social_candidate_totals WHERE NOT EXISTS(SELECT 1 FROM social_ballots b WHERE b.season=social_candidate_totals.season AND b.category=social_candidate_totals.category AND b.candidate_id=social_candidate_totals.candidate_id);
+CREATE INDEX IF NOT EXISTS social_total_ranking ON social_candidate_totals(season,category,points_total DESC,candidate_id);
+CREATE TRIGGER IF NOT EXISTS social_total_insert AFTER INSERT ON social_ballots BEGIN
+ INSERT INTO social_candidate_totals VALUES(NEW.season,NEW.category,NEW.candidate_id,NEW.points,1) ON CONFLICT(season,category,candidate_id) DO UPDATE SET points_total=points_total+NEW.points,votes_total=votes_total+1;
+END;
+CREATE TRIGGER IF NOT EXISTS social_total_delete AFTER DELETE ON social_ballots BEGIN
+ UPDATE social_candidate_totals SET points_total=points_total-OLD.points,votes_total=votes_total-1 WHERE season=OLD.season AND category=OLD.category AND candidate_id=OLD.candidate_id;
+ DELETE FROM social_candidate_totals WHERE season=OLD.season AND category=OLD.category AND candidate_id=OLD.candidate_id AND votes_total=0;
+END;
+CREATE TRIGGER IF NOT EXISTS social_total_change AFTER UPDATE ON social_ballots WHEN OLD.season!=NEW.season OR OLD.category!=NEW.category OR OLD.candidate_id!=NEW.candidate_id OR OLD.points!=NEW.points BEGIN
+ UPDATE social_candidate_totals SET points_total=points_total-OLD.points,votes_total=votes_total-1 WHERE season=OLD.season AND category=OLD.category AND candidate_id=OLD.candidate_id;
+ DELETE FROM social_candidate_totals WHERE season=OLD.season AND category=OLD.category AND candidate_id=OLD.candidate_id AND votes_total=0;
+ INSERT INTO social_candidate_totals VALUES(NEW.season,NEW.category,NEW.candidate_id,NEW.points,1) ON CONFLICT(season,category,candidate_id) DO UPDATE SET points_total=points_total+NEW.points,votes_total=votes_total+1;
+END;

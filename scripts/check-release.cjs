@@ -1,0 +1,5 @@
+const fs=require('node:fs'),crypto=require('node:crypto'),notes=require('../release-notes.json'),manifest=require('../bundled-data-manifest.json'),{allowedKey}=require('../bundled-data-core.cjs');
+const data=JSON.parse(fs.readFileSync(require('node:path').join(__dirname,'../assets/offline/club.clubdata'),'utf8'));
+if(!/^[\w.-]+$/.test(notes.id)||!notes.changes?.length||notes.changes.some(v=>typeof v!=='string'||!v.trim()))throw Error('La versión necesita identificador y novedades.');
+if(data.schema!==1||data.releaseId!==notes.id||data.id!==manifest.id||data.entries.length!==manifest.entries||data.entries.some(e=>!allowedKey(e.key)||e.data?.error))throw Error('La copia pública incluida no es válida.');
+const digest=crypto.createHash('sha256').update(JSON.stringify(data.entries)).digest('hex').slice(0,24);if(digest!==data.id)throw Error('La copia incluida no coincide con su manifiesto.');console.log('Novedades y copia pública verificadas:',manifest.entries,'archivos,',manifest.reports,'actas.');

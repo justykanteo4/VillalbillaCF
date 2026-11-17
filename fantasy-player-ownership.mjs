@@ -1,0 +1,1 @@
+export async function playerOwnership(db,leagueId,uid){const rows=(await db.prepare('SELECT r.player_id,r.id,m.nickname,r.uid FROM fantasy_roster r JOIN fantasy_members m ON m.league_id=r.league_id AND m.uid=r.uid WHERE r.league_id=?').bind(leagueId).all()).results;return new Map(rows.map(r=>[r.player_id,{ownershipId:r.id,owner:r.nickname,mine:r.uid===uid}]))}

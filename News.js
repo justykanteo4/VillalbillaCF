@@ -43,10 +43,10 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
     setSummary({match,text:summaries.current.get(key)});
   }
 
-  async function refresh(){
+  async function refresh(force=false){
     if(inFlight.current)return;
     inFlight.current=true;setBusy(true);
-    const [results,photos]=await Promise.allSettled([api('/api/news'),api('/api/instagram')]);
+    const [results,photos]=await Promise.allSettled([api('/api/news',{forceRefresh:force===true}),api('/api/instagram')]);
     if(alive.current){
       if(results.status==='fulfilled'){setNews(results.value);setError('');AsyncStorage.setItem('villalbilla.public.news',JSON.stringify(results.value)).catch(()=>{})}
       else setError('No se pudo actualizar. Mostramos la última información disponible.');
@@ -81,7 +81,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
         <Text style={s.white}>{range.label}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Semana siguiente" onPress={()=>so(offset+1)} style={s.chip}><Text style={s.white}>→</Text></Pressable>
       </View>
-      <Text style={s.muted}>Fuente: RFFM · Temporada 2026/27. Actualización automática cada 5 minutos mientras consultas esta sección.</Text>
+      <Pressable accessibilityRole="button" onPress={()=>refresh(true)} disabled={busy} style={s.chip}><Text style={s.white}>{busy?'Actualizando…':'Actualizar resultados y calendario'}</Text></Pressable><Text style={s.muted}>Fuente: RFFM · Temporada 2026/27. Consulta de calendario y resultados a la RFFM cada 30 minutos los sábados y domingos; de lunes a viernes se muestran los datos guardados.</Text>
       {news.checkedAt&&<Text style={s.muted}>Última consulta: {new Date(news.checkedAt).toLocaleString('es-ES',{timeZone:'Europe/Madrid'})}</Text>}
       {!!error&&<Text style={s.warning}>{error}</Text>}
     </View>

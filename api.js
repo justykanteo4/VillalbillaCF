@@ -1,6 +1,14 @@
 import {Platform} from 'react-native';
+import {cachedOfficialGet} from './official-cache';
 export const apiBase=Platform.OS==='web'?'':(process.env.EXPO_PUBLIC_API_URL||'');
 export async function api(path,options={}){
+ const {forceRefresh=false,...fetchOptions}=options;
+ if((!fetchOptions.method||fetchOptions.method.toUpperCase()==='GET')&&!fetchOptions.body&&!fetchOptions.signal){
+  return cachedOfficialGet(path,()=>fetchDirect(path,fetchOptions),{forceRefresh});
+ }
+ return fetchDirect(path,fetchOptions);
+}
+async function fetchDirect(path,options={}){
  if(Platform.OS!=='web'&&!apiBase)throw Error('Servicio pendiente de configurar para móvil');
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),65000);
  const abortFromCaller=()=>controller.abort();

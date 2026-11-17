@@ -138,7 +138,7 @@ test('el club activa ligas nuevas, los usuarios crean ligas independientes y al 
  const payload={teamId:'680163',name:'Los Galácticos',nickname:'Mi equipo',requestId:'league-request-001'};
  let reply=await handleFantasy(request('/leagues',payload),e,owner);
  assert.equal(reply.status,403,'creación desactivada al inicio');
- reply=await handleFantasy(request('/admin/league-creation',{enabled:true,revision:initial.revision}),e,other);
+ reply=await handleFantasy(request('/admin/league-creation',{enabled:true,revision:initial.revision}),e,{authorize:async()=> 'second-uid',adminAuthorize:async()=>{throw Object.assign(Error('No admin'),{status:403})}});
  assert.equal(reply.status,403,'solo el club puede activar');
  reply=await handleFantasy(request('/admin/league-creation',{enabled:true,revision:initial.revision}),e,owner);
  assert.equal(reply.status,200);

@@ -38,3 +38,14 @@ CREATE TRIGGER IF NOT EXISTS fantasy_trade_settle AFTER INSERT ON fantasy_trades
  UPDATE fantasy_offers SET status=CASE WHEN id=NEW.offer_id THEN 'accepted' ELSE 'cancelled' END WHERE ownership_id=NEW.ownership_id AND status='pending';
  UPDATE fantasy_offers SET status='cancelled' WHERE league_id=NEW.league_id AND buyer_uid=NEW.buyer_uid AND player_id=NEW.player_id AND status='pending';
 END;
+
+-- Foto pública opcional de cada participante, aislada por liga.
+-- La identidad del usuario se verifica en el servidor.
+CREATE TABLE IF NOT EXISTS fantasy_team_photos (
+ league_id TEXT NOT NULL,
+ uid TEXT NOT NULL,
+ photo_data TEXT NOT NULL,
+ updated_at INTEGER NOT NULL,
+ PRIMARY KEY(league_id,uid),
+ FOREIGN KEY(league_id,uid) REFERENCES fantasy_members(league_id,uid) ON DELETE CASCADE
+);

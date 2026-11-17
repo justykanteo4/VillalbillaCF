@@ -27,7 +27,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --no-frozen-lockfile
       - name: Verify Fantasy clause and trade rules
-        run: node --test fantasy-clauses.test.cjs fantasy-market-extensions.test.mjs fantasy-league-reset.test.mjs fantasy-sales.test.mjs fantasy-economy.test.mjs fantasy-game.test.mjs fantasy-service.test.mjs
+        run: node --test fantasy-unlimited-transfers.test.mjs fantasy-clauses.test.cjs fantasy-market-extensions.test.mjs fantasy-league-reset.test.mjs fantasy-sales.test.mjs fantasy-economy.test.mjs fantasy-game.test.mjs fantasy-service.test.mjs
   # Platform bundles must work before a native build or public deployment.
   platform-bundles:
     runs-on: ubuntu-latest

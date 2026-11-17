@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');
+const {normalizeTeamName,validTeamName,validTeamPhoto}=require('./fantasy-team-identity.cjs');
+assert.equal(normalizeTeamName('  Los   Galácticos  '),'Los Galácticos');
+assert(validTeamName('Los Galácticos'));
+for(const name of ['', 'a','x'.repeat(33),'<script>','x\ny'])assert(!validTeamName(name),name);
+assert(validTeamPhoto(null));
+assert(validTeamPhoto('data:image/jpeg;base64,/9j/4AAQ'));
+assert(!validTeamPhoto('data:image/svg+xml;base64,PHN2Zz4='));
+assert(!validTeamPhoto('javascript:alert(1)'));
+assert(!validTeamPhoto('data:image/png;base64,'+'A'.repeat(65000)));
+console.log('Fantasy team identity validation passed');

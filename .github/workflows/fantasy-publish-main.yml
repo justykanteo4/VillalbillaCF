@@ -4,6 +4,12 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/fantasy-publish-main.yml'
+      - 'PublicClubHeader.js'
+      - 'FantasyTeamHeaderAvatar.js'
+      - 'FantasyTeamIdentity.js'
+      - 'FantasyArea.js'
+      - 'fantasy-service.mjs'
+      - 'fantasy-service.test.mjs'
       - 'release-notes.json'
   workflow_dispatch:
 permissions:

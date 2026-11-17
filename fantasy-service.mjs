@@ -112,11 +112,12 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  }
  const clauseSwitch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/clauses$/);
  if(clauseSwitch){
-  if(request.method!=='POST')throw fail('Método no permitido.',405);
-  const value=await body(request);
-  if(typeof value?.enabled!=='boolean')throw fail('Indica si el club activa las cláusulas.');
+  if(!['GET','POST'].includes(request.method))throw fail('Método no permitido.',405);
   const old=await db.prepare('SELECT settings_json FROM fantasy_leagues WHERE id=?').bind(clauseSwitch[1]).first();
   if(!old)throw fail('Liga no encontrada.',404);
+  if(request.method==='GET')return reply({enabled:JSON.parse(old.settings_json).clausesEnabled===true});
+  const value=await body(request);
+  if(typeof value?.enabled!=='boolean')throw fail('Indica si el club activa las cláusulas.');
   const next=JSON.stringify({...JSON.parse(old.settings_json),clausesEnabled:value.enabled});
   const saved=await db.prepare('UPDATE fantasy_leagues SET settings_json=? WHERE id=? AND settings_json=? RETURNING id')
     .bind(next,clauseSwitch[1],old.settings_json).first();

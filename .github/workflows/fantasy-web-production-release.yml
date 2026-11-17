@@ -1,8 +1,5 @@
 name: Fantasy web production release (Cloudflare)
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/fantasy-web-production-release.yml'
   workflow_dispatch:
 permissions:
   contents: read

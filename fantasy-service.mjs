@@ -188,7 +188,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
     playerId:url.searchParams.get('playerId')}));
  }
  const sale=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/sell$/);if(sale){const data=await detail(db,sale[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);return reply(await saleRoute({db,league:data.league,uid,now:clock(),getNow:clock,method:request.method,playerId:url.searchParams.get('playerId'),readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points)}))}
- const profileMatch=path.match(/^\\/api\\/fantasy\\/leagues\\/([a-zA-Z0-9-]{1,80})\\/team-profile$/);
+ const profileMatch=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/team-profile$/);
  if(profileMatch){
   const leagueId=profileMatch[1];
   await detail(db,leagueId,uid,currentTime,await allowedTeams());

@@ -7,6 +7,7 @@ import game from './fantasy-game-policy.cjs';
 import {clauseRoute,completedRounds} from './fantasy-clause-routes.mjs';
 import {managerListingRoute} from './fantasy-manager-listings.mjs';
 import {auctionSnapshot,placeBid,settleAuctions} from './fantasy-auctions.mjs';
+import {marketRoute} from './fantasy-market.mjs';
 
 const schemas=['fantasy-schema.sql','fantasy-club-schema.sql','fantasy-actas-schema.sql',
  'fantasy-access-schema.sql','social-schema.sql','fantasy-game-schema.sql',
@@ -109,4 +110,29 @@ test('dos pagos en jornadas distintas caducan por separado sin prorrogar el ante
  assert.equal((await quoteAt(start+3*week+86400000)).amountCents,2200);
  assert.equal((await quoteAt(start+4*week+86400000)).amountCents,2000);
  assert.equal((await quoteAt(start+5*week+86400000)).amountCents,1600);
+});
+
+test('el rival puede hacer oferta directa durante una venta; aceptarla retira el anuncio y no duplica jugador',async t=>{
+ const f=fixture(t); f.league.finance={balance:100};
+ const sale=await managerListingRoute({db:f.db,league:f.league,uid:'seller',now:f.now,method:'POST',readBody:async()=>({playerId:'seller-0',ownershipId:'own-seller-0',minPrice:14,requestId:'sale-offer-123456'})});
+ const bid=await marketRoute({db:f.db,league:f.league,uid:'buyer',now:f.now,method:'POST',action:'offers',readBody:async()=>({ownershipId:'own-seller-0',amount:16,requestId:'direct-offer-123456'}),players:f.players,canPlay:async()=>true});
+ assert.equal(bid.saved,true);
+ assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM fantasy_offers WHERE league_id=? AND ownership_id=? AND status=?').get('league','own-seller-0','pending').n,1);
+ const accepted=await marketRoute({db:f.db,league:f.league,uid:'seller',now:f.now,method:'POST',action:'offers/'+bid.id+'/accept',readBody:async()=>({}),players:f.players,canPlay:async()=>true});
+ assert.equal(accepted.saved,true);
+ assert.equal(f.sql.prepare('SELECT uid FROM fantasy_roster WHERE player_id=?').get('seller-0').uid,'buyer');
+ assert.equal(f.sql.prepare('SELECT retired_day FROM fantasy_market_listings WHERE id=?').get(sale.listingId).retired_day!=null,true);
+ assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM fantasy_roster WHERE league_id=? AND player_id=?').get('league','seller-0').n,1);
+});
+test('retirar anuncio solo a partir de 48 horas, sin transferir al jugador',async t=>{
+ const f=fixture(t);
+ const sale=await managerListingRoute({db:f.db,league:f.league,uid:'seller',now:f.now,method:'POST',readBody:async()=>({playerId:'seller-0',ownershipId:'own-seller-0',minPrice:14,requestId:'sale-hold-123456'})});
+ const cancel=(now,id)=>managerListingRoute({db:f.db,league:f.league,uid:'seller',now,method:'POST',readBody:async()=>({playerId:'seller-0',ownershipId:'own-seller-0',cancel:true,requestId:id})});
+ const quote=await managerListingRoute({db:f.db,league:f.league,uid:'seller',now:f.now+47*3600000,method:'GET',playerId:'seller-0'});
+ assert.equal(quote.listing.canWithdraw,false);
+ await assert.rejects(()=>cancel(f.now+47*3600000,'cancel-47hours'),/48 horas/);
+ const late=await cancel(f.now+48*3600000,'cancel-48hours');
+ assert.equal(late.cancelled,true);
+ assert.equal(f.sql.prepare('SELECT retired_day FROM fantasy_market_listings WHERE id=?').get(sale.listingId).retired_day!=null,true);
+ assert.equal(f.sql.prepare('SELECT uid FROM fantasy_roster WHERE player_id=?').get('seller-0').uid,'seller');
 });

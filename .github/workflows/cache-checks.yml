@@ -1,0 +1,33 @@
+name: Validate competition cache
+on:
+  push:
+    branches: [feature/cache-rffm-dispositivo]
+  pull_request:
+    paths:
+      - 'api.js'
+      - 'official-cache.js'
+      - 'official-cache.test.mjs'
+      - 'Club.js'
+      - 'Standings.js'
+      - 'News.js'
+      - 'Players.js'
+      - 'MatchEvents.js'
+      - '.github/workflows/cache-checks.yml'
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Unit tests
+        run: |
+          node logic.test.mjs
+          node official-cache.test.mjs
+      - name: Validate Expo bundle
+        run: npx expo export --platform web

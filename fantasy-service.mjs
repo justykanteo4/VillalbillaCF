@@ -176,11 +176,11 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   const selected=String(value?.teamId||'');
   const eligible=await allowedTeams();
   if(!eligible.includes(selected))throw fail('Solo puedes crear ligas para tu equipo confirmado.',403);
-  const name=String(value?.name||'').trim().replace(/\\s+/g,' ');
-  const nickname=String(value?.nickname||'').trim().replace(/\\s+/g,' ');
-  if(name.length<3||name.length>60||/[\\x00-\\x1f\\x7f<>]/.test(name))throw fail('El nombre de la liga debe tener entre 3 y 60 caracteres.',400);
-  if(nickname.length<2||nickname.length>32||/[\\x00-\\x1f\\x7f<>]/.test(nickname))throw fail('El nombre de participante debe tener entre 2 y 32 caracteres.',400);
-  if(!/^[a-zA-Z0-9_-]{8,80}$/.test(value?.requestId||''))throw fail('Solicitud de creación no válida.',400);
+  const name=String(value?.name||'').trim().replace(/\s+/g,' ');
+  const nickname=String(value?.nickname||'').trim().replace(/\s+/g,' ');
+  if(name.length<3||name.length>60||/[\x00-\x1f\x7f<>]/.test(name))throw fail('El nombre de la liga debe tener entre 3 y 60 caracteres.',400);
+  if(nickname.length<2||nickname.length>32||/[\x00-\x1f\x7f<>]/.test(nickname))throw fail('El nombre de participante debe tener entre 2 y 32 caracteres.',400);
+    if(!/^[a-zA-Z0-9_-]{8,80}$/.test(value?.requestId||''))throw fail('Solicitud de creación no válida.',400);
   const previous=await db.prepare('SELECT id FROM fantasy_leagues WHERE owner_uid=? AND request_id=?').bind(uid,value.requestId).first();
   if(previous)return reply(await detail(db,previous.id,uid,currentTime,eligible));
   const id=crypto.randomUUID(),code=makeCode(),settings=JSON.stringify(leaguePolicy.classicSettings);

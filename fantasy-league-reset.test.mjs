@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {resetLeague} from './fantasy-league-reset.mjs';
+import {handleFantasy} from './fantasy-service.mjs';
 const files=['fantasy-schema.sql','social-schema.sql','fantasy-club-schema.sql','fantasy-actas-schema.sql','fantasy-access-schema.sql','fantasy-game-schema.sql','fantasy-rewards-schema.sql','fantasy-auction-schema.sql','fantasy-sales-schema.sql','fantasy-resale-schema.sql','fantasy-clause-schema.sql','fantasy-manager-listings-schema.sql'];
 function fixture(t){
  const sql=new DatabaseSync(':memory:');
@@ -35,4 +36,18 @@ test('reinicio requiere confirmacion exacta y mantiene otras ligas y miembros',a
  assert.equal(sql.prepare("SELECT COUNT(*) n FROM fantasy_members WHERE league_id='league-a'").get().n,1);
  assert.equal(sql.prepare("SELECT delta_units FROM fantasy_wallets WHERE league_id='league-a'").get().delta_units,0);
  assert.equal(sql.prepare("SELECT created_at FROM fantasy_leagues WHERE id='league-a'").get().created_at,createdAt+86400000);
+});
+
+test('API de reinicio bloquea usuarios normales y exige permisos del club',async t=>{
+ const {db}=fixture(t),url='https://club.test/api/fantasy/admin/leagues/reset';
+ const opts={authorize:async()=> 'user-a',getTeams:async()=>[]};
+ const denied=await handleFantasy(new Request(url),{CHAT_DB:db},{...opts,adminAuthorize:async()=>{throw Object.assign(Error('Solo club'),{status:403})}});
+ assert.equal(denied.status,403);
+ const allowed=await handleFantasy(new Request(url),{CHAT_DB:db},{...opts,adminAuthorize:async()=> 'user-a'});
+ assert.equal(allowed.status,200);
+ const data=await allowed.json();
+ assert.equal(data.leagues.length,2);
+ const forged=new Request('https://club.test/api/fantasy/admin/leagues/league-a/reset',{method:'POST',headers:{Origin:'https://attacker.invalid'},body:JSON.stringify({confirmation:'REINICIAR Liga league-a',expectedCreatedAt:1})});
+ const forbidden=await handleFantasy(forged,{CHAT_DB:db},{...opts,adminAuthorize:async()=> 'user-a'});
+ assert.equal(forbidden.status,403);
 });

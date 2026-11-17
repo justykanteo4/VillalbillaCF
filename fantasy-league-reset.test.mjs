@@ -79,3 +79,17 @@ test('vista previa consulta muchas tablas sin superar el límite de D1 gratuito 
  assert.equal(mutations,0);
  assert.equal(calls,3,'La vista previa usa tres lecturas de D1, independientemente del número de tablas');
 });
+
+test('reinicio omite borrados de tablas vacías y limita el tamaño de la transacción D1',async t=>{
+ const {db,sql,createdAt}=fixture(t);
+ let statementsSeen=0;
+ const measured={...db,batch:async statements=>{
+  statementsSeen=statements.length;
+  return db.batch(statements);
+ }};
+ const done=await resetLeague({db:measured,leagueId:'league-a',apply:true,
+  confirm:'REINICIAR Liga league-a',expectedCreatedAt:createdAt,now:createdAt+86400000});
+ assert.equal(done.reset,true);
+ assert(statementsSeen<=8,'Solo deben enviarse los cambios útiles a D1: '+statementsSeen);
+ assert.equal(sql.prepare("SELECT COUNT(*) n FROM fantasy_members WHERE league_id='league-a'").get().n,1);
+});

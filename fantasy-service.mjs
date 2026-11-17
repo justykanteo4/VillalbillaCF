@@ -102,7 +102,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
    const leagues=await db.prepare('SELECT id,name,created_at FROM fantasy_leagues ORDER BY name,id').all();
    return reply({leagues:leagues.results});
  }
- const resetMatch=path.match(/^\\/api\\/fantasy\\/admin\\/leagues\\/([a-zA-Z0-9-]{1,80})\\/reset$/);
+ const resetMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/reset$/);
  if(resetMatch){
    if(request.method==='GET')return reply(await resetLeague({db,leagueId:resetMatch[1]}));
    if(request.method!=='POST')throw fail('Método no permitido.',405);

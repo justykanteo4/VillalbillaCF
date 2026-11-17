@@ -57,7 +57,7 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  const counts={};
  if(dataTables.length){
   // Count all scoped rows in one statement, not one D1 subrequest per table.
-  const sql=dataTables.map(name=>'SELECT '+JSON.stringify(name)+' AS name, COUNT(*) AS n FROM '+identifier(name)+' WHERE '+scoped.get(name).where).join(' UNION ALL ');
+  const sql=dataTables.map(name=>"SELECT '"+name.replace(/'/g,"''")+"' AS name, COUNT(*) AS n FROM "+identifier(name)+' WHERE '+scoped.get(name).where).join(' UNION ALL ');
   const totals=await rows(db.prepare(sql).bind(...dataTables.map(()=>leagueId)));
   for(const {name,n} of totals)counts[name]=n;
  }

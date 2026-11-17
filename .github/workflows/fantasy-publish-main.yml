@@ -11,6 +11,8 @@ on:
       - 'FantasyArea.js'
       - 'fantasy-service.mjs'
       - 'fantasy-service.test.mjs'
+      - 'fantasy-league-reset.mjs'
+      - 'fantasy-league-reset.test.mjs'
       - 'release-notes.json'
   workflow_dispatch:
 permissions:

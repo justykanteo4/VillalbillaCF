@@ -10,7 +10,9 @@ function madridDay(now=Date.now()){
   return new Intl.DateTimeFormat('en-US',{timeZone:'Europe/Madrid',weekday:'short'}).format(new Date(now));
 }
 function madridDate(now=Date.now()){
-  return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now));
+  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(now));
+  const get=type=>parts.find(p=>p.type===type)?.value;
+  return get('year')+'-'+get('month')+'-'+get('day');
 }
 function weekStart(date){
   const d=new Date(date+'T12:00:00Z');

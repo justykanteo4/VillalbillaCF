@@ -1,0 +1,33 @@
+name: Fantasy schema readiness (read-only)
+on:
+  push:
+    branches: [feat/fantasy-clausulas-150]
+    paths:
+      - '.github/workflows/fantasy-schema-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  read-only-d1:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Inspect remote D1 prerequisites without making changes
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT COUNT(*) AS original_tables FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('fantasy_leagues','fantasy_roster','fantasy_wallet_cents','fantasy_wallet_values','fantasy_wallets','fantasy_members','fantasy_auction_bids','fantasy_auction_rounds','fantasy_market_listings','fantasy_auction_wins','fantasy_offers','fantasy_player_sales','fantasy_clause_boosts','fantasy_clause_boost_events','fantasy_clause_purchases','fantasy_manager_listings') ORDER BY name;"
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('fantasy_offer_limit','fantasy_clause_boost_guard','fantasy_manager_listing_guard') ORDER BY name;"
+          echo "Read-only schema inspection complete. No migrations or deployments performed."

@@ -1,8 +1,5 @@
 name: Fantasy D1 production migrations (backup and verify)
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/fantasy-production-migrations.yml'
   workflow_dispatch:
 permissions:
   contents: read

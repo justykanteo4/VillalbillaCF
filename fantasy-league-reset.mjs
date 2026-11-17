@@ -13,11 +13,16 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  const league=await db.prepare('SELECT id,name,created_at FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
  if(!league)throw Object.assign(Error('Liga no encontrada.'),{status:404});
  const memberCount=(await db.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').bind(leagueId).first()).n;
- const tables=await rows(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'fantasy_%' ORDER BY name"));
+ // One D1 query instead of 2 PRAGMA calls per Fantasy table. On Workers
+ // Free each invocation is limited to 50 D1 subrequests. This preview must
+ // remain available even when the database has dozens of Fantasy tables.
+ const tables=await rows(db.prepare(`SELECT m.name,
+  (SELECT json_group_array(json_object('name',p.name)) FROM pragma_table_info(m.name) AS p) AS columns_json,
+  (SELECT json_group_array(json_object('id',f.id,'table',f."table",'from',f."from",'to',f."to")) FROM pragma_foreign_key_list(m.name) AS f) AS foreign_json
+  FROM sqlite_master AS m WHERE m.type='table' AND m.name LIKE 'fantasy_%' ORDER BY m.name`));
  const byName=new Map();
- for(const {name} of tables){
-  const columns=await rows(db.prepare('PRAGMA table_info('+identifier(name)+')'));
-  const foreign=await rows(db.prepare('PRAGMA foreign_key_list('+identifier(name)+')'));
+ for(const {name,columns_json,foreign_json} of tables){
+  const columns=JSON.parse(columns_json||'[]'),foreign=JSON.parse(foreign_json||'[]');
   byName.set(name,{name,columns,foreign});
  }
  // A table without league_id may be scoped via foreign keys pointing to a
@@ -50,9 +55,11 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  // Explicitly protect the league definition and its member accounts.
  const dataTables=[...scoped.keys()];
  const counts={};
- for(const name of dataTables){
-  const row=await db.prepare('SELECT COUNT(*) AS n FROM '+identifier(name)+' WHERE '+scoped.get(name).where).bind(leagueId).first();
-  if(row)counts[name]=row.n;
+ if(dataTables.length){
+  // Count all scoped rows in one statement, not one D1 subrequest per table.
+  const sql=dataTables.map(name=>"SELECT '"+name.replace(/'/g,"''")+"' AS name, COUNT(*) AS n FROM "+identifier(name)+' WHERE '+scoped.get(name).where).join(' UNION ALL ');
+  const totals=await rows(db.prepare(sql).bind(...dataTables.map(()=>leagueId)));
+  for(const {name,n} of totals)counts[name]=n;
  }
  const preview={leagueId,name:league.name,createdAt:league.created_at,membersPreserved:memberCount,rowsToClear:counts,
     instructions:'Se mantienen la liga, sus participantes, la configuración, los mensajes y los precios globales. Se borran plantillas, saldos de prueba, operaciones, pujas, alineaciones y premios.'};

@@ -51,3 +51,30 @@ test('API de reinicio bloquea usuarios normales y exige permisos del club',async
  const forbidden=await handleFantasy(forged,{CHAT_DB:db},{...opts,adminAuthorize:async()=> 'user-a'});
  assert.equal(forbidden.status,403);
 });
+
+test('vista previa consulta muchas tablas sin superar el límite de D1 gratuito ni borrar datos',async t=>{
+ const {db,sql}=fixture(t);
+ let calls=0,mutations=0;
+ const meter={
+  prepare(query){
+   const statement=db.prepare(query);
+   return {bind(...args){const bound=statement.bind(...args);return wrap(bound)},
+    first:async()=>{calls++;return statement.first()},
+    all:async()=>{calls++;return statement.all()},
+    run:async()=>{mutations++;throw Error('Preview must be read-only')}
+   };
+   function wrap(bound){return {
+    first:async()=>{calls++;return bound.first()},
+    all:async()=>{calls++;return bound.all()},
+    run:async()=>{mutations++;throw Error('Preview must be read-only')}
+   }}
+  },
+  batch:async()=>{mutations++;throw Error('Preview must not batch writes')}
+ };
+ const result=await resetLeague({db:meter,leagueId:'league-a'});
+ assert.equal(result.membersPreserved,1);
+ assert.equal(result.name,'Liga league-a');
+ assert.equal(sql.prepare("SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id='league-a'").get().n,1);
+ assert.equal(mutations,0);
+ assert(calls<=5,'Preview used '+calls+' D1 queries; free Workers are limited to 50 total queries per invocation');
+});

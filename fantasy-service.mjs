@@ -215,12 +215,12 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   const data=await detail(db,rivalsMatch[1],uid,currentTime,await allowedTeams());
   await ensureManager(db,data.league,uid);
   const [members,roster,availablePlayers]=await Promise.all([
-   db.prepare('SELECT uid,nickname FROM fantasy_members WHERE league_id=? AND uid<>? ORDER BY nickname,uid').bind(rivalsMatch[1],uid).all(),
+   db.prepare('SELECT m.uid,m.nickname,p.photo_data AS photo FROM fantasy_members m LEFT JOIN fantasy_team_photos p ON p.league_id=m.league_id AND p.uid=m.uid WHERE m.league_id=? AND m.uid<>? ORDER BY m.nickname,m.uid').bind(rivalsMatch[1],uid).all(),
    db.prepare('SELECT id,uid,player_id,acquired_at FROM fantasy_roster WHERE league_id=? AND uid<>? ORDER BY acquired_at').bind(rivalsMatch[1],uid).all(),
    prices(db,data.league.pool,data.league.settings.points)
   ]);
   const directory=new Map(availablePlayers.map(p=>[p.id,p]));
-  const grouped=new Map(members.results.map(m=>[m.uid,{id:m.uid,name:m.nickname,players:[]}])); 
+  const grouped=new Map(members.results.map(m=>[m.uid,{id:m.uid,name:m.nickname,photo:m.photo||null,players:[]}])); 
   for(const own of roster.results){
    const rival=grouped.get(own.uid),player=directory.get(own.player_id);
    if(!rival||!player)continue;

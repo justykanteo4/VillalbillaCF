@@ -36,7 +36,7 @@ export async function settleAuctions(db,league,now,{limit=2}={}){
      await db.batch(jobs);
      sold=true;break;
     }catch(e){
-     if(!/FANTASY_FUNDS|FANTASY_ROSTER_MAX|FANTASY_ROSTER_MIN|FANTASY_TRANSFERS|FANTASY_OWNED|FANTASY_BID_CHANGED|FANTASY_LISTING_CHANGED|FANTASY_OFFER_CHANGED/.test(e.message))throw e;
+     if(!/FANTASY_FUNDS|FANTASY_ROSTER_MAX|FANTASY_ROSTER_MIN|FANTASY_OWNED|FANTASY_BID_CHANGED|FANTASY_LISTING_CHANGED|FANTASY_OFFER_CHANGED/.test(e.message))throw e;
      await db.prepare("UPDATE fantasy_auction_bids SET status='invalid' WHERE league_id=? AND listing_id=? AND day=? AND uid=? AND status='active'").bind(league.id,r.listing_id,r.day,b.uid).run();
     }
    }

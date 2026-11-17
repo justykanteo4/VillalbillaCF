@@ -100,15 +100,14 @@ export async function clauseRoute({db,league,uid,now,action,method,readBody,play
   }
   if(quote.mine)throw fail('No puedes pagar la cláusula de tu jugador.');
   if(!await canPlay(quote.own.uid))throw fail('El propietario ya no participa en esta liga.',403);
-  const [buyer,seller,quota]=await Promise.all([
+  const [buyer,seller]=await Promise.all([
     db.prepare('SELECT COUNT(*) AS n FROM fantasy_roster WHERE league_id=? AND uid=?').bind(league.id,uid).first(),
-    db.prepare('SELECT COUNT(*) AS n FROM fantasy_roster WHERE league_id=? AND uid=?').bind(league.id,quote.own.uid).first(),
-    db.prepare('SELECT COUNT(*) AS n FROM fantasy_trades WHERE league_id=? AND buyer_uid=? AND week_key=?').bind(league.id,uid,policy.weekKey(nowAccepted)).first()
+    db.prepare('SELECT COUNT(*) AS n FROM fantasy_roster WHERE league_id=? AND uid=?').bind(league.id,quote.own.uid).first()
   ]);
   const reason=clauses.canPayClause({
     enabled:true,acquiredRound:quote.acquiredRound,currentRound:quote.currentRound,now:nowAccepted,
     buyerCount:buyer.n,sellerCount:seller.n,
-    transfersRemaining:league.settings.transfers-quota.n,balanceCents:funds.balanceCents,
+    balanceCents:funds.balanceCents,
     reservedCents:funds.reservedCents,priceCents:quote.amountCents,
     closesAt:policy.deadline(policy.weekKey(nowAccepted))
   });
@@ -130,7 +129,6 @@ export async function clauseRoute({db,league,uid,now,action,method,readBody,play
     if(seen&&seen.ownership_id===value.ownershipId)return {saved:true,id:seen.id,amountCents:seen.amount_cents};
     if(/FANTASY_ROSTER_MAX|FANTASY_ROSTER_MIN/.test(e.message))throw fail('La plantilla no permite este traspaso: mínimo 12 y máximo 16.');
     if(/FANTASY_FUNDS/.test(e.message))throw fail('Saldo insuficiente teniendo en cuenta las pujas reservadas.');
-    if(/FANTASY_TRANSFERS/.test(e.message))throw fail('Has agotado los fichajes de esta semana.');
     throw fail('La cláusula ya no está disponible. Actualiza el jugador antes de reintentar.');
   }
   return {saved:true,id,amountCents:quote.amountCents,playerId:quote.player.id};

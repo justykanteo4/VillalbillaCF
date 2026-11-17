@@ -19,8 +19,8 @@ test('reinicio requiere confirmacion exacta y mantiene otras ligas y miembros',a
  const {sql,db,createdAt}=fixture(t);
  sql.prepare("INSERT INTO fantasy_roster VALUES(?,?,?,?,?,?)").run('ownership-a','league-a','user-a','player-a',createdAt,25);
  sql.prepare("INSERT INTO fantasy_roster VALUES(?,?,?,?,?,?)").run('ownership-b','league-b','user-b','player-b',createdAt,25);
- sql.prepare("INSERT INTO fantasy_managers VALUES(?,?,?,?,?,?,?,?)").run('league-a','user-a','coach-a',createdAt,createdAt,createdAt,1,1);
- sql.prepare("INSERT INTO fantasy_managers VALUES(?,?,?,?,?,?,?,?)").run('league-b','user-b','coach-b',createdAt,createdAt,createdAt,1,1);
+ sql.prepare("INSERT INTO fantasy_managers VALUES(?,?,?,?,?,?,?)").run('league-a','user-a','coach-a',createdAt,createdAt,createdAt,1);
+ sql.prepare("INSERT INTO fantasy_managers VALUES(?,?,?,?,?,?,?)").run('league-b','user-b','coach-b',createdAt,createdAt,createdAt,1);
  sql.prepare("UPDATE fantasy_wallets SET delta_units=10 WHERE league_id='league-a'").run();
  const preview=await resetLeague({db,leagueId:'league-a'});
  assert.equal(preview.membersPreserved,1);

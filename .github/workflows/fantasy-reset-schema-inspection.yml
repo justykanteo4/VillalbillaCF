@@ -23,4 +23,4 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT m.name,group_concat(f.[table]) AS parents FROM sqlite_master AS m LEFT JOIN pragma_foreign_key_list(m.name) AS f ON 1=1 WHERE m.type='table' AND m.name LIKE 'fantasy_%' GROUP BY m.name ORDER BY m.name;"
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name,sql FROM sqlite_master WHERE type='table' AND name IN ('fantasy_market_push_jobs','fantasy_offer_push_jobs','fantasy_offer_response_jobs','fantasy_offer_notice_events','fantasy_prize_seen','fantasy_purchase_seen','fantasy_message_reads','fantasy_market_notices') ORDER BY name;"

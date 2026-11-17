@@ -159,6 +159,26 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
     playerId:url.searchParams.get('playerId')}));
  }
  const sale=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/sell$/);if(sale){const data=await detail(db,sale[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);return reply(await saleRoute({db,league:data.league,uid,now:clock(),getNow:clock,method:request.method,playerId:url.searchParams.get('playerId'),readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points)}))}
+ const rivalsMatch=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/rivals$/);
+ if(rivalsMatch){
+  if(request.method!=='GET')throw fail('Método no permitido.',405);
+  const data=await detail(db,rivalsMatch[1],uid,currentTime,await allowedTeams());
+  await ensureManager(db,data.league,uid);
+  const [members,roster,availablePlayers]=await Promise.all([
+   db.prepare('SELECT uid,nickname FROM fantasy_members WHERE league_id=? AND uid<>? ORDER BY nickname,uid').bind(rivalsMatch[1],uid).all(),
+   db.prepare('SELECT id,uid,player_id,acquired_at FROM fantasy_roster WHERE league_id=? AND uid<>? ORDER BY acquired_at').bind(rivalsMatch[1],uid).all(),
+   prices(db,data.league.pool,data.league.settings.points)
+  ]);
+  const directory=new Map(availablePlayers.map(p=>[p.id,p]));
+  const grouped=new Map(members.results.map(m=>[m.uid,{id:m.uid,name:m.nickname,players:[]}])); 
+  for(const own of roster.results){
+   const rival=grouped.get(own.uid),player=directory.get(own.player_id);
+   if(!rival||!player)continue;
+   rival.players.push({...player,ownershipId:own.id,acquiredAt:own.acquired_at,mine:false});
+  }
+  const rivals=[...grouped.values()].map(rival=>({...rival,players:rival.players.sort((a,b)=>(b.fantasyPoints||0)-(a.fantasyPoints||0)||a.name.localeCompare(b.name,'es'))}));
+  return reply({rivals,clausesEnabled:data.league.settings.clausesEnabled===true});
+ }
  const game=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(squad|coaches|coach|presentation|search|favourites|alerts|lineup|table|transactions)$/);if(game){const data=await detail(db,game[1],uid,currentTime,await allowedTeams());return reply(await gameRoute({db,league:data.league,uid,now:currentTime,action:game[2],getNow:clock,targetNext:url.searchParams.get('next')==='1',method:request.method,readBody:()=>body(request),players:['table','alerts','presentation','coaches'].includes(game[2])?[]:await prices(db,data.league.pool,data.league.settings.points)}))}
  const clause=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(clause(?:\/boost)?)$/);
  if(clause){

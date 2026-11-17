@@ -76,6 +76,23 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  const statements=[];
  // The reset guard is inside the same transaction as all changes.
  statements.push(db.prepare("SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM fantasy_leagues WHERE id=? AND created_at=?) THEN json('RESET_STALE') ELSE 'ok' END").bind(leagueId,league.created_at));
+ // Legacy notification job tables do not declare foreign keys or league_id.
+ // Delete their rows using the original league-scoped notices/offers before
+ // deleting those parent records, avoiding stale pushes after a reset.
+ const orphanJobs=[
+  ['fantasy_market_push_jobs','notice_id','fantasy_market_notices','id'],
+  ['fantasy_offer_push_jobs','offer_id','fantasy_offers','id'],
+  ['fantasy_offer_response_jobs','offer_id','fantasy_offers','id'],
+  ['fantasy_offer_notice_events','offer_id','fantasy_offers','id'],
+  ['fantasy_prize_seen','event_id','fantasy_prize_events','id']
+ ];
+ for(const [child,key,parent,parentKey] of orphanJobs){
+  const childTable=byName.get(child),parentTable=byName.get(parent);
+  if(!childTable||!parentTable||!scoped.has(parent))continue;
+  if(!childTable.columns.some(c=>c.name===key)||!parentTable.columns.some(c=>c.name===parentKey))continue;
+  const parentScope=scoped.get(parent).where;
+  statements.push(db.prepare('DELETE FROM '+identifier(child)+' WHERE "'+key+'" IN (SELECT "'+parentKey+'" FROM '+identifier(parent)+' WHERE '+parentScope+')').bind(leagueId));
+ }
  for(const name of order){
   const {where,joins}=scoped.get(name);
   statements.push(db.prepare('DELETE FROM '+identifier(name)+' WHERE '+where).bind(leagueId));

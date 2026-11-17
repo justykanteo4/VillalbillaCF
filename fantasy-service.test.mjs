@@ -129,3 +129,37 @@ test('la foto comprimida cabe en la solicitud especial sin ampliar otros límite
  const ordinary=await handleFantasy(request('/team-league',{teamId:'680163',nickname:'Otro',blob:'x'.repeat(12000)}),e,other);
  assert.equal(ordinary.status,413);
 });
+
+test('el club activa ligas nuevas, los usuarios crean ligas independientes y al apagar se conservan',async t=>{
+ const {env:e,sql}=env(t);
+ const read=()=>handleFantasy(request('/admin/league-creation'),e,owner);
+ const before=await read();assert.equal(before.status,200);
+ const initial=await before.json();assert.equal(initial.enabled,false);
+ const payload={teamId:'680163',name:'Los Galácticos',nickname:'Mi equipo',requestId:'league-request-001'};
+ let reply=await handleFantasy(request('/leagues',payload),e,owner);
+ assert.equal(reply.status,403,'creación desactivada al inicio');
+ reply=await handleFantasy(request('/admin/league-creation',{enabled:true,revision:initial.revision}),e,other);
+ assert.equal(reply.status,403,'solo el club puede activar');
+ reply=await handleFantasy(request('/admin/league-creation',{enabled:true,revision:initial.revision}),e,owner);
+ assert.equal(reply.status,200);
+ assert.equal((await reply.json()).enabled,true);
+ const list=await (await handleFantasy(request('/leagues'),e,owner)).json();
+ assert.equal(list.creationEnabled,true);
+ reply=await handleFantasy(request('/leagues',payload),e,owner);
+ assert.equal(reply.status,201,await reply.clone().text());
+ const created=(await reply.json()).league;
+ assert.equal(created.name,'Los Galácticos');
+ assert.equal(created.mode,'custom');
+ assert.equal(created.teamId,'680163');
+ const again=await (await handleFantasy(request('/leagues',payload),e,owner)).json();
+ assert.equal(again.league.id,created.id,'idempotency prevents duplicate leagues');
+ assert.equal(sql.prepare('SELECT COUNT(*) n FROM fantasy_leagues WHERE owner_uid=? AND request_id=?').get('owner-uid',payload.requestId).n,1);
+ const switched=await (await read()).json();
+ reply=await handleFantasy(request('/admin/league-creation',{enabled:false,revision:switched.revision}),e,owner);
+ assert.equal(reply.status,200);
+ assert.equal((await reply.json()).enabled,false);
+ assert.equal((await handleFantasy(request('/leagues',{...payload,requestId:'league-request-002'}),e,owner)).status,403);
+ const saved=await (await handleFantasy(request('/leagues/'+created.id),e,owner)).json();
+ assert.equal(saved.league.name,'Los Galácticos','existing leagues keep working');
+ assert.equal((await(await handleFantasy(request('/leagues'),e,owner)).json()).creationEnabled,false);
+});

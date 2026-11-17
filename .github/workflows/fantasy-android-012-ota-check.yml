@@ -1,0 +1,35 @@
+name: Fantasy Android 0.1.12 OTA production env check
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fantasy-android-012-ota-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'feat/fantasy-clausulas-150'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pull Expo production environment without logging values
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm dlx eas-cli@25.3.0 env:pull --environment production --path .env.local --non-interactive > /tmp/eas-pull.log
+          node --env-file=.env.local scripts/check-update-config.cjs
+          VILLALBILLA_UPDATE_RUNTIME=0.1.12 pnpm exec expo config --json > /tmp/expo-config.json
+          node -e "let c=require('/tmp/expo-config.json');if(c.runtimeVersion!=='0.1.12'||c.updates.requestHeaders['expo-channel-name']!=='production')throw Error('Mismatch Android OTA runtime/channel');console.log('OTA target Android runtime 0.1.12 production: verified')"
+      - name: No production update published
+        run: echo "Only runtime and environment variables validated."

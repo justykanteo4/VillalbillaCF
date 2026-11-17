@@ -1,0 +1,38 @@
+name: Fantasy league reset dry run on isolated D1 snapshot
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fantasy-reset-dry-run.yml'
+      - 'fantasy-league-reset.mjs'
+      - 'scripts/test-fantasy-reset-export.mjs'
+permissions:
+  contents: read
+jobs:
+  dry-run:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Export D1 without printing or uploading private data
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec wrangler d1 export villalbilla-chats --remote --output fantasy-reset-snapshot.sql > /tmp/d1-private-export.log
+          test -s fantasy-reset-snapshot.sql
+      - name: Test one league reset only on ephemeral in-memory SQLite
+        run: node scripts/test-fantasy-reset-export.mjs fantasy-reset-snapshot.sql
+      - name: Remove private local snapshot
+        if: always()
+        run: rm -f fantasy-reset-snapshot.sql

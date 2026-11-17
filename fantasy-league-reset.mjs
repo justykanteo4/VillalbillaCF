@@ -25,7 +25,7 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  // global statistics, other leagues, identities or public club data.
  const scoped=new Map();
  for(const [name,table] of byName)if(table.columns.some(c=>c.name==='league_id')&&!preserved.has(name))
-  scoped.set(name,{where:'"league_id"=?',joins:0});
+  scoped.set(name,{where:identifier(name)+'."league_id"=?',joins:0});
  let changed=true;
  for(let pass=0;pass<byName.size&&changed;pass++){
   changed=false;
@@ -40,8 +40,8 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
     const parent=fks[0].table,entry=scoped.get(parent);
     if(!entry||!byName.has(parent))continue;
     if(!fks.every(fk=>/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(fk.from)&&/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(fk.to)))continue;
-    const predicate=fks.map(fk=>'p."'+fk.to+'"='+identifier(name)+'."'+fk.from+'"').join(' AND ');
-    scoped.set(name,{where:'EXISTS(SELECT 1 FROM '+identifier(parent)+' p WHERE '+predicate+' AND ('+entry.where.replaceAll('"league_id"','p."league_id"')+'))',joins:entry.joins+1});
+    const predicate=fks.map(fk=>identifier(parent)+'."'+fk.to+'"='+identifier(name)+'."'+fk.from+'"').join(' AND ');
+    scoped.set(name,{where:'EXISTS(SELECT 1 FROM '+identifier(parent)+' WHERE '+predicate+' AND ('+entry.where+'))',joins:entry.joins+1});
     changed=true;break;
    }
   }
@@ -51,7 +51,7 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  const dataTables=[...scoped.keys()];
  const counts={};
  for(const name of dataTables){
-  const row=await db.prepare('SELECT COUNT(*) AS n FROM '+identifier(name)+' WHERE "league_id"=?').bind(leagueId).first().catch(()=>null);
+  const row=await db.prepare('SELECT COUNT(*) AS n FROM '+identifier(name)+' WHERE '+scoped.get(name).where).bind(leagueId).first();
   if(row)counts[name]=row.n;
  }
  const preview={leagueId,name:league.name,createdAt:league.created_at,membersPreserved:memberCount,rowsToClear:counts,
@@ -75,17 +75,15 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  }
  const statements=[];
  // The reset guard is inside the same transaction as all changes.
- statements.push(db.prepare("SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM fantasy_leagues WHERE id=? AND created_at=?) THEN RAISE(ABORT,'FANTASY_RESET_STALE') END").bind(leagueId,league.created_at));
+ statements.push(db.prepare("SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM fantasy_leagues WHERE id=? AND created_at=?) THEN json('RESET_STALE') ELSE 'ok' END").bind(leagueId,league.created_at));
  for(const name of order){
   const {where,joins}=scoped.get(name);
-  if(joins>0)continue; // Scopes through FK need a separate verified key binding; fail safely below.
   statements.push(db.prepare('DELETE FROM '+identifier(name)+' WHERE '+where).bind(leagueId));
  }
  for(const [name,col] of walletFields)
   if(byName.has(name))statements.push(db.prepare('UPDATE '+identifier(name)+' SET "'+col+'"=0 WHERE league_id=?').bind(leagueId));
  statements.push(db.prepare('UPDATE fantasy_members SET joined_at=? WHERE league_id=?').bind(now,leagueId));
  statements.push(db.prepare('UPDATE fantasy_leagues SET created_at=? WHERE id=? AND created_at=?').bind(now,leagueId,league.created_at));
- if([...scoped.values()].some(v=>v.joins>0))throw Object.assign(Error('Hay tablas dependientes que requieren una revisión adicional. No se ha modificado la liga.'),{status:409});
  await db.batch(statements);
  return {reset:true,leagueId,memberCount,resetAt:now};
 }

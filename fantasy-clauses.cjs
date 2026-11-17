@@ -52,7 +52,7 @@ function isClauseWindowClosed(now, closesAt) {
   return Number.isFinite(closesAt) && now >= closesAt - CLAUSE_LOCK_MS && now < closesAt;
 }
 
-function canPayClause({enabled, acquiredRound, currentRound, now, buyerCount, sellerCount, transfersRemaining,
+function canPayClause({enabled, acquiredRound, currentRound, now, buyerCount, sellerCount,
   balanceCents, reservedCents = 0, priceCents, closesAt = null, lockStartsAt = null, lockEndsAt = null}) {
   if (!enabled) return 'Las cláusulas están desactivadas en esta liga.';
   if (isProtected(acquiredRound, currentRound)) return 'El jugador está protegido durante dos jornadas desde su fichaje.';
@@ -61,7 +61,6 @@ function canPayClause({enabled, acquiredRound, currentRound, now, buyerCount, se
     now >= lockStartsAt && now < lockEndsAt) return 'Las cláusulas están bloqueadas por la jornada.';
   if (buyerCount >= MAX_SQUAD) return 'La plantilla compradora no puede superar los 16 jugadores.';
   if (sellerCount <= MIN_SQUAD) return 'La plantilla vendedora debe conservar al menos 12 jugadores.';
-  if (transfersRemaining <= 0) return 'Has agotado los fichajes de esta semana.';
   if (!Number.isSafeInteger(priceCents) || priceCents <= 0) return 'Cláusula no válida.';
   if (balanceCents - reservedCents < priceCents) return 'Saldo disponible insuficiente para pagar la cláusula.';
   return '';

@@ -1,0 +1,112 @@
+name: Publish Villalbilla Fantasy (verified)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fantasy-publish-main.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: villalbilla-fantasy-production
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify cache, business rules and release data
+        run: |
+          node official-cache.test.mjs
+          node offline-policy-cache.test.cjs
+          pnpm run check:fantasy-clauses
+          pnpm run check:release
+      - name: Export all three app bundles
+        run: pnpm exec expo export --platform all --output-dir work/verify-release
+
+  deploy-web:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      EXPO_PUBLIC_FIREBASE_API_KEY: 'AIzaSyA88kjp4vnyNZMdN1gO6FI2wM2TsA0pbGQ'
+      EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: 'villalbillacf.firebaseapp.com'
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID: 'villalbillacf'
+      EXPO_PUBLIC_FIREBASE_APP_ID: '1:758134560563:web:fc2aaa8c8b9c38d60fd046'
+      EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '758134560563'
+      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify current D1 schema (read only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type IN ('table','trigger') AND name IN ('fantasy_clause_boosts','fantasy_clause_boost_events','fantasy_clause_purchases','fantasy_manager_listings','fantasy_clause_boost_guard','fantasy_clause_boost_apply','fantasy_clause_purchase_guard','fantasy_clause_offer_proof','fantasy_manager_listing_guard','fantasy_manager_offer_proof','fantasy_sale_manager_listing_guard') ORDER BY name;" > /tmp/schema.json
+          for name in fantasy_clause_boosts fantasy_clause_boost_events fantasy_clause_purchases fantasy_manager_listings fantasy_clause_boost_guard fantasy_clause_boost_apply fantasy_clause_purchase_guard fantasy_clause_offer_proof fantasy_manager_listing_guard fantasy_manager_offer_proof fantasy_sale_manager_listing_guard; do
+            grep -q "\"$name\"" /tmp/schema.json || { echo "::error::Missing D1 schema: $name. Deployment blocked."; exit 1; }
+          done
+      - name: Deploy Cloudflare Worker + web
+        run: pnpm run deploy:cloudflare
+
+  publish-android:
+    needs: deploy-web
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      CI: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pull production Expo configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          pnpm dlx eas-cli@25.3.0 env:pull --environment production --path .env.local --non-interactive >/tmp/eas-env.log
+          node --env-file=.env.local scripts/check-update-config.cjs
+      - name: Publish Android 0.1.12 runtime OTA
+        env:
+          VILLALBILLA_UPDATE_RUNTIME: '0.1.12'
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec expo config --json >/tmp/expo-012.json
+          node -e "const c=require('/tmp/expo-012.json');if(c.runtimeVersion!=='0.1.12'||c.updates?.requestHeaders?.['expo-channel-name']!=='production')throw Error('Wrong runtime/channel for 0.1.12')"
+          pnpm exec expo export --platform android --output-dir work/ota-012
+          pnpm dlx eas-cli@25.3.0 update --channel production --platform android --environment production --input-dir work/ota-012 --skip-bundler --non-interactive --message "Fantasy: cláusulas en ajustes y caché (0.1.12)"
+      - name: Publish Android 0.1.13 runtime OTA
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec expo config --json >/tmp/expo-013.json
+          node -e "const c=require('/tmp/expo-013.json');if(c.runtimeVersion!=='0.1.13'||c.updates?.requestHeaders?.['expo-channel-name']!=='production')throw Error('Wrong runtime/channel for 0.1.13')"
+          pnpm exec expo export --platform android --output-dir work/ota-013
+          pnpm dlx eas-cli@25.3.0 update --channel production --platform android --environment production --input-dir work/ota-013 --skip-bundler --non-interactive --message "Fantasy: cláusulas en ajustes y caché (0.1.13)"

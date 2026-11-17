@@ -57,6 +57,7 @@ test('vista previa consulta muchas tablas sin superar el límite de D1 gratuito 
  let calls=0,mutations=0;
  const meter={
   prepare(query){
+   if(/sqlite_master|pragma_|PRAGMA|UNION/i.test(query))throw Error('La vista previa no debe consultar el esquema de tablas');
    const statement=db.prepare(query);
    return {bind(...args){const bound=statement.bind(...args);return wrap(bound)},
     first:async()=>{calls++;return statement.first()},
@@ -76,5 +77,5 @@ test('vista previa consulta muchas tablas sin superar el límite de D1 gratuito 
  assert.equal(result.name,'Liga league-a');
  assert.equal(sql.prepare("SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id='league-a'").get().n,1);
  assert.equal(mutations,0);
- assert(calls<=5,'Preview used '+calls+' D1 queries; free Workers are limited to 50 total queries per invocation');
+ assert.equal(calls,3,'La vista previa usa tres lecturas de D1, independientemente del número de tablas');
 });

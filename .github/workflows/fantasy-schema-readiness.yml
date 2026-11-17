@@ -1,5 +1,8 @@
 name: Fantasy schema readiness (read-only)
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/fantasy-schema-readiness.yml'
   push:
     branches: [feat/fantasy-clausulas-150]
     paths:

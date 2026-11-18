@@ -568,7 +568,7 @@ test('cada equipo puede ocultar su foto en Rivales y Clasificación sin borrar s
  const table=await handleFantasy(request('/leagues/'+id+'/table'),e,other);
  assert.equal(table.status,200,await table.clone().text());
  const standings=await table.json();
- assert.equal(standings.rows.find(t=>t.uid==='owner-uid').photo,null);
+ assert.equal(standings.rows.find(t=>!t.me).photo,null);
  assert.equal(sql.prepare('SELECT photo_data FROM fantasy_team_photos WHERE league_id=? AND uid=?').get(id,'owner-uid').photo_data,photo);
  assert.equal((await handleFantasy(request(privacy,{visible:true,revision:1}),e,owner)).status,200);
  assert.equal((await (await handleFantasy(request(profile),e,other)).json()).teams.find(t=>t.id==='owner-uid').photo,photo);

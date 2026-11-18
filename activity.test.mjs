@@ -6,3 +6,18 @@ const get=()=>new Request('https://app.test/api/admin/usage');const admin={autho
 test('estadísticas solo para administradores y nunca servidas desde caché',async t=>{const e=env(t);assert.equal((await handleActivity(get(),e)).status,401);assert.equal((await handleActivity(get(),e,{authorize:async()=>{throw Object.assign(Error('denegado'),{status:403})}})).status,403);const response=await handleActivity(get(),e,admin);assert.equal(response.status,200);assert.equal(response.headers.get('Cache-Control'),'no-store')});
 test('latidos repetidos no duplican sesiones; diferencia sesiones, dispositivos y tipos',async t=>{const e=env(t);for(const v of [{id:id(1),deviceId:id(10),role:'trainer'},{id:id(1),deviceId:id(10),role:'trainer'},{id:id(2),deviceId:id(10),role:'trainer'},{id:id(3),deviceId:id(20),role:'fan'}])assert.equal((await handleActivity(post(v),e)).status,200);const {roles}=await(await handleActivity(get(),e,admin)).json();assert.equal(roles.find(r=>r.role==='trainer').sessions,2);assert.equal(roles.find(r=>r.role==='trainer').devices,1);assert.equal(roles.find(r=>r.role==='fan').active,1)});
 test('rechaza actividad inválida y orígenes ajenos',async t=>{const e=env(t);assert.equal((await handleActivity(post({id:id(1),deviceId:id(2),role:'admin'}),e)).status,400);assert.equal((await handleActivity(post({id:id(1),deviceId:id(2),role:'fan'},{Origin:'https://other.test'}),e)).status,403)});
+
+test('estado del servidor: solo administrador, consulta real de las tres bases y fallo cerrado',async()=>{
+ const request=new Request('https://app.test/api/admin/system-status');
+ const makeDb=ok=>({prepare:q=>{assert.equal(q,'SELECT 1 AS ok');return {first:async()=>({ok})}}});
+ const env={VISITS_DB:makeDb(1),CHAT_DB:makeDb(1),NOTIFICATIONS_DB:makeDb(1)};
+ const denied=await handleActivity(request,env,{authorize:async()=>{throw Object.assign(Error('Acceso denegado'),{status:403})}});
+ assert.equal(denied.status,403);
+ const good=await handleActivity(request,env,admin),body=await good.json();
+ assert.equal(good.headers.get('Cache-Control'),'no-store');assert.equal(body.healthy,true);
+ assert.deepEqual(body.checks.map(r=>r.name),['club','fantasy','notifications']);
+ assert(body.checks.every(r=>r.ok));
+ const incomplete=await(await handleActivity(request,{...env,CHAT_DB:null},admin)).json();
+ assert.equal(incomplete.healthy,false);assert.deepEqual(incomplete.checks.map(r=>r.ok),[true,false,true]);
+ assert.equal((await handleActivity(new Request('https://app.test/api/admin/system-status',{method:'POST'}),env,admin)).status,405);
+});

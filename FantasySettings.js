@@ -26,7 +26,7 @@ export default function FantasySettings({request,onBack,account}){
   {isAdmin&&matches("Administración y seguridad acceso usuarios participantes permisos invitaciones suspender")&&<SettingsGroup key={"access:"+term} title="Club · Administración y seguridad" subtitle="Acceso y gestión de participantes" initiallyOpen>
    <FantasyAccessSettings request={request}/>
    <FantasyUserSettings request={request}/>
-  </SettingsGroup>
+  </SettingsGroup>}
   {isAdmin&&matches("Ligas crear reiniciar clausulas temporadas equipos plazas inscripciones")&&<SettingsGroup key={"leagues:"+term} initiallyOpen={!!term} title="Club · Ligas y competición" subtitle="Crear y reiniciar ligas">
    <FantasyLeagueCreationSettings request={request}/>
    <FantasyLeagueReset request={request}/>

@@ -40,7 +40,7 @@ test('no se puede cambiar un jugador mientras está prestado; tras volver, sí',
  await f.loan('b',loan.id+'/accept','POST',{},1100);
  assert.equal(f.owner('a0'),'b');
  const proposed=await f.exchange('b','','POST',{myOwnershipId:'a0',rivalOwnershipId:'a1',requestId:'trade-000001'},1200);
- await assert.rejects(f.exchange('a',proposed.id+'/accept','POST',{},1300),/FANTASY_LOAN_PLAYER_LOCKED/);
+ await assert.rejects(f.exchange('a',proposed.id+'/accept','POST',{},1300),/está cedido en préstamo/);
  assert.equal(f.owner('a0'),'b');
  assert.equal(f.owner('a1'),'a');
  assert.equal(f.sql.prepare('SELECT status FROM fantasy_player_exchanges WHERE id=?').get(proposed.id).status,'pending');

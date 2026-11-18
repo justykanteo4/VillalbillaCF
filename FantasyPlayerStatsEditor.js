@@ -20,7 +20,7 @@ export default function FantasyPlayerStatsEditor({request}){
    await request('/admin/player-stats',{method:'POST',body:JSON.stringify({teamId:selected.teamId,matchId:selected.matchId,playerId:player.id,revision:player.revision,stats:values})});
    const fresh=await request('/admin/player-stats?team='+encodeURIComponent(selected.teamId)+'&match='+encodeURIComponent(selected.matchId),{cache:'reload'});
    setData(fresh);const updated=fresh.match?.players.find(p=>p.id===player.id);if(updated)choose(updated);setNotice('Estadísticas Fantasy guardadas y registradas. El acta oficial no se modifica.');
-  }catch(e){setError(e.message||'No se pudo guardar.');if(e.status===409){setPlayer(null);setData(null)}}
+  }catch(e){setError(e.message||'No se pudo guardar.');if(e.status===409){try{const recent=await request('/admin/player-stats?team='+encodeURIComponent(selected.teamId)+'&match='+encodeURIComponent(selected.matchId),{cache:'reload'});setData(recent);const latest=recent.match?.players.find(p=>p.id===player.id);if(latest){setPlayer(latest);setDraft(Object.fromEntries(keys.map(([k])=>[k,String(latest.stats[k]??0)])));setError('Otro administrador ha modificado estas estadísticas. Se han cargado los últimos datos; revísalos antes de guardar.')}}catch{setPlayer(null);setError('Las estadísticas cambiaron en otro dispositivo. Vuelve a abrir el partido.')}}}
   finally{setBusy(false)}
  }
  return <View style={{...panel,gap:12}}>

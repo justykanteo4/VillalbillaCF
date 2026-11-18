@@ -57,6 +57,7 @@ WHEN OLD.status='pending' AND NEW.status='active' BEGIN
   revision=revision+1
  WHERE league_id=NEW.league_id AND uid=NEW.lender_uid AND deadline_at>NEW.starts_at
  AND COALESCE((SELECT state FROM fantasy_league_lifecycle WHERE league_id=NEW.league_id),'active')='active'
+ AND COALESCE((SELECT json_extract(settings_json,'$.lineupsLocked') FROM fantasy_leagues WHERE id=NEW.league_id),0)=0
  AND EXISTS(SELECT 1 FROM json_each(players_json) WHERE value=NEW.player_id);
 END;
 CREATE TRIGGER IF NOT EXISTS fantasy_loan_return_guard BEFORE UPDATE OF status ON fantasy_player_loans
@@ -76,6 +77,7 @@ WHEN OLD.status='active' AND NEW.status='returned' BEGIN
   revision=revision+1
  WHERE league_id=NEW.league_id AND uid=NEW.borrower_uid AND deadline_at>NEW.completed_at
  AND COALESCE((SELECT state FROM fantasy_league_lifecycle WHERE league_id=NEW.league_id),'active')='active'
+ AND COALESCE((SELECT json_extract(settings_json,'$.lineupsLocked') FROM fantasy_leagues WHERE id=NEW.league_id),0)=0
  AND EXISTS(SELECT 1 FROM json_each(players_json) WHERE value=NEW.player_id);
 END;
 -- Reserva automática de plaza del prestador: si presta 1, no puede subir de 15,

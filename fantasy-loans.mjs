@@ -25,6 +25,8 @@ function normalError(e){
  return e;
 }
 export async function settleExpiredLoans(db,now=Date.now(),{limit=10}={}){
+ const ready=await db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='fantasy_player_loans'").first();
+ if(!ready)return {returned:0,blocked:0};
  const expired=await db.prepare("SELECT id FROM fantasy_player_loans WHERE status='pending' AND created_at<=? LIMIT ?").bind(now-PROPOSAL_TTL,limit).all();
  for(const row of expired.results)await db.prepare("UPDATE fantasy_player_loans SET status='expired' WHERE id=? AND status='pending' AND created_at<=?").bind(row.id,now-PROPOSAL_TTL).run();
  const due=await db.prepare("SELECT id FROM fantasy_player_loans WHERE status='active' AND ends_at<=? ORDER BY ends_at,id LIMIT ?").bind(now,limit).all();

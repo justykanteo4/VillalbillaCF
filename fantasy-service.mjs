@@ -188,6 +188,17 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   ]);
   return reply({saved:true,id:newId,name,sourceId,code,onlyConfiguration:true},201);
  }
+ const leagueExportMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/export$/);
+ if(leagueExportMatch){
+  if(request.method!=='GET')throw fail('Método no permitido.',405);
+  const leagueId=leagueExportMatch[1];
+  const row=await db.prepare('SELECT id,name,mode,settings_json,created_at FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
+  if(!row)throw fail('Liga no encontrada.',404);
+  const members=await db.prepare('SELECT COUNT(*) AS total FROM fantasy_members WHERE league_id=?').bind(leagueId).first();
+  return reply({format:'villalbilla-fantasy-league-settings-v1',exportedAt:new Date(currentTime).toISOString(),
+    league:{id:row.id,name:row.name,mode:row.mode,settings:JSON.parse(row.settings_json),
+      createdAt:row.created_at,memberCount:members?.total||0}});
+ }
  const leagueSettingsMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/settings$/);
  if(leagueSettingsMatch){
   const leagueId=leagueSettingsMatch[1];

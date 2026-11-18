@@ -15,6 +15,7 @@ import FantasyMarketSlots from './FantasyMarketSlots';
 import FantasyAdminActivity from './FantasyAdminActivity';
 import FantasyAdminExport from './FantasyAdminExport';
 import FantasyPointsSettings from './FantasyPointsSettings';
+import FantasySpecialRounds from './FantasySpecialRounds';
 import FantasyPlayerStatsEditor from './FantasyPlayerStatsEditor';
 import FantasyPriceSettings from './FantasyPriceSettings';
 import {Button,text,theme} from './FantasyUI';
@@ -40,8 +41,9 @@ export default function FantasySettings({request,onBack,account}){
    <FantasyLeagueManage request={request}/>
    <FantasyLeagueReset request={request}/>
   </SettingsGroup>}
-  {isAdmin&&matches("Puntuaciones puntos goles asistencias tarjetas actas estadisticas victoria empate derrota MVP")&&<SettingsGroup key={"points:"+term} initiallyOpen={!!term} title="Club · Puntuaciones y premios" subtitle="Reglas, estadísticas y MVP">
+  {isAdmin&&matches("Puntuaciones puntos goles asistencias tarjetas actas estadisticas victoria empate derrota MVP jornadas especiales doble")&&<SettingsGroup key={"points:"+term} initiallyOpen={!!term} title="Club · Puntuaciones y premios" subtitle="Reglas, estadísticas y MVP">
    <FantasyPointsSettings request={request}/>
+   <FantasySpecialRounds request={request}/>
    <FantasyPlayerStatsEditor request={request}/>
    <FantasyGameSettings request={request}/>
   </SettingsGroup>}

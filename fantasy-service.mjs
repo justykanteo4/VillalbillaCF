@@ -391,6 +391,19 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  }
  return reply(await detail(db,existing.league_id,uid,currentTime,await allowedTeams()))
  }
+ if(path==='/api/fantasy/join-public'&&request.method==='POST'){
+  const value=await body(request),leagueId=String(value?.leagueId||''),nickname=String(value?.nickname||'').trim();
+  if(!/^[a-zA-Z0-9-]{1,80}$/.test(leagueId)||nickname.length<2||nickname.length>32)throw fail('Liga o nombre no válido.');
+  const league=await db.prepare("SELECT l.id,g.team_id FROM fantasy_leagues l JOIN fantasy_league_groups g ON g.league_id=l.id WHERE l.id=? AND l.mode='custom' AND json_extract(l.settings_json,'$.publicLeague')=1").bind(leagueId).first();
+  if(!league)throw fail('Esta liga no está disponible públicamente.',404);
+  if(!(await allowedTeams()).includes(league.team_id))throw fail('Solo los compañeros autorizados de este equipo pueden entrar.',403);
+  const member=await db.prepare('SELECT 1 FROM fantasy_members WHERE league_id=? AND uid=?').bind(league.id,uid).first();
+  if(!member){
+   const joined=await db.prepare("INSERT OR IGNORE INTO fantasy_members(league_id,uid,nickname,joined_at) SELECT id,?,?,? FROM fantasy_leagues WHERE id=? AND mode='custom' AND json_extract(settings_json,'$.publicLeague')=1 AND COALESCE(json_extract(settings_json,'$.inscriptionsOpen'),1)!=0").bind(uid,nickname,currentTime,league.id).run();
+   if(!joined.meta?.changes&&!await db.prepare('SELECT 1 FROM fantasy_members WHERE league_id=? AND uid=?').bind(league.id,uid).first())throw fail('La liga ya no admite nuevos participantes.',403);
+  }
+  return reply(await detail(db,league.id,uid,currentTime,await allowedTeams()));
+ }
  if(path==='/api/fantasy/join'&&request.method==='POST'){const value=await body(request),code=String(value.code||'').trim().toUpperCase(),nickname=String(value.nickname||'').trim();if(!/^[A-HJ-NP-Z2-9]{8}$/.test(code)||nickname.length<2||nickname.length>32)throw fail('Escribe el código de ocho caracteres y tu nombre en la liga.');const league=await db.prepare('SELECT l.id,COALESCE(g.team_id,json_extract(l.pool_json,\'$.teamId\')) AS team_id FROM fantasy_leagues l LEFT JOIN fantasy_league_groups g ON g.league_id=l.id WHERE l.code=?').bind(code).first();if(!league)throw fail('Código de invitación no válido.',404);if(!(await allowedTeams()).includes(league.team_id))throw fail('El código solo permite entrar a compañeros de ese equipo aprobado.',403);const member=await db.prepare('SELECT 1 FROM fantasy_members WHERE league_id=? AND uid=?').bind(league.id,uid).first();if(!member){
   const joined=await db.prepare("INSERT OR IGNORE INTO fantasy_members(league_id,uid,nickname,joined_at) SELECT id,?,?,? FROM fantasy_leagues WHERE id=? AND COALESCE(json_extract(settings_json,'$.inscriptionsOpen'),1)!=0").bind(uid,nickname,currentTime,league.id).run();
   if(!joined.meta?.changes&&!await db.prepare('SELECT 1 FROM fantasy_members WHERE league_id=? AND uid=?').bind(league.id,uid).first())throw fail('Las inscripciones de esta liga están cerradas.',403);

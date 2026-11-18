@@ -3,6 +3,8 @@ const {policyAge}=require('./offline-policy.cjs');
 const saved={savedAt:'2026-11-17T10:00:00.000Z'};
 const t=s=>Date.parse(s);
 assert.equal(policyAge('/api/standings?team=1',saved,false,null,t('2026-11-17T12:00:00Z')),Infinity);
+assert.equal(policyAge('/api/standings?team=1',saved,true,{changedAt:t('2026-11-18T09:00:00Z')},t('2026-11-18T12:00:00Z')),0);
+assert.equal(policyAge('/api/standings?team=1',saved,true,{changedAt:t('2026-11-16T09:00:00Z')},t('2026-11-18T12:00:00Z')),Infinity);
 assert.equal(policyAge('/api/standings?team=1',saved,false,null,t('2026-11-21T12:00:00Z')),900000);
 assert.equal(policyAge('/api/match?team=1&match=2',saved,false,null,t('2026-11-22T12:00:00Z')),900000);
 assert.equal(policyAge('/api/news',saved,false,null,t('2026-11-21T12:00:00Z')),1800000);

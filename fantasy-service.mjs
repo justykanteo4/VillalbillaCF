@@ -198,7 +198,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
    const previous=await db.prepare('SELECT player_id,stats_json,revision FROM fantasy_stat_corrections WHERE team_id=? AND match_id=?').bind(teamId,matchId).all();
    const revisions=new Map(previous.results.map(r=>[r.player_id,r.revision]));
    const history=await db.prepare('SELECT player_id,previous_json,stats_json,revision,actor_uid,updated_at FROM fantasy_stat_correction_history WHERE team_id=? AND match_id=? ORDER BY updated_at DESC LIMIT 30').bind(teamId,matchId).all();
-   return reply({match:{teamId,matchId,round:match.round,players:match.players.filter(p=>/^\d{1,20}$/.test(String(p.id))).map(p=>({id:p.id,name:p.name||'',played:p.played,partial:p.partial,stats:{goals:p.goals??0,assists:p.assists??0,yellow:p.yellow??0,red:p.red??0,ownGoals:p.ownGoals??0},revision:revisions.get(p.id)||0}))},history:history.results});
+   return reply({match:{teamId,matchId,round:match.round,players:match.players.filter(p=>/^\d{1,20}$/.test(String(p.id))).map(p=>({id:p.id,name:p.name||'',played:p.played,partial:p.partial,stats:{goals:p.goals??0,assists:p.assists??0,yellow:p.yellow??0,red:p.red??0,ownGoals:p.ownGoals??0,secondYellow:p.secondYellow?1:0},revision:revisions.get(p.id)||0}))},history:history.results});
   }
   if(request.method!=='POST')throw fail('Método no permitido.',405);
   const value=await body(request),teamId=String(value?.teamId||''),matchId=String(value?.matchId||''),playerId=String(value?.playerId||'');
@@ -207,7 +207,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   if(!match||!match.players.some(p=>String(p.id)===playerId))throw fail('El jugador no pertenece a ese acta cerrada.',404);
   if(!Number.isSafeInteger(value.revision)||value.revision<0)throw fail('Actualiza las estadísticas antes de guardarlas.');
   const edits=(await import('./fantasy-stat-corrections.cjs')).default;
-  if(!edits.validStats(value.stats))throw fail('Las estadísticas deben ser enteros de 0 a 20. Los goles en propia puerta no pueden superar los goles.');
+  if(!edits.validStats(value.stats))throw fail('Las estadísticas deben ser enteros de 0 a 20. La segunda amarilla debe ser 0 o 1 y requiere una roja.');
   const current=await db.prepare('SELECT stats_json,revision FROM fantasy_stat_corrections WHERE team_id=? AND match_id=? AND player_id=?').bind(teamId,matchId,playerId).first();
   if((current?.revision||0)!==value.revision)throw fail('Otro administrador ha modificado estas estadísticas. Actualiza.',409);
   const next=value.revision+1,encoded=JSON.stringify(value.stats),auditId=crypto.randomUUID();

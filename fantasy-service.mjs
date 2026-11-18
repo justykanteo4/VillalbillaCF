@@ -93,6 +93,26 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   if(!changed)throw fail('Otro administrador ha cambiado este ajuste. Actualiza antes de guardar.',409);
   return reply({enabled:changed.enabled===1,revision:changed.revision,updatedAt:changed.updated_at});
  }
+ if(path==='/api/fantasy/admin/points'){
+  if(!db)throw fail('No se pudo consultar la puntuación.',503);
+  const current=await db.prepare('SELECT points_json,revision,updated_at FROM fantasy_point_settings WHERE id=1').first();
+  if(!current)throw fail('Falta la configuración de puntuaciones.',503);
+  if(request.method==='GET')return reply({points:JSON.parse(current.points_json),revision:current.revision,updatedAt:current.updated_at});
+  if(request.method!=='POST')throw fail('Método no permitido.',405);
+  const value=await body(request),input=value?.points;
+  const editable=['win','draw','loss','goal','cleanSheet','mvp','yellow','secondYellow','red','ownGoal'];
+  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length!==editable.length||!editable.every(k=>Object.hasOwn(input,k)&&Number.isInteger(input[k])&&input[k]>=-20&&input[k]<=20))throw fail('Introduce puntuaciones enteras entre −20 y 20.');
+  if(!Number.isSafeInteger(value?.revision)||value.revision<0)throw fail('Actualiza los puntos antes de guardar.');
+  if(value.revision!==current.revision)throw fail('Otro administrador ha cambiado los puntos. Actualiza la lista.',409);
+  const points={...leaguePolicy.classicSettings.points,...input,idealXI:0,captain:2},encoded=JSON.stringify(points);
+  // Atomic: revision check and all league rule updates are committed together.
+  await db.batch([
+   db.prepare("SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM fantasy_point_settings WHERE id=1 AND revision=?) THEN json('FANTASY_POINTS_CHANGED') ELSE 'ok' END").bind(value.revision),
+   db.prepare("UPDATE fantasy_point_settings SET points_json=?,revision=revision+1,updated_at=? WHERE id=1 AND revision=?").bind(encoded,currentTime,value.revision),
+   db.prepare("UPDATE fantasy_leagues SET settings_json=json_set(settings_json,'$.points',json(?))").bind(encoded)
+  ]);
+  return reply({points,revision:value.revision+1,updatedAt:currentTime});
+ }
  if(path==='/api/fantasy/admin/users')return await manageFantasyUsers(db,request,url,uid,currentTime);
  if(db&&!path.startsWith('/api/fantasy/admin/')&&await db.prepare('SELECT 1 FROM fantasy_excluded_users WHERE uid=?').bind(uid).first()){
   if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path))return reply({rules:config.rules,canPlay:false,isAdmin:admin,excluded:true});
@@ -183,7 +203,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
     if(!/^[a-zA-Z0-9_-]{8,80}$/.test(value?.requestId||''))throw fail('Solicitud de creación no válida.',400);
   const previous=await db.prepare('SELECT id FROM fantasy_leagues WHERE owner_uid=? AND request_id=?').bind(uid,value.requestId).first();
   if(previous)return reply(await detail(db,previous.id,uid,currentTime,eligible));
-  const id=crypto.randomUUID(),code=makeCode(),settings=JSON.stringify(leaguePolicy.classicSettings);
+  const id=crypto.randomUUID(),code=makeCode(),settings=JSON.stringify({...leaguePolicy.classicSettings,points:JSON.parse((await db.prepare('SELECT points_json FROM fantasy_point_settings WHERE id=1').first())?.points_json||JSON.stringify(leaguePolicy.classicSettings.points))});
   await db.batch([
    db.prepare('INSERT OR IGNORE INTO fantasy_leagues(id,owner_uid,request_id,fingerprint,name,mode,pool_json,settings_json,code,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,uid,value.requestId,'user-created-v1',name,'custom',JSON.stringify({type:'club'}),settings,code,currentTime),
    db.prepare('INSERT OR IGNORE INTO fantasy_league_groups(league_id,team_id) VALUES(?,?)').bind(id,selected),
@@ -197,7 +217,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(nickname.length<2||nickname.length>32)throw fail('Escribe tu nombre en la liga (2–32 caracteres).');
  let existing=await db.prepare('SELECT league_id FROM fantasy_official_leagues WHERE team_id=?').bind(teamId).first();
  if(value.leagueId&&!existing)throw fail('La liga disponible ha cambiado. Actualiza la lista antes de entrar.',409);
- if(!existing){const id='official-2026-27-'+teamId,code=makeCode(),settings=JSON.stringify(leaguePolicy.classicSettings);await db.batch([
+ if(!existing){const id='official-2026-27-'+teamId,code=makeCode(),settings=JSON.stringify({...leaguePolicy.classicSettings,points:JSON.parse((await db.prepare('SELECT points_json FROM fantasy_point_settings WHERE id=1').first())?.points_json||JSON.stringify(leaguePolicy.classicSettings.points))});await db.batch([
  db.prepare('INSERT OR IGNORE INTO fantasy_leagues VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,'club-system',id,id,leaguePolicy.classicLeagueName(teams.find(t=>t.id===teamId)),'classic',JSON.stringify({type:'club'}),settings,code,currentTime),
  db.prepare('INSERT OR IGNORE INTO fantasy_league_groups VALUES(?,?)').bind(id,teamId),
  db.prepare('INSERT OR IGNORE INTO fantasy_official_leagues VALUES(?,?)').bind(teamId,id)

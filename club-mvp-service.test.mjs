@@ -76,11 +76,14 @@ test('MVP: cambios auditados, mínimo tres, sin máximo artificial, autor verifi
  assert.equal(r.status,200);
  assert.equal(f.sql.prepare('SELECT COUNT(*) n FROM club_mvp_audit').get().n,2);
  assert.equal(f.sql.prepare("SELECT COUNT(*) n FROM fantasy_awards WHERE kind='mvp' AND match_id=?").get(match.id).n,3);
+ r=await f.call(f.post({revision:revision+2,playerIds:[]}));
+ assert.equal(r.status,200);
+ assert.equal(f.sql.prepare("SELECT COUNT(*) n FROM fantasy_awards WHERE kind='mvp' AND match_id=?").get(match.id).n,0);
  const history=await f.call(new Request(base+'/api/admin/club-mvp-audit'));
  const rows=(await history.json()).history;
- assert.equal(rows.length,2);
+ assert.equal(rows.length,3);
  assert.equal(rows[0].actor_uid,'coach-real');
- assert.deepEqual(JSON.parse(rows[0].player_ids),winners.slice(0,3));
+ assert.deepEqual(JSON.parse(rows[0].player_ids),[]);
  assert.equal((await f.call(new Request(base+'/api/admin/club-mvp-audit'),{authorizeAdmin:async()=>{throw Object.assign(Error('Solo admin'),{status:403})}})).status,403);
 });
 test('MVP: sin autorizacion el historial y los cambios no son accesibles',async t=>{

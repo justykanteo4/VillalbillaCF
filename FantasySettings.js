@@ -9,6 +9,7 @@ import FantasyLeagueReset from './FantasyLeagueReset';
 import FantasyClauseSettings from './FantasyClauseSettings';
 import FantasyAdminTransfer from './FantasyAdminTransfer';
 import FantasyPointsSettings from './FantasyPointsSettings';
+import FantasyPlayerStatsEditor from './FantasyPlayerStatsEditor';
 import FantasyPriceSettings from './FantasyPriceSettings';
 import {Button,text,theme} from './FantasyUI';
 
@@ -31,8 +32,9 @@ export default function FantasySettings({request,onBack,account}){
    <FantasyClauseSettings request={request}/>
    <FantasyLeagueReset request={request}/>
   </SettingsGroup>}
-  {isAdmin&&matches("Puntuaciones puntos goles tarjetas victoria empate derrota MVP")&&<SettingsGroup key={"points:"+term} initiallyOpen={!!term} title="Puntuaciones" subtitle="Modificar puntos de los jugadores">
+  {isAdmin&&matches("Puntuaciones puntos goles asistencias tarjetas actas estadisticas victoria empate derrota MVP")&&<SettingsGroup key={"points:"+term} initiallyOpen={!!term} title="Puntuaciones" subtitle="Modificar puntos de los jugadores">
    <FantasyPointsSettings request={request}/>
+   <FantasyPlayerStatsEditor request={request}/>
   </SettingsGroup>}
   {matches("Premios entrenadores MVP once ideal salarios bonificaciones")&&<SettingsGroup key={"awards:"+term} initiallyOpen={!!term} title="Premios y entrenadores" subtitle="MVP, once ideal y salarios">
    <FantasyGameSettings request={request}/>

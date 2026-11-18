@@ -1,11 +1,10 @@
-import {test} from 'node:test';
-import assert from 'node:assert/strict';
-import {DatabaseSync} from 'node:sqlite';
-import {readFileSync} from 'node:fs';
-import {createRequire} from 'node:module';
-import {loanRoute,settleExpiredLoans} from './fantasy-loans.mjs';
-const require=createRequire(import.meta.url);
+const {test,before}=require('node:test');
+const assert=require('node:assert/strict');
+const {DatabaseSync}=require('node:sqlite');
+const {readFileSync}=require('node:fs');
 const {validateLoanProposal,validateLoanReturn,ALLOWED_WEEKS}=require('./fantasy-loan-policy.cjs');
+let loanRoute,settleExpiredLoans;
+before(async()=>{({loanRoute,settleExpiredLoans}=await import('./fantasy-loans.mjs'))});
 function fixture(t){
  const sql=new DatabaseSync(':memory:');
  sql.exec(`

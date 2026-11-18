@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS fantasy_player_loans (
  ownership_id TEXT NOT NULL,
  player_id TEXT NOT NULL,
  duration_weeks INTEGER NOT NULL CHECK(duration_weeks IN (1,2,3,4)),
- status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','active','returned','rejected','cancelled')),
+ status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','active','returned','rejected','cancelled','expired')),
  request_id TEXT NOT NULL,
  created_at INTEGER NOT NULL,
  starts_at INTEGER,

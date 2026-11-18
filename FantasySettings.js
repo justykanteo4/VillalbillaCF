@@ -11,6 +11,7 @@ import FantasyClauseSettings from './FantasyClauseSettings';
 import FantasyAdminTransfer from './FantasyAdminTransfer';
 import FantasyPlayerBlocks from './FantasyPlayerBlocks';
 import FantasyMarketWindow from './FantasyMarketWindow';
+import FantasyMarketSlots from './FantasyMarketSlots';
 import FantasyAdminActivity from './FantasyAdminActivity';
 import FantasyAdminExport from './FantasyAdminExport';
 import FantasyPointsSettings from './FantasyPointsSettings';
@@ -44,12 +45,13 @@ export default function FantasySettings({request,onBack,account}){
    <FantasyPlayerStatsEditor request={request}/>
    <FantasyGameSettings request={request}/>
   </SettingsGroup>}
-  {isAdmin&&matches("Mercado fechas apertura cierre precios traspasos fichajes bloqueo jugadores clausulas ofertas subastas")&&<SettingsGroup key={"market:"+term} initiallyOpen={!!term} title="Club · Mercado y economía" subtitle="Precios, cláusulas y traspasos">
+  {isAdmin&&matches("Mercado cantidad jugadores plazas fechas apertura cierre precios traspasos fichajes bloqueo jugadores clausulas ofertas subastas")&&<SettingsGroup key={"market:"+term} initiallyOpen={!!term} title="Club · Mercado y economía" subtitle="Precios, cláusulas y traspasos">
    <FantasyClauseSettings request={request}/>
    <FantasyPriceSettings key={account?.id} request={request} account={account}/>
    <FantasyAdminTransfer request={request}/>
    <FantasyPlayerBlocks request={request}/>
    <FantasyMarketWindow request={request}/>
+   <FantasyMarketSlots request={request}/>
   </SettingsGroup>}
  </View>;
 }

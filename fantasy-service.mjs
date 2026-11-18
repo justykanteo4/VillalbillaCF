@@ -183,6 +183,10 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
     UNION ALL
     SELECT 'scoring' AS activity_type,'global' AS scope,actor_uid AS actor,created_at,
            'Puntuaciones de Fantasy' AS summary FROM fantasy_point_history
+    UNION ALL
+    SELECT 'lifecycle' AS activity_type,league_id AS scope,actor_uid AS actor,created_at,
+           CASE new_state WHEN 'paused' THEN 'Liga pausada' WHEN 'archived' THEN 'Liga archivada' ELSE 'Liga reactivada' END AS summary
+    FROM fantasy_league_lifecycle_events
    )
    ORDER BY created_at DESC LIMIT 50`).all();
   return reply({events:events.results});
@@ -191,7 +195,14 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   if(request.method!=='GET')throw fail('Método no permitido.',405);
   const leagueId=url.searchParams.get('league');
   if(!/^[a-zA-Z0-9-]{1,80}$/.test(leagueId||''))throw fail('Liga no válida.');
-  const events=await db.prepare('SELECT actor_uid AS actor,kind,before_json AS beforeJson,after_json AS afterJson,created_at AS createdAt FROM fantasy_league_admin_events WHERE league_id=? ORDER BY created_at DESC,id DESC LIMIT 50').bind(leagueId).all();
+  const events=await db.prepare(`SELECT actor,kind,beforeJson,afterJson,createdAt FROM (
+    SELECT actor_uid AS actor,kind,before_json AS beforeJson,after_json AS afterJson,created_at AS createdAt,id
+      FROM fantasy_league_admin_events WHERE league_id=?
+    UNION ALL
+    SELECT actor_uid AS actor,'lifecycle' AS kind,json_object('state',old_state) AS beforeJson,
+      json_object('state',new_state) AS afterJson,created_at AS createdAt,id
+      FROM fantasy_league_lifecycle_events WHERE league_id=?
+   ) ORDER BY createdAt DESC,id DESC LIMIT 50`).bind(leagueId,leagueId).all();
   return reply({events:events.results.map(event=>({...event,before:JSON.parse(event.beforeJson),after:JSON.parse(event.afterJson),beforeJson:undefined,afterJson:undefined}))});
  }
  const duplicateMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/duplicate$/);

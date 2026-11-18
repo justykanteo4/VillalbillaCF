@@ -4,7 +4,7 @@ const identifier = name => {
  return '"'+name+'"';
 };
 const preserved = new Set(['fantasy_leagues','fantasy_members','fantasy_league_groups',
- 'fantasy_official_leagues','fantasy_league_lifecycle','fantasy_league_lifecycle_events','fantasy_wallet_cents','fantasy_wallet_values',
+ 'fantasy_official_leagues','fantasy_league_lifecycle','fantasy_league_lifecycle_events','fantasy_player_blocks','fantasy_wallet_cents','fantasy_wallet_values',
  'fantasy_wallets','fantasy_messages','fantasy_message_reads']);
 const walletFields = [['fantasy_wallet_cents','delta_cents'],['fantasy_wallet_values','delta_tenths'],['fantasy_wallets','delta_units']];
 const rows=async statement=>(await statement.all()).results;

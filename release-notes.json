@@ -1,11 +1,11 @@
 {
-  "id": "2026.11.18.fantasy-intercambios-prestamos",
+  "id": "2026.11.18.fantasy-integracion-temporadas",
   "date": "2026-11-18",
-  "title": "Intercambios y préstamos entre entrenadores",
+  "title": "Fantasy: préstamos, intercambios, temporadas y apariencia",
   "changes": [
-    "Rivales incorpora intercambios jugador por jugador, sujetos a aceptación del entrenador.",
-    "Se pueden ofrecer préstamos de 1 a 4 semanas con devolución automática del jugador al finalizar.",
-    "El prestador conserva una plaza reservada y el receptor debe mantener una plantilla válida para devolver el futbolista.",
-    "Los jugadores prestados no pueden venderse ni transferirse, y se conservan los puntos de jornadas cerradas."
+    "Rivales incorpora intercambios y préstamos de 1 a 4 semanas con devolución programada.",
+    "Las clasificaciones muestran estadísticas avanzadas y se agrupan por temporada deportiva.",
+    "El Club puede archivar las clasificaciones y jornadas de una temporada antes de reiniciar una liga; los archivos son permanentes.",
+    "En Ajustes puedes elegir tema claro, oscuro o automático para Fantasy."
   ]
 }

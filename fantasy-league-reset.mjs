@@ -5,7 +5,7 @@ const identifier = name => {
 };
 const preserved = new Set(['fantasy_leagues','fantasy_members','fantasy_league_groups',
  'fantasy_official_leagues','fantasy_league_lifecycle','fantasy_league_lifecycle_events','fantasy_player_blocks','fantasy_market_windows','fantasy_market_slot_settings','fantasy_team_photo_privacy','fantasy_special_rounds','fantasy_wallet_cents','fantasy_wallet_values',
- 'fantasy_wallets','fantasy_messages','fantasy_message_reads']);
+ 'fantasy_wallets','fantasy_season_archives','fantasy_messages','fantasy_message_reads']);
 const walletFields = [['fantasy_wallet_cents','delta_cents'],['fantasy_wallet_values','delta_tenths'],['fantasy_wallets','delta_units']];
 const rows=async statement=>(await statement.all()).results;
 export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,apply=false}){
@@ -84,6 +84,8 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
   for(const fk of table.foreign)if(scoped.has(fk.table)&&fk.table!==name)dependencies.get(name).add(fk.table);
  }
  if(scoped.has('fantasy_managers')&&scoped.has('fantasy_roster'))dependencies.get('fantasy_managers').add('fantasy_roster');
+ // Borrar contratos de préstamos antes de vaciar las plantillas: el jugador cedido está protegido por trigger.
+ if(scoped.has('fantasy_player_loans')&&scoped.has('fantasy_roster'))dependencies.get('fantasy_player_loans').add('fantasy_roster');
  const order=[],remaining=new Set(scoped.keys());
  while(remaining.size){
   const next=[...remaining].find(n=>![...dependencies].some(([child,parents])=>remaining.has(child)&&child!==n&&parents.has(n)));

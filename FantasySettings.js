@@ -1,3 +1,4 @@
+import FantasySeasonArchive from './FantasySeasonArchive';
 import React,{useState} from 'react';
 import {View,Text,TextInput} from 'react-native';
 import SettingsGroup from './SettingsGroup';
@@ -40,6 +41,7 @@ export default function FantasySettings({request,onBack,account}){
    <FantasyLeagueCreationSettings request={request}/>
    <FantasyLeagueManage request={request}/>
    <FantasyLeagueReset request={request}/>
+   <FantasySeasonArchive request={request}/>
   </SettingsGroup>}
   {isAdmin&&matches("Puntuaciones puntos goles asistencias tarjetas actas estadisticas victoria empate derrota MVP jornadas especiales doble")&&<SettingsGroup key={"points:"+term} initiallyOpen={!!term} title="Club · Puntuaciones y premios" subtitle="Reglas, estadísticas y MVP">
    <FantasyPointsSettings request={request}/>

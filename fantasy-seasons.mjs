@@ -2,7 +2,7 @@ import {gameRoute} from './fantasy-game.mjs';
 import {seasonFromDate,seasonSummary} from './fantasy-season-history.cjs';
 import {roundTables} from './fantasy-round-tables.cjs';
 const fail=(message,status=400)=>Object.assign(Error(message),{status});
-const validSeason=value=>{
+export const validSeason=value=>{
  if(typeof value!=='string'||!/^20[0-9]{2}\/[0-9]{2}$/.test(value))return false;
  const start=Number(value.slice(0,4));
  return value.slice(-2)===String(start+1).slice(-2);

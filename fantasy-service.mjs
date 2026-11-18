@@ -142,6 +142,34 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(!['GET','POST'].includes(request.method))return reply({error:'Método no permitido.'},405);
  if(!db)throw fail('No se pudo conectar con las ligas.',503);
  if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ const lifecycleMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/lifecycle$/);
+ if(lifecycleMatch){
+  const leagueId=lifecycleMatch[1];
+  const league=await db.prepare('SELECT id,name FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
+  if(!league)throw fail('Liga no encontrada.',404);
+  const existing=await db.prepare('SELECT state,revision,updated_at,updated_by FROM fantasy_league_lifecycle WHERE league_id=?').bind(leagueId).first();
+  const current={state:existing?.state||'active',revision:existing?.revision||0,updatedAt:existing?.updated_at||0,updatedBy:existing?.updated_by||null};
+  if(request.method==='GET')return reply({leagueId,name:league.name,...current});
+  if(request.method!=='POST')throw fail('Método no permitido.',405);
+  const value=await body(request);
+  if(!['active','paused','archived'].includes(value?.state)||!Number.isSafeInteger(value?.revision)||value.revision<0)throw fail('Estado de liga no válido.');
+  if(value.state==='archived'&&value.confirmation!=='ARCHIVAR '+league.name)throw fail('Escribe la confirmación exacta para archivar la liga.');
+  if(value.revision!==current.revision)throw fail('La liga ha cambiado. Actualiza sus ajustes.',409);
+  if(value.state===current.state)return reply({leagueId,name:league.name,...current,saved:true});
+  const saved=await db.prepare(`INSERT INTO fantasy_league_lifecycle(league_id,state,revision,updated_at,updated_by)
+    VALUES(?,?,1,?,?) ON CONFLICT(league_id) DO UPDATE SET
+    state=excluded.state,revision=fantasy_league_lifecycle.revision+1,updated_at=excluded.updated_at,updated_by=excluded.updated_by
+    WHERE fantasy_league_lifecycle.revision=? RETURNING state,revision,updated_at,updated_by`)
+    .bind(leagueId,value.state,currentTime,uid,value.revision).first();
+  if(!saved)throw fail('Otro administrador ha cambiado el estado. Actualiza antes de guardar.',409);
+  return reply({leagueId,name:league.name,state:saved.state,revision:saved.revision,updatedAt:saved.updated_at,updatedBy:saved.updated_by,saved:true});
+ }
+ // Participant writes are blocked even if a client hides the pause/archive badge.
+ const leagueMutation=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\//);
+ if(leagueMutation&&request.method!=='GET'){
+  const state=await db.prepare('SELECT state FROM fantasy_league_lifecycle WHERE league_id=?').bind(leagueMutation[1]).first();
+  if(state?.state&&state.state!=='active')throw fail(state.state==='archived'?'Esta liga está archivada y es de solo lectura.':'Esta liga está pausada por el Club.',409);
+ }
  if(path==='/api/fantasy/admin/leagues/reset'&&request.method==='GET'){
    const leagues=await db.prepare('SELECT id,name,created_at FROM fantasy_leagues ORDER BY name,id').all();
    return reply({leagues:leagues.results});
@@ -496,5 +524,5 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  const market=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(market|roster|buy|bid|offers(?:\/[a-zA-Z0-9-]{1,80}\/(?:accept|reject|cancel))?)$/);if(market){const data=await detail(db,market[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);const result=await marketRoute({db,league:data.league,uid,now:currentTime,action:market[2],method:request.method,readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points),getNow:clock,catalogVersion:catalog.version+'-actas-30-v2',canPlay:async target=>!!await db.prepare('SELECT 1 FROM fantasy_participant_teams WHERE uid=? AND team_id=?').bind(target,data.league.teamId).first()});if((market[2]==='offers'||/^offers\/[^/]+\/(accept|reject)$/.test(market[2]))&&request.method==='POST')ctx?.waitUntil?.(dispatchOfferNotifications(env).catch(()=>{}));return reply(result)}
  const match=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})(\/players)?$/);if(match&&request.method==='GET'){const data=await detail(db,match[1],uid,currentTime,await allowedTeams());if(match[2]){const snapshot={},[players,owners]=await Promise.all([prices(db,data.league.pool,data.league.settings.points,snapshot),playerOwnership(db,match[1],uid)]);return reply({players:players.map(p=>({...p,...(owners.get(p.id)||{ownershipId:null,owner:null,mine:false})})),finance:data.league.finance,weeklyEleven:weeklyEleven(players,snapshot.live.matches,snapshot.awards,data.league.settings.points,currentTime),version:catalog.version,updatedAt:catalog.updatedAt})}return reply(data)}
  return reply({error:'Apartado no disponible.'},404);
- }catch(e){if(/FANTASY_GIFT_CHANGED|fantasy_award_changes|fantasy_coach_changes|fantasy_roster.league_id, fantasy_roster.player_id/.test(e.message))return reply({error:'La elección o el reparto cambiaron en otro dispositivo. Actualiza y vuelve a elegir.'},409);if(/FANTASY_FULL/.test(e.message))return reply({error:'La liga ya está completa.'},409);return reply({error:e.status?e.message:'No se pudo guardar o consultar la liga. Vuelve a intentarlo.'},e.status||503)}
+ }catch(e){if(/FANTASY_GIFT_CHANGED|fantasy_award_changes|fantasy_coach_changes|fantasy_roster.league_id, fantasy_roster.player_id/.test(e.message))return reply({error:'La elección o el reparto cambiaron en otro dispositivo. Actualiza y vuelve a elegir.'},409);if(/FANTASY_FULL/.test(e.message))return reply({error:'La liga ya está completa.'},409);if(/FANTASY_LEAGUE_INACTIVE/.test(e.message))return reply({error:'La liga está pausada o archivada. No se permiten nuevas operaciones.'},409);return reply({error:e.status?e.message:'No se pudo guardar o consultar la liga. Vuelve a intentarlo.'},e.status||503)}
 }

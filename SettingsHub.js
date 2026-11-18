@@ -22,11 +22,11 @@ export default function SettingsHub({account,teamIds=[],playerIds=[],onLogout,on
  const [search,setSearch]=useState('');
  const [page,sp,,back]=useScreenHistory(null,{priority:20,key:'settings:'+(account?.id||'guest')});const trainer=account?.status==='admin'||account?.status==='approved'&&account.claim?.role!=='player',password=auth?.currentUser?.providerData?.some(p=>p.providerId==='password');
  const groups=[
-  ['Mi cuenta',[...(auth?.currentUser?[['verification','Verificar cuenta']]:[]),...(password?[['password','Cambiar contraseña']]:[])]],
-  ['Avisos y ayuda',[['notifications','Notificaciones'],['tutorial','Tutorial']]],
-  ['Datos y actualizaciones',[['storage','Datos descargados'],['reports','Actas guardadas'],['clear-sports','Limpiar caché deportiva'],['updates','Actualizar app']]],
-  ...(trainer?[['Herramientas del club',[['players','Jugadores'],['coaches','Entrenadores'],['results','Corregir resultados']]]]:[]),
-  ...(account?.status==='admin'?[['Administración',[['fantasy-access','Acceso a Fantasy'],['admin','Administración del club']]]]:[])
+  ['Mis ajustes · Mi cuenta',[...(auth?.currentUser?[['verification','Verificar cuenta']]:[]),...(password?[['password','Cambiar contraseña']]:[])]],
+  ['Mis ajustes · Avisos y ayuda',[['notifications','Notificaciones'],['tutorial','Tutorial']]],
+  ['Mis ajustes · Datos y actualizaciones',[['storage','Datos descargados'],['reports','Actas guardadas'],['clear-sports','Limpiar caché deportiva'],['updates','Actualizar app']]],
+  ...(trainer?[['Club · Herramientas deportivas',[['players','Jugadores'],['coaches','Entrenadores'],['results','Corregir resultados']]]]:[]),
+  ...(account?.status==='admin'?[['Club · Administración y seguridad',[['fantasy-access','Acceso a Fantasy'],['admin','Administración del club']]]]:[])
  ];
  const options=groups.flatMap(([,items])=>items);
  const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');

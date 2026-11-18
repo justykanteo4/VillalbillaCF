@@ -187,3 +187,13 @@ jobs:
           node -e "const c=require('/tmp/expo-013.json');if(c.runtimeVersion!=='0.1.13'||c.updates?.requestHeaders?.['expo-channel-name']!=='production')throw Error('Wrong runtime/channel for 0.1.13')"
           pnpm exec expo export --platform android --output-dir work/ota-013
           pnpm dlx eas-cli@25.3.0 update --channel production --platform android --environment production --input-dir work/ota-013 --skip-bundler --non-interactive --message "Fantasy: tres o más MVP por victoria (0.1.13)"
+      - name: Publish iOS 0.1.13 runtime OTA
+        env:
+          VILLALBILLA_UPDATE_RUNTIME: '0.1.13'
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec expo config --json >/tmp/expo-ios-013.json
+          node -e "const c=require('/tmp/expo-ios-013.json');if(c.runtimeVersion!=='0.1.13'||c.updates?.requestHeaders?.['expo-channel-name']!=='production'||!c.ios?.bundleIdentifier)throw Error('Wrong iOS runtime/channel/bundle')"
+          pnpm exec expo export --platform ios --output-dir work/ota-ios-013
+          pnpm dlx eas-cli@25.3.0 update --channel production --platform ios --environment production --input-dir work/ota-ios-013 --skip-bundler --non-interactive --message "Ajustes Club y usuarios iOS (0.1.13)"

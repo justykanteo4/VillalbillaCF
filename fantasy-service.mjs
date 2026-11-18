@@ -153,6 +153,28 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   const events=await db.prepare('SELECT actor_uid AS actor,kind,before_json AS beforeJson,after_json AS afterJson,created_at AS createdAt FROM fantasy_league_admin_events WHERE league_id=? ORDER BY created_at DESC,id DESC LIMIT 50').bind(leagueId).all();
   return reply({events:events.results.map(event=>({...event,before:JSON.parse(event.beforeJson),after:JSON.parse(event.afterJson),beforeJson:undefined,afterJson:undefined}))});
  }
+ const duplicateMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/duplicate$/);
+ if(duplicateMatch){
+  if(request.method!=='POST')throw fail('Método no permitido.',405);
+  const sourceId=duplicateMatch[1],value=await body(request);
+  const name=typeof value?.name==='string'?value.name.trim().replace(/\\s+/g,' '):'';
+  const nickname=typeof value?.nickname==='string'?value.nickname.trim().replace(/\\s+/g,' '):'';
+  if(name.length<3||name.length>60||/[\\u0000-\\u001f\\u007f<>]/.test(name))throw fail('Nombre de liga no válido.');
+  if(nickname.length<2||nickname.length>32||/[\\u0000-\\u001f\\u007f<>]/.test(nickname))throw fail('Nombre de participante no válido.');
+  if(!/^[a-zA-Z0-9_-]{8,80}$/.test(value?.requestId||''))throw fail('Solicitud de creación no válida.');
+  const previous=await db.prepare('SELECT id,name FROM fantasy_leagues WHERE owner_uid=? AND request_id=?').bind(uid,value.requestId).first();
+  if(previous)return reply({saved:true,alreadyCreated:true,id:previous.id,name:previous.name});
+  const source=await db.prepare('SELECT l.id,l.settings_json,l.pool_json,COALESCE(g.team_id,json_extract(l.pool_json,\'$.teamId\')) AS team_id FROM fantasy_leagues l LEFT JOIN fantasy_league_groups g ON g.league_id=l.id WHERE l.id=?').bind(sourceId).first();
+  if(!source||!teams.some(t=>t.id===source.team_id))throw fail('Liga de origen no encontrada.',404);
+  const newId=crypto.randomUUID(),code=makeCode();
+  await db.batch([
+   db.prepare('INSERT INTO fantasy_leagues(id,owner_uid,request_id,fingerprint,name,mode,pool_json,settings_json,code,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)')
+     .bind(newId,uid,value.requestId,'admin-copy-v1',name,'custom',source.pool_json,source.settings_json,code,currentTime),
+   db.prepare('INSERT INTO fantasy_league_groups(league_id,team_id) VALUES(?,?)').bind(newId,source.team_id),
+   db.prepare('INSERT INTO fantasy_members(league_id,uid,nickname,joined_at) VALUES(?,?,?,?)').bind(newId,uid,nickname,currentTime)
+  ]);
+  return reply({saved:true,id:newId,name,sourceId,code,onlyConfiguration:true},201);
+ }
  const leagueSettingsMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/settings$/);
  if(leagueSettingsMatch){
   const leagueId=leagueSettingsMatch[1];

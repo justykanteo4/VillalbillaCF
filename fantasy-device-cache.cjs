@@ -1,5 +1,5 @@
 // Copias privadas por cuenta. Los saldos y las operaciones siempre se validan en el servidor.
-function createFantasyCache({read,save,now=Date.now}){
+function createFantasyCache({read,save,now=Date.now,maxAgeForPath}){
  const pending=new Map(),epochs=new Map(),copies=new Map(),reads=new Map();
  async function stored(key){if(copies.has(key))return copies.get(key);if(!reads.has(key))reads.set(key,Promise.resolve().then(()=>read(key)).catch(()=>null).then(value=>{if(!copies.has(key))copies.set(key,value);return copies.get(key)}).finally(()=>reads.delete(key)));return reads.get(key)}
  async function persist(key,data,savedAt){copies.set(key,{data,savedAt:savedAt||new Date(now()).toISOString()});await save(key,data,savedAt).catch(()=>{})}
@@ -13,7 +13,9 @@ function createFantasyCache({read,save,now=Date.now}){
   let copy=await stored(key),directoryOnly=false;if(copy&&Date.parse(copy.savedAt)<=version){if(path==='/leagues'&&Array.isArray(copy.data?.leagues)&&Date.parse(copy.savedAt)>await epoch(uid,true)){directoryOnly=true;copy={...copy,data:{...copy.data,leagues:copy.data.leagues.map(({finance,...league})=>league)}}}else copy=null;}
   if(copy)options.onCached?.({...copy.data,fromCache:true});
   const maxAge=/^\/inbox(?:\?|$)/.test(path)?30000:/\/coaches(?:\?|$)/.test(path)?300000:/\/(?:search|players|table|market-history|rivals)(?:\?|$)/.test(path)?300000:15000;
-  if(copy&&!directoryOnly&&now()-Date.parse(copy.savedAt)>=0&&now()-Date.parse(copy.savedAt)<maxAge&&options.cache!=='reload')return {...copy.data,fromCache:true};
+  const configuredAge=maxAgeForPath?.(path);
+  const effectiveAge=Number.isFinite(configuredAge)&&configuredAge>=0?configuredAge:maxAge;
+  if(copy&&!directoryOnly&&now()-Date.parse(copy.savedAt)>=0&&now()-Date.parse(copy.savedAt)<effectiveAge&&options.cache!=='reload')return {...copy.data,fromCache:true};
   const jobKey=key+'.'+version;
   if(!pending.has(jobKey)){const job=(async()=>{const data=await fetcher();if((epochs.get(vkey)||0)===version)await persist(key,data,new Date(Math.max(now(),version+1)).toISOString());return data})().finally(()=>pending.delete(jobKey));pending.set(jobKey,job)}
   try{const data=await pending.get(jobKey);if((epochs.get(vkey)||0)!==version)return cached(uid,path,{...options,cache:'reload'},fetcher);return data}catch(error){if(error.status===401||error.status===403)await revoke(uid);if(copy&&(!error.status||error.status>=500))return {...copy.data,fromCache:true,offline:true};throw error}

@@ -484,3 +484,34 @@ test('Club blocks new acquisitions per league and only the Club can lift the blo
  assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_player_blocks WHERE league_id=?').get(leagueId).n,0);
  assert.equal((await handleFantasy(request(path,{playerId:'unknown',blocked:true,expectedBlocked:false}),e,owner)).status,400);
 });
+
+test('Club controls Fantasy market dates; closed windows reject all new acquisitions',async t=>{
+ const {env:e,sql}=env(t);
+ const league=(await fixtureLeague(e,'owner-uid',classic('market-window-2026'))).league;
+ const path='/admin/leagues/'+league.id+'/market-window';
+ const fakeClock=()=>Date.parse('2026-11-18T12:00:00Z');
+ const ownerClock={...owner,clock:fakeClock};
+ const noAdmin={authorize:async()=> 'someone-else',adminAuthorize:async()=>{throw Object.assign(Error('No club'),{status:403})},clock:fakeClock};
+ assert.equal((await handleFantasy(request(path),e,noAdmin)).status,403);
+ const initial=await handleFantasy(request(path),e,ownerClock);
+ assert.equal(initial.status,200);
+ assert.equal((await initial.json()).open,true);
+ const future=await handleFantasy(request(path,{startDate:'2026-12-01',endDate:'2027-01-20',revision:0}),e,ownerClock);
+ assert.equal(future.status,200,await future.clone().text());
+ assert.equal((await future.json()).open,false);
+ assert.equal((await handleFantasy(request(path,{startDate:'',endDate:'',revision:0}),e,ownerClock)).status,409);
+ assert.equal((await handleFantasy(request(path,{startDate:'2026-02-30',endDate:'',revision:1}),e,ownerClock)).status,400);
+ const bid=await handleFantasy(request('/leagues/'+league.id+'/bid',{requestId:'market-window-block-0001',amount:300}),e,ownerClock);
+ assert.equal(bid.status,409);
+ const offer=await handleFantasy(request('/leagues/'+league.id+'/offers',{requestId:'market-window-block-0002'}),e,ownerClock);
+ assert.equal(offer.status,409);
+ const clause=await handleFantasy(request('/leagues/'+league.id+'/clause',{requestId:'market-window-block-0003'}),e,ownerClock);
+ assert.equal(clause.status,409);
+ const sell=await handleFantasy(request('/leagues/'+league.id+'/sell',{requestId:'market-window-block-0004'}),e,ownerClock);
+ assert.equal(sell.status,409);
+ const open=await handleFantasy(request(path,{startDate:'',endDate:'',revision:1}),e,ownerClock);
+ assert.equal(open.status,200,await open.clone().text());
+ assert.equal((await open.json()).open,true);
+ assert.equal(sql.prepare('SELECT revision FROM fantasy_market_windows WHERE league_id=?').get(league.id).revision,2);
+ assert.equal((await handleFantasy(request('/leagues/'+league.id),e,ownerClock)).status,200);
+});

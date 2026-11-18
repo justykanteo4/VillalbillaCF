@@ -84,6 +84,8 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
   for(const fk of table.foreign)if(scoped.has(fk.table)&&fk.table!==name)dependencies.get(name).add(fk.table);
  }
  if(scoped.has('fantasy_managers')&&scoped.has('fantasy_roster'))dependencies.get('fantasy_managers').add('fantasy_roster');
+ // Borrar contratos de préstamos antes de vaciar las plantillas: el jugador cedido está protegido por trigger.
+ if(scoped.has('fantasy_player_loans')&&scoped.has('fantasy_roster'))dependencies.get('fantasy_player_loans').add('fantasy_roster');
  const order=[],remaining=new Set(scoped.keys());
  while(remaining.size){
   const next=[...remaining].find(n=>![...dependencies].some(([child,parents])=>remaining.has(child)&&child!==n&&parents.has(n)));

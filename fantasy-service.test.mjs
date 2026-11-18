@@ -349,3 +349,26 @@ test('Club exports league settings without personal data, participant identities
  assert.equal((await handleFantasy(request(path),e,denied)).status,403);
  assert.equal((await handleFantasy(request(path,{a:1}),e,owner)).status,405);
 });
+
+test('Club can close enrollment and server rejects new members by invitation, existing members retain access',async t=>{
+ const {env:e,sql}=env(t);
+ const existing=await fixtureLeague(e,'owner-uid',classic('enrollment-2026'));
+ const id=existing.league.id,path='/admin/leagues/'+id+'/inscriptions';
+ const old=await handleFantasy(request(path),e,owner);
+ assert.equal(old.status,200);
+ assert.equal((await old.json()).open,true);
+ const closed=await handleFantasy(request(path,{open:false,expectedOpen:true}),e,owner);
+ assert.equal(closed.status,200);
+ assert.equal((await closed.json()).open,false);
+ assert.equal((await handleFantasy(request(path,{open:true,expectedOpen:true}),e,owner)).status,409);
+ const join='/join',payload={code:existing.league.code,nickname:'Amigo'};
+ assert.equal((await handleFantasy(request(join,payload),e,{authorize:async()=> 'new-uid'})).status,403);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').get(id).n,1);
+ assert.equal((await handleFantasy(request(join,{code:existing.league.code,nickname:'Creador'}),e,owner)).status,200);
+ const outsider={authorize:async()=> 'new-uid',adminAuthorize:async()=>{throw Object.assign(Error('No club'),{status:403})}};
+ assert.equal((await handleFantasy(request(path),e,outsider)).status,403);
+ const reopened=await handleFantasy(request(path,{open:true,expectedOpen:false}),e,owner);
+ assert.equal(reopened.status,200);
+ assert.equal((await handleFantasy(request(join,payload),e,{authorize:async()=> 'new-uid'})).status,200);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').get(id).n,2);
+});

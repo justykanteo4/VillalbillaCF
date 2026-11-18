@@ -19,6 +19,9 @@ on:
       - 'FantasyLeagueReset.js'
       - 'fantasy-league-admin-history-schema.sql'
       - 'fantasy-point-history-schema.sql'
+      - 'fantasy-lineup-lock-schema.sql'
+      - 'FantasyLeagueManage.js'
+      - 'fantasy-game.mjs'
       - 'FantasyPointsSettings.js'
       - 'startup-screen-preference.cjs'
       - 'StartupScreenPreference.js'
@@ -137,6 +140,13 @@ jobs:
           test -s /tmp/fantasy-backup-before-photos.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-point-history-schema.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT COUNT(*) AS revisions FROM fantasy_point_history;"
+      - name: Enforce server-side Club lineup locks (after verified backup)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s /tmp/fantasy-backup-before-photos.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-lineup-lock-schema.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('fantasy_lineup_club_lock_insert','fantasy_lineup_club_lock_update');"
       - name: Create new leagues switch in D1 (preserve existing leagues)
         shell: bash
         run: |

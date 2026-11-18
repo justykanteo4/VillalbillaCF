@@ -4,7 +4,7 @@ const base='https://club.test/api/fantasy',owner={authorize:async()=> 'owner-uid
 const request=(path,body)=>new Request(base+path,{method:body?'POST':'GET',...(body?{body:JSON.stringify(body)}:{})});
 async function fixtureLeague(e,uid,value){const id=crypto.randomUUID(),teamId=value.teamId||value.pool?.teamId||'680163',settings=value.mode==='custom'?value.settings:policy.classicSettings;await e.CHAT_DB.batch([e.CHAT_DB.prepare('INSERT INTO fantasy_leagues VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,uid,value.requestId,'fixture',value.name,value.mode,JSON.stringify({type:'club'}),JSON.stringify(settings),crypto.randomUUID().replace(/[^A-HJ-NP-Z2-9]/g,'').padEnd(8,'A').slice(0,8),Date.parse('2026-11-13T12:00:00Z')),e.CHAT_DB.prepare('INSERT INTO fantasy_league_groups VALUES(?,?)').bind(id,teamId),e.CHAT_DB.prepare('INSERT INTO fantasy_members VALUES(?,?,?,?)').bind(id,uid,value.nickname,Date.parse('2026-11-13T12:00:00Z'))]);return (await handleFantasy(request('/leagues/'+id),e,{authorize:async()=>uid})).json()};
 const classic=(id='request-0001')=>({requestId:id,mode:'classic',name:'Liga Aficionado',nickname:'Creador',pool:{type:'team',teamId:'680163'}});
-function env(t){const sql=new DatabaseSync(':memory:');sql.exec(readFileSync('fantasy-schema.sql','utf8'));sql.exec(readFileSync('social-schema.sql','utf8'));sql.exec(readFileSync('fantasy-club-schema.sql','utf8'));sql.exec(readFileSync('fantasy-actas-schema.sql','utf8'));sql.exec(readFileSync('fantasy-access-schema.sql','utf8'));sql.exec(readFileSync('fantasy-game-schema.sql','utf8'));sql.exec(readFileSync('fantasy-rewards-schema.sql','utf8'));sql.exec(readFileSync('fantasy-auction-schema.sql','utf8'));sql.exec(readFileSync('fantasy-sales-schema.sql','utf8'));sql.exec(readFileSync('fantasy-resale-schema.sql','utf8'));sql.exec(readFileSync('fantasy-clause-schema.sql','utf8'));sql.exec(readFileSync('fantasy-manager-listings-schema.sql','utf8'));sql.exec(readFileSync('fantasy-player-positions-schema.sql','utf8'));sql.prepare('UPDATE fantasy_economy_policy SET settings_json=?').run(JSON.stringify({weeklyIncomeCents:200,fromWeek:0,prizesFromWeek:2967}));sql.prepare('UPDATE fantasy_salary_policy SET settings_json=?,revision=0').run(JSON.stringify({baseCents:null,voteCents:0,winCents:0,drawCents:0,extraTeamCents:0}));sql.exec("DROP TRIGGER IF EXISTS fantasy_roster_min;DROP TRIGGER IF EXISTS fantasy_roster_max;CREATE TRIGGER IF NOT EXISTS legacy_fixture_manager AFTER INSERT ON fantasy_members BEGIN INSERT OR IGNORE INTO fantasy_managers VALUES(NEW.league_id,NEW.uid,'legacy-fixture',1,1,1,1);END;");sql.exec('UPDATE fantasy_access_settings SET disabled=0');t.after(()=>sql.close());const prepare=(q,args=[])=>({bind:(...v)=>prepare(q,v),first:async()=>sql.prepare(q).get(...args),all:async()=>({results:sql.prepare(q).all(...args)}),run:()=>({meta:{changes:Number(sql.prepare(q).run(...args).changes)}})});return {sql,env:{CHAT_DB:{prepare,batch:async statements=>{sql.exec('BEGIN');try{const rows=[];for(const s of statements)rows.push(s.run());sql.exec('COMMIT');return rows}catch(e){sql.exec('ROLLBACK');throw e}}}}}}
+function env(t){const sql=new DatabaseSync(':memory:');sql.exec(readFileSync('fantasy-schema.sql','utf8'));sql.exec(readFileSync('social-schema.sql','utf8'));sql.exec(readFileSync('fantasy-club-schema.sql','utf8'));sql.exec(readFileSync('fantasy-actas-schema.sql','utf8'));sql.exec(readFileSync('fantasy-access-schema.sql','utf8'));sql.exec(readFileSync('fantasy-game-schema.sql','utf8'));sql.exec(readFileSync('fantasy-rewards-schema.sql','utf8'));sql.exec(readFileSync('fantasy-auction-schema.sql','utf8'));sql.exec(readFileSync('fantasy-sales-schema.sql','utf8'));sql.exec(readFileSync('fantasy-resale-schema.sql','utf8'));sql.exec(readFileSync('fantasy-clause-schema.sql','utf8'));sql.exec(readFileSync('fantasy-manager-listings-schema.sql','utf8'));sql.exec(readFileSync('fantasy-player-positions-schema.sql','utf8'));sql.exec(readFileSync('fantasy-stat-corrections-schema.sql','utf8'));sql.prepare('UPDATE fantasy_economy_policy SET settings_json=?').run(JSON.stringify({weeklyIncomeCents:200,fromWeek:0,prizesFromWeek:2967}));sql.prepare('UPDATE fantasy_salary_policy SET settings_json=?,revision=0').run(JSON.stringify({baseCents:null,voteCents:0,winCents:0,drawCents:0,extraTeamCents:0}));sql.exec("DROP TRIGGER IF EXISTS fantasy_roster_min;DROP TRIGGER IF EXISTS fantasy_roster_max;CREATE TRIGGER IF NOT EXISTS legacy_fixture_manager AFTER INSERT ON fantasy_members BEGIN INSERT OR IGNORE INTO fantasy_managers VALUES(NEW.league_id,NEW.uid,'legacy-fixture',1,1,1,1);END;");sql.exec('UPDATE fantasy_access_settings SET disabled=0');t.after(()=>sql.close());const prepare=(q,args=[])=>({bind:(...v)=>prepare(q,v),first:async()=>sql.prepare(q).get(...args),all:async()=>({results:sql.prepare(q).all(...args)}),run:()=>({meta:{changes:Number(sql.prepare(q).run(...args).changes)}})});return {sql,env:{CHAT_DB:{prepare,batch:async statements=>{sql.exec('BEGIN');try{const rows=[];for(const s of statements)rows.push(s.run());sql.exec('COMMIT');return rows}catch(e){sql.exec('ROLLBACK');throw e}}}}}}
 test('every Fantasy route requires authentication, and private preview is not cached',async()=>{assert.equal((await handleFantasy(request('/preview'),{})).status,401);for(const path of ['/leagues','/join','/leagues/fake/players'])assert.equal((await handleFantasy(request(path),{},{authorize:async()=>{throw Object.assign(Error('Solo admin'),{status:403})}})).status,403);const r=await handleFantasy(request('/preview'),{},owner);assert.equal(r.headers.get('Cache-Control'),'no-store');assert.deepEqual((await r.json()).rules.points,config.rules.points);assert.equal(await handleFantasy(new Request('https://club.test/api/news'),{}),null)});
 test('price criteria reward goals and wins; top players cost more, scope excludes other teams and data uncertainty is visible',()=>{const prices=policy.pricePlayers([{id:'a',name:'Top',goals:10,wins:7,played:9,cleanSheets:0,red:0},{id:'b',name:'Base',goals:0,wins:0,played:0,cleanSheets:0,red:0}]);assert(prices[0].price>prices[1].price);assert(prices[0].top);assert(prices.every(p=>p.price>=7.02&&p.price<=60.84));const team=catalog.teams.find(t=>t.id==='680163'),rows=policy.playersForPool(catalog,{type:'team',teamId:team.id});assert(rows.length>=11);assert(rows.every(p=>p.teams.every(t=>t.id===team.id)));assert(rows.some(p=>p.top));assert(rows.every(p=>typeof p.partial==='boolean'))});
 test('the 80 percent increase is preserved instead of reducing prices to fit the starting budget',()=>{const c={teams:[{id:'team',category:'Juvenil',players:Array.from({length:11},(_,i)=>({id:String(i),name:'Jugador '+i,goals:30,wins:30,played:30,cleanSheets:0,red:0,partial:false}))}]},p=policy.playersForPool(c,{type:'team',teamId:'team'});assert(p.reduce((n,v)=>n+v.price,0)>40);assert(p.every(p=>p.price>=7.02))});
@@ -193,4 +193,39 @@ test('puntuaciones Fantasy: solo club, revisión concurrente y cambios en todas 
  const fresh=(await join.json()).league;
  assert.equal(fresh.settings.points.goal,2);
  assert.equal(fresh.settings.points.mvp,2);
+});
+
+test('admin Fantasy player statistics persist, recalculate and protect concurrent revisions',async t=>{
+ const {env:e,sql}=env(t),admin={authorize:async()=> 'owner-uid',adminAuthorize:async()=> 'owner-uid'};
+ const get=path=>handleFantasy(request(path),e,admin);
+ const list=await get('/admin/player-stats');
+ assert.equal(list.status,200);
+ const matches=(await list.json()).matches;
+ assert(matches.length>0,'Bundled sports must include closed matches');
+ const match=matches.find(m=>m.players>0);
+ assert(match,'Need a closed match with players');
+ const path='/admin/player-stats?team='+match.teamId+'&match='+match.matchId;
+ const detail=await get(path),record=(await detail.json()).match;
+ assert.equal(detail.status,200);
+ const selected=record.players[0];
+ assert(selected,'Need a player');
+ const initial=selected.stats;
+ const stats={goals:initial.goals+1,assists:1,yellow:0,red:0,ownGoals:0,secondYellow:0};
+ const payload={teamId:match.teamId,matchId:match.matchId,playerId:selected.id,revision:0,stats};
+ const denied=await handleFantasy(request('/admin/player-stats',payload),e,{authorize:async()=> 'fan-uid',adminAuthorize:async()=>{throw Object.assign(Error('Solo club'),{status:403})}});
+ assert.equal(denied.status,403);
+ const updated=await handleFantasy(request('/admin/player-stats',payload),e,admin);
+ assert.equal(updated.status,200,JSON.stringify(await updated.clone().json()));
+ assert.equal((await updated.json()).revision,1);
+ assert.equal((await handleFantasy(request('/admin/player-stats',payload),e,admin)).status,409);
+ const after=(await (await get(path)).json()).match.players.find(p=>p.id===selected.id);
+ assert.equal(after.stats.goals,stats.goals);
+ assert.equal(after.stats.assists,1);
+ assert.equal(after.revision,1);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_stat_correction_history').get().n,1);
+ assert.equal(sql.prepare('SELECT actor_uid FROM fantasy_stat_correction_history').get().actor_uid,'owner-uid');
+ const {sports}=await import('./fantasy-game.mjs');
+ const edited=(await sports(e.CHAT_DB)).matches.find(m=>m.id===match.matchId&&m.teamId===match.teamId).players.find(p=>p.id===selected.id);
+ assert.equal(edited.goals,stats.goals);
+ assert.equal(edited.assists,1);
 });

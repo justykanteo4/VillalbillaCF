@@ -20,3 +20,12 @@ test('Los ajustes generales agrupan las opciones personales y las del Club',()=>
  assert.match(src,/Club · Administración y seguridad/);
  assert.match(src,/account\?\.status==='admin'/);
 });
+
+test('La publicación preparada incluye web, Android e iOS',()=>{
+ const src=fs.readFileSync('.github/workflows/fantasy-publish-main.yml','utf8');
+ assert.match(src,/expo export --platform all/);
+ assert.match(src,/expo export --platform web/);
+ assert.match(src,/Publish Android 0\.1\.13 runtime OTA/);
+ assert.match(src,/Publish iOS 0\.1\.13 runtime OTA/);
+ assert.match(src,/update --channel production --platform ios/);
+});

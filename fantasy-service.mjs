@@ -188,6 +188,21 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   ]);
   return reply({saved:true,id:newId,name,sourceId,code,onlyConfiguration:true},201);
  }
+ const lineupLockMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/lineup-lock$/);
+ if(lineupLockMatch){
+  if(!['GET','POST'].includes(request.method))throw fail('Método no permitido.',405);
+  const leagueId=lineupLockMatch[1],row=await db.prepare('SELECT settings_json FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
+  if(!row)throw fail('Liga no encontrada.',404);
+  const settings=JSON.parse(row.settings_json),locked=settings.lineupsLocked===true;
+  if(request.method==='GET')return reply({leagueId,locked});
+  const value=await body(request);
+  if(typeof value?.locked!=='boolean'||typeof value?.expectedLocked!=='boolean')throw fail('Indica el bloqueo y el estado consultado.');
+  if(value.expectedLocked!==locked)throw fail('El bloqueo ha cambiado. Actualiza.',409);
+  const next=JSON.stringify({...settings,lineupsLocked:value.locked});
+  const changed=await db.prepare('UPDATE fantasy_leagues SET settings_json=? WHERE id=? AND settings_json=? RETURNING id').bind(next,leagueId,row.settings_json).first();
+  if(!changed)throw fail('El bloqueo de la liga ha cambiado. Actualiza.',409);
+  return reply({leagueId,locked:value.locked,saved:true});
+ }
  const visibilityMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/visibility$/);
  if(visibilityMatch){
   if(!['GET','POST'].includes(request.method))throw fail('Método no permitido.',405);

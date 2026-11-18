@@ -67,7 +67,22 @@ export default function ClubResultEditor({account}){
    setHome(scoreDraft(result.fixture.homeScore));setAway(scoreDraft(result.fixture.awayScore));
    setFixtures(rows=>rows.map(row=>String(row.id)===String(match.id)?result.fixture:row));
    setNotice(restore?'Restaurado el resultado oficial.':'Resultado corregido. El cambio queda registrado en el historial.');
-  }catch(e){setError(e.message||'No se ha podido guardar el resultado. Actualiza e inténtalo de nuevo.')}
+  }catch(e){
+   const message=e.message||'No se ha podido guardar el resultado.';
+   if(/Otra persona ha cambiado el resultado/.test(message)){
+    try{
+     const latest=await editRequest(teamId,String(match.id));
+     setRevision(latest.revision);setHistory(latest.history||[]);
+     if(latest.edit){setHome(scoreDraft(latest.edit.homeScore));setAway(scoreDraft(latest.edit.awayScore))}
+     else{
+      const calendar=await api('/api/team-calendar?team='+encodeURIComponent(teamId),{cache:'reload'});
+      const fixture=calendar?.fixtures?.find(row=>String(row.id)===String(match.id));
+      if(fixture){setMatch(fixture);setHome(scoreDraft(fixture.homeScore));setAway(scoreDraft(fixture.awayScore))}
+     }
+     setError('Otra persona ha corregido este partido. Hemos cargado los últimos datos; revísalos antes de guardar.');
+    }catch{setError('Otra persona ha corregido este partido. Vuelve a la lista y abre el partido de nuevo.')}
+   }else setError(message);
+  }
   finally{saving.current=false;setBusy(false)}
  }
  if(!selectable.length)return <Text style={label}>No tienes equipos autorizados para corregir resultados.</Text>;

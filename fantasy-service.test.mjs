@@ -430,6 +430,18 @@ test('Club can pause, archive and restore a Fantasy league without deleting bala
  const revive=await handleFantasy(request(path,{state:'active',revision:2}),e,owner);
  assert.equal(revive.status,200,await revive.clone().text());
  assert.equal((await revive.json()).state,'active');
+ const timeline=await handleFantasy(request('/admin/leagues/history?league='+id),e,owner);
+ assert.equal(timeline.status,200);
+ const history=(await timeline.json()).events;
+ const changes=history.filter(event=>event.kind==='lifecycle');
+ assert.equal(changes.length,3);
+ assert.deepEqual(new Set(changes.map(event=>event.after.state)),new Set(['active','paused','archived']));
+ assert(changes.every(event=>event.actor==='owner-uid'));
+ const activity=await handleFantasy(request('/admin/activity'),e,owner);
+ assert.equal(activity.status,200);
+ assert((await activity.json()).events.some(event=>event.type==='lifecycle'&&event.scope===id));
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_league_lifecycle_events WHERE league_id=?').get(id).n,3);
+
  assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').get(id).n,1);
  assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_leagues WHERE id=?').get(id).n,1);
 });

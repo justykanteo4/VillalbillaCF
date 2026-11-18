@@ -157,10 +157,10 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(duplicateMatch){
   if(request.method!=='POST')throw fail('Método no permitido.',405);
   const sourceId=duplicateMatch[1],value=await body(request);
-  const name=typeof value?.name==='string'?value.name.trim().replace(/\\s+/g,' '):'';
-  const nickname=typeof value?.nickname==='string'?value.nickname.trim().replace(/\\s+/g,' '):'';
-  if(name.length<3||name.length>60||/[\\u0000-\\u001f\\u007f<>]/.test(name))throw fail('Nombre de liga no válido.');
-  if(nickname.length<2||nickname.length>32||/[\\u0000-\\u001f\\u007f<>]/.test(nickname))throw fail('Nombre de participante no válido.');
+  const name=typeof value?.name==='string'?value.name.trim().replace(/\s+/g,' '):'';
+  const nickname=typeof value?.nickname==='string'?value.nickname.trim().replace(/\s+/g,' '):'';
+  if(name.length<3||name.length>60||/[\u0000-\u001f\u007f<>]/.test(name))throw fail('Nombre de liga no válido.');
+  if(nickname.length<2||nickname.length>32||/[\u0000-\u001f\u007f<>]/.test(nickname))throw fail('Nombre de participante no válido.');
   if(!/^[a-zA-Z0-9_-]{8,80}$/.test(value?.requestId||''))throw fail('Solicitud de creación no válida.');
   const previous=await db.prepare('SELECT id,name FROM fantasy_leagues WHERE owner_uid=? AND request_id=?').bind(uid,value.requestId).first();
   if(previous)return reply({saved:true,alreadyCreated:true,id:previous.id,name:previous.name});

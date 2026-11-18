@@ -1,11 +1,11 @@
 {
-  "id": "2026.11.18.fantasy-intercambios",
+  "id": "2026.11.18.fantasy-intercambios-prestamos",
   "date": "2026-11-18",
-  "title": "Fantasy: intercambios entre equipos",
+  "title": "Intercambios y préstamos entre entrenadores",
   "changes": [
-    "Rivales permite proponer intercambios de un jugador por otro sin pagar dinero.",
-    "El otro entrenador puede aceptar o rechazar la propuesta y quien la envió puede cancelarla.",
-    "Las propuestas caducan a los siete días y el servidor comprueba que los jugadores siguen disponibles.",
-    "Los intercambios aceptados conservan las jornadas cerradas y actualizan los borradores de alineación."
+    "Rivales incorpora intercambios jugador por jugador, sujetos a aceptación del entrenador.",
+    "Se pueden ofrecer préstamos de 1 a 4 semanas con devolución automática del jugador al finalizar.",
+    "El prestador conserva una plaza reservada y el receptor debe mantener una plantilla válida para devolver el futbolista.",
+    "Los jugadores prestados no pueden venderse ni transferirse, y se conservan los puntos de jornadas cerradas."
   ]
 }

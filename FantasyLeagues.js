@@ -1,7 +1,8 @@
 import {observeFantasyPurchases} from './fantasy-purchase-events';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {createFantasyCache} from './fantasy-device-cache.cjs';
-const cachedFantasy=createFantasyCache({read:async key=>JSON.parse(await AsyncStorage.getItem(key)||'null'),save:async(key,data,savedAt=new Date().toISOString())=>AsyncStorage.setItem(key,JSON.stringify({data,savedAt}))});
+import {fantasyRefreshAge} from './fantasy-refresh-policy.cjs';
+const cachedFantasy=createFantasyCache({read:async key=>JSON.parse(await AsyncStorage.getItem(key)||'null'),save:async(key,data,savedAt=new Date().toISOString())=>AsyncStorage.setItem(key,JSON.stringify({data,savedAt})),maxAgeForPath:fantasyRefreshAge});
 import {auth} from './firebase';
 import {api} from './api';
 export async function fantasyRequest(path,options={}){

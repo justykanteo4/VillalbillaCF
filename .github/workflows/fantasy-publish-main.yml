@@ -53,6 +53,8 @@ jobs:
           node-version: '22.16.0'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Confirm all 77 settings before the combined publication
+        run: node scripts/check-77-release.cjs
       - name: Prepare public release data
         run: pnpm run prepare:release-data
       - name: Verify cache, business rules and release data

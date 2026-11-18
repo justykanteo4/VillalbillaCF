@@ -23,16 +23,16 @@ async function client(t,fetcher,entries=[]){
 const stale=data=>({savedAt:new Date(Date.now()-120000).toISOString(),data});
 const response=data=>({ok:true,json:async()=>data});
 
-test('muestra la copia antes de que responda la red, actualiza la pantalla y deduplica la consulta', {timeout:3000},async t=>{
+test('el recurso con caducidad corta muestra copia, actualiza y deduplica la consulta', {timeout:3000},async t=>{
  const network=deferred(),updated=deferred();let calls=0;
- const {api,copies}=await client(t,()=>{calls++;return network.promise},[['/api/news',stale({teams:[{id:'old'}]})]]);
- const first=await api('/api/news',{onUpdate:updated.resolve});
- const second=await api('/api/news');
+ const {api,copies}=await client(t,()=>{calls++;return network.promise},[['/api/notifications',stale({teams:[{id:'old'}]})]]);
+ const first=await api('/api/notifications',{onUpdate:updated.resolve});
+ const second=await api('/api/notifications');
  assert.equal(first.teams[0].id,'old');assert.equal(first.fromCache,true);assert.equal(second.teams[0].id,'old');assert.equal(calls,1);
  network.resolve(response({teams:[{id:'new'}]}));
  assert.equal((await updated.promise).teams[0].id,'new');
- assert.equal(copies.get('/api/news').data.teams[0].id,'new');
- assert.equal((await api('/api/news')).teams[0].id,'new');assert.equal(calls,1);
+ assert.equal(copies.get('/api/notifications').data.teams[0].id,'new');
+ assert.equal((await api('/api/notifications')).teams[0].id,'new');assert.equal(calls,1);
 });
 test('una recarga explícita y las actas en directo esperan el resultado nuevo',async t=>{
  const {api}=await client(t,async(_url,options)=>{assert.equal(options.cache,'no-store');return response({score:2})},[['/api/match?team=a&match=b',stale({score:1})]]);
@@ -54,14 +54,14 @@ test('no guarda ni reutiliza cuentas, permisos o respuestas de escritura',async 
  await api('/api/admin/users');await api('/api/push/subscription',{method:'POST',body:'{}'});
  assert.deepEqual(reads,[]);assert(!copies.has('/api/admin/users'));assert(!copies.has('/api/push/subscription'));
 });
-test('el fallo de actualización conserva los datos guardados y se comunica al consumidor', {timeout:3000},async t=>{
- const failed=deferred();const {api,copies}=await client(t,async()=>{throw Error('Sin red')},[['/api/standings?team=a',stale({rows:[{points:12}]})]]);
- assert.equal((await api('/api/standings?team=a',{onRefreshError:failed.resolve})).rows[0].points,12);
- assert.match((await failed.promise).message,/Sin red/);assert.equal(copies.get('/api/standings?team=a').data.rows[0].points,12);
+test('el fallo de actualización de un recurso con TTL conserva la copia y avisa', {timeout:3000},async t=>{
+ const failed=deferred();const {api,copies}=await client(t,async()=>{throw Error('Sin red')},[['/api/notifications',stale({rows:[{points:12}]})]]);
+ assert.equal((await api('/api/notifications',{onRefreshError:failed.resolve})).rows[0].points,12);
+ assert.match((await failed.promise).message,/Sin red/);assert.equal(copies.get('/api/notifications').data.rows[0].points,12);
 });
-test('si no hay manejador de error, la pantalla recibe la copia marcada como no actualizada', {timeout:3000},async t=>{
- const updated=deferred();const {api}=await client(t,async()=>{throw Error('Sin red')},[['/api/players?team=a',stale({players:[{id:'player'}]})]]);
- await api('/api/players?team=a',{onUpdate:updated.resolve});
+test('un recurso con TTL avisa de copia sin actualizar cuando falla la red', {timeout:3000},async t=>{
+ const updated=deferred();const {api}=await client(t,async()=>{throw Error('Sin red')},[['/api/notifications',stale({players:[{id:'player'}]})]]);
+ await api('/api/notifications',{onUpdate:updated.resolve});
  const value=await updated.promise;assert.equal(value.error,true);assert.equal(value.offline,true);assert.equal(value.players[0].id,'player');
 });
 test('Instagram limita a ocho tanto la copia anterior como lo que se guarda de la red', {timeout:3000},async t=>{

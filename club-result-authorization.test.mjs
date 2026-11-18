@@ -30,3 +30,19 @@ test('usuario pendiente o jugador no puede editar y un fallo de consulta bloquea
  }
  await assert.rejects(authorizeClubResultEditor(headers(),{},'680163',{admin:rejectAdmin,user,loadProfile:async()=>{throw Object.assign(Error('Sin acceso Firestore'),{status:503})}}),e=>e.status===503);
 });
+
+test('permisos deportivos por capacidad: editor solo puede modificar lo autorizado',async()=>{
+ const deps={admin:rejectAdmin,user,loadProfile:async()=>account('editor',[],{editorPermissions:['goals','mvp']})};
+ for(const capability of ['goals','mvp'])assert.equal((await authorizeClubResultEditor(headers(),{},'680163',{...deps,capability})).role,'editor');
+ for(const capability of ['results','assists','cards','calendar','news'])await assert.rejects(
+  authorizeClubResultEditor(headers(),{},'680163',{...deps,capability}),e=>e.status===403);
+});
+test('entrenador: sus equipos, goles, asistencias, tarjetas y MVP; nunca noticias ni calendario',async()=>{
+ const deps={admin:rejectAdmin,user,loadProfile:async()=>account('trainer',['680163'])};
+ for(const capability of ['results','goals','assists','cards','mvp']){
+  assert.equal((await authorizeClubResultEditor(headers(),{},'680163',{...deps,capability})).role,'trainer');
+  await assert.rejects(authorizeClubResultEditor(headers(),{},'999',{...deps,capability}),e=>e.status===403);
+ }
+ for(const capability of ['calendar','news','unknown'])await assert.rejects(
+  authorizeClubResultEditor(headers(),{},'680163',{...deps,capability}),e=>e.status===403);
+});

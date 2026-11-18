@@ -1,4 +1,4 @@
-import {test} from 'node:test';import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';import {readFileSync} from 'node:fs';import {handleFantasy as realFantasy} from './fantasy-service.mjs';import config from './fantasy-config.cjs';import policy from './fantasy-leagues.cjs';import catalog from './fantasy-players.json' with {type:'json'};
+import {test} from 'node:test';import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';import {readFileSync} from 'node:fs';import {handleFantasy as realFantasy} from './fantasy-service.mjs';import {leagueStandings} from './fantasy-game.mjs';import config from './fantasy-config.cjs';import policy from './fantasy-leagues.cjs';import catalog from './fantasy-players.json' with {type:'json'};
 const handleFantasy=(r,e,d={})=>realFantasy(r,e,{getTeams:async()=>['680163'],adminAuthorize:d.authorize|| (async()=>{throw Object.assign(Error('No admin'),{status:403})}),...d});
 const base='https://club.test/api/fantasy',owner={authorize:async()=> 'owner-uid'},other={authorize:async()=> 'second-uid'};
 const request=(path,body)=>new Request(base+path,{method:body?'POST':'GET',...(body?{body:JSON.stringify(body)}:{})});
@@ -575,4 +575,41 @@ test('cada equipo puede ocultar su foto en Rivales y Clasificación sin borrar s
  const rejected=await handleFantasy(request(privacy,{visible:false,revision:2}),e,{authorize:async()=> 'intruder-uid'});
  assert.notEqual(rejected.status,200);
  assert.equal((await handleFantasy(request(privacy,{visible:'false',revision:2}),e,owner)).status,400);
+});
+
+test('Jornadas especiales: solo Club activa x2 antes del partido, sin duplicar premios',async t=>{
+ const {env:e,sql}=env(t);
+ const created=await fixtureLeague(e,'owner-uid',classic('double-round-2028'));
+ const id=created.league.id,start=Date.parse('2028-01-10T16:00:00Z');
+ const week=Math.floor((Math.floor(start/86400000)+3)/7);
+ const source={id:'round-x2-test',teamId:'680163',week,startsAt:start,round:77};
+ sql.prepare('INSERT OR REPLACE INTO fantasy_live_schedule VALUES(1,?)').run(JSON.stringify([source]));
+ const path='/admin/leagues/'+id+'/special-rounds';
+ const before={authorize:async()=> 'owner-uid',clock:()=>Date.parse('2028-01-03T10:00:00Z')};
+ const outsider={authorize:async()=> 'guest',adminAuthorize:async()=>{throw Object.assign(Error('No club'),{status:403})},clock:before.clock};
+ assert.equal((await handleFantasy(request(path),e,outsider)).status,403);
+ const list=await handleFantasy(request(path),e,before);
+ assert.equal(list.status,200,await list.clone().text());
+ const first=(await list.json()).weeks.find(r=>r.week===week);
+ assert.equal(first.round,77);
+ assert.equal(first.multiplier,1);
+ assert.equal(first.revision,0);
+ assert.equal(first.editable,true);
+ assert.equal((await handleFantasy(request(path,{week,multiplier:3,revision:0}),e,before)).status,400);
+ assert.equal((await handleFantasy(request(path,{week:week+1,multiplier:2,revision:0}),e,before)).status,404);
+ const changed=await handleFantasy(request(path,{week,multiplier:2,revision:0}),e,before);
+ assert.equal(changed.status,200,await changed.clone().text());
+ assert.equal((await changed.json()).revision,1);
+ assert.equal((await handleFantasy(request(path,{week,multiplier:1,revision:0}),e,before)).status,409);
+ assert.equal((await handleFantasy(request(path,{week,multiplier:1,revision:1}),e,{...before,clock:()=>start+1})).status,409);
+ const ids=catalog.teams.find(t=>t.id==='680163').players.slice(0,11).map(p=>p.id);
+ assert.equal(ids.length,11);
+ sql.prepare('INSERT INTO fantasy_lineups VALUES(?,?,?,?,?,?,?,?,?)').run(id,'owner-uid',week,JSON.stringify(ids),ids[0],'test-coach',start,start-86400000,1);
+ const players=ids.map(id=>({id,played:1,draw:true,win:false,goals:0,yellow:0,red:0,partial:false}));
+ const snapshot={sports:{updatedAt:'2028-01-10T18:00:00Z',schedule:[source],matches:[{...source,closed:true,eligibleAt:start,players,coaches:[]}]},awards:[]};
+ const league={id,createdAt:Date.parse('2026-11-13T12:00:00Z'),settings:policy.classicSettings};
+ const result=await leagueStandings(e.CHAT_DB,league,start+86400000,snapshot);
+ const points=result.rows.find(row=>row.uid==='owner-uid').rounds.find(row=>row.week===week).points;
+ assert.equal(points,120,'once titular de 60 puntos debe sumar 120 en la jornada doble');
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_prize_events WHERE league_id=?').get(id).n,0);
 });

@@ -4,7 +4,7 @@ import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
 
 // Only administrators can open this UI; the server independently verifies the role.
 export default function FantasyLeagueManage({request}){
- const [list,setList]=useState(null),[current,setCurrent]=useState(null),[history,setHistory]=useState(null),[inscriptions,setInscriptions]=useState(null);
+ const [list,setList]=useState(null),[current,setCurrent]=useState(null),[history,setHistory]=useState(null),[inscriptions,setInscriptions]=useState(null),[visibility,setVisibility]=useState(null);
  const [name,setName]=useState(''),[limit,setLimit]=useState('');
  const [copyOpen,setCopyOpen]=useState(false),[copyName,setCopyName]=useState(''),[copyNickname,setCopyNickname]=useState('');
  const requestId=useRef(null);
@@ -17,11 +17,12 @@ export default function FantasyLeagueManage({request}){
  }
  async function load(){await run(async()=>{const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);setNotice('')})}
  async function choose(id){await run(async()=>{
-  const [result,enrollment]=await Promise.all([
+  const [result,enrollment,appearance]=await Promise.all([
    request('/admin/leagues/'+encodeURIComponent(id)+'/settings',{cache:'reload'}),
-   request('/admin/leagues/'+encodeURIComponent(id)+'/inscriptions',{cache:'reload'})
+   request('/admin/leagues/'+encodeURIComponent(id)+'/inscriptions',{cache:'reload'}),
+   request('/admin/leagues/'+encodeURIComponent(id)+'/visibility',{cache:'reload'})
   ]);
-  setInscriptions(enrollment);setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);setCopyOpen(false);setCopyName(result.name+' - copia');setCopyNickname('Club');requestId.current=null;
+  setInscriptions(enrollment);setVisibility(appearance);setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);setCopyOpen(false);setCopyName(result.name+' - copia');setCopyNickname('Club');requestId.current=null;
  })}
  async function save(){if(!current||lock.current)return;await run(async()=>{
   const next=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/settings',{
@@ -31,6 +32,16 @@ export default function FantasyLeagueManage({request}){
   setNotice('Nombre y límite guardados. Las plantillas y los saldos no se han modificado.');setHistory(null);
   const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);
  })}
+ async function changeVisibility(isPublic){
+  if(!current||!visibility||lock.current)return;
+  await run(async()=>{
+   const result=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/visibility',{
+    method:'POST',body:JSON.stringify({public:isPublic,expectedPublic:visibility.public})
+   });
+   setVisibility(result);
+   setNotice(isPublic?'Liga pública: los compañeros autorizados de este equipo podrán encontrarla.':'Liga privada: solo se podrá entrar mediante invitación.');
+  });
+ }
  async function changeInscriptions(open){
   if(!current||!inscriptions||lock.current)return;
   await run(async()=>{
@@ -70,6 +81,11 @@ export default function FantasyLeagueManage({request}){
    <Text style={{...text,color:theme.muted}}>Inscritos actualmente: {current.memberCount}. Nunca se expulsará a nadie por cambiar el límite.</Text>
    {current.mode==='classic'&&<Text style={{...text,color:theme.muted}}>Liga clásica: límite fijo; puedes cambiar el nombre.</Text>}
    <Button disabled={busy||!valid} onPress={save}>{busy?'Guardando…':'Guardar cambios de liga'}</Button>
+   {visibility?.editable&&<View style={{gap:8,padding:10,borderRadius:10,borderWidth:1,borderColor:theme.border}}>
+    <Text style={{...text,fontWeight:'800'}}>Privacidad · {visibility.public?'Pública para compañeros':'Privada por invitación'}</Text>
+    <Text style={{...text,color:theme.muted}}>Pública: únicamente visible a los compañeros verificados del equipo. Privada: no aparece entre las ligas disponibles y se requiere un código.</Text>
+    <Button secondary disabled={busy} onPress={()=>changeVisibility(!visibility.public)}>{visibility.public?'Hacer liga privada':'Hacer liga pública'}</Button>
+   </View>}
    {inscriptions&&<View style={{gap:8,padding:10,borderRadius:10,borderWidth:1,borderColor:theme.border}}>
     <Text style={{...text,fontWeight:'800'}}>Inscripciones · {inscriptions.open?'Abiertas':'Cerradas'}</Text>
     <Text style={{...text,color:theme.muted}}>Cerrar impide que entren nuevos participantes, incluso con código de invitación. Los miembros actuales siguen jugando.</Text>

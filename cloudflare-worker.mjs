@@ -4,6 +4,7 @@ import {ingestFantasyReport} from './fantasy-report-points.mjs';
 import {handleFantasyPositions} from './fantasy-player-positions.mjs';
 import {handleMatchTaskStatus} from './admin-match-task-service.mjs';
 import {handleResultEdits,overlayResultEdits} from './result-edits-service.mjs';
+import {handleClubMvp} from './club-mvp-service.mjs';
 import {scheduledWeeklyPrizes} from './fantasy-weekly-prizes.mjs';
 import {scheduledFantasy,syncFantasySports} from './fantasy-jobs.mjs';
 import {handleFantasy} from './fantasy-service.mjs';
@@ -147,6 +148,7 @@ export default {
     const fantasyPositionResponse=await handleFantasyPositions(request,env);if(fantasyPositionResponse)return fantasyPositionResponse;
     const taskStatusResponse=await handleMatchTaskStatus(request,env);if(taskStatusResponse)return taskStatusResponse;
     const resultEditResponse=await handleResultEdits(request,env);if(resultEditResponse)return resultEditResponse;
+    const clubMvpResponse=await handleClubMvp(request,env,{ctx});if(clubMvpResponse)return clubMvpResponse;
     const fantasyResponse=await handleFantasy(request,env,{ctx});if(fantasyResponse)return fantasyResponse;
     const privateSanctions=await handlePrivateSanctions(request,env,ctx);if(privateSanctions)return privateSanctions;
     const keeperAdjustmentResponse=await handleKeeperAdjustments(request,env);if(keeperAdjustmentResponse)return keeperAdjustmentResponse;

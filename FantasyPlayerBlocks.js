@@ -26,7 +26,7 @@ export default function FantasyPlayerBlocks({request}){
    await request(endpoint(league.id),{method:'POST',body:JSON.stringify({playerId:player.id,blocked:!old,expectedBlocked:old})});
    const updated=await request(endpoint(league.id),{cache:'reload'});
    setBlocked(updated.blocked||[]);
-   setNotice(old?'Jugador desbloqueado para nuevos fichajes.':'Nuevos fichajes bloqueados. No se elimina a quienes ya lo tienen.');
+   setNotice(old?'Jugador desbloqueado para nuevos fichajes.':'Jugador bloqueado para nuevos fichajes. Las pujas y ofertas pendientes se cancelan y liberan el dinero reservado.');
   });
  }
  const results=query.trim().length>=2?players.filter(player=>matchesPersonQuery(player.name+' '+player.team,query.trim())).slice(0,25):[];

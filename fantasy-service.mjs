@@ -1,3 +1,4 @@
+import {listSeasonArchives,archiveFantasySeason} from './fantasy-seasons.mjs';
 import {loanRoute} from './fantasy-loans.mjs';
 import {exchangeRoute} from './fantasy-exchanges.mjs';
 import identity from './fantasy-team-identity.cjs';
@@ -145,6 +146,16 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(!['GET','POST'].includes(request.method))return reply({error:'Método no permitido.'},405);
  if(!db)throw fail('No se pudo conectar con las ligas.',503);
  if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ const seasonAdminMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/seasons$/);
+ if(seasonAdminMatch){
+  const leagueId=seasonAdminMatch[1];
+  const exists=await db.prepare('SELECT 1 FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
+  if(!exists)throw fail('Liga no encontrada.',404);
+  if(request.method==='GET')return reply(await listSeasonArchives(db,leagueId));
+  if(request.method!=='POST')throw fail('Método no permitido.',405);
+  const value=await body(request);
+  return reply(await archiveFantasySeason({db,leagueId,season:value?.season,confirmation:value?.confirmation,actorUid:uid,now:currentTime}));
+ }
  const specialRoundsMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/special-rounds$/);
  if(specialRoundsMatch){
   const leagueId=specialRoundsMatch[1];
@@ -690,6 +701,13 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   }
   const rivals=[...grouped.values()].map(rival=>({...rival,players:rival.players.sort((a,b)=>(b.fantasyPoints||0)-(a.fantasyPoints||0)||a.name.localeCompare(b.name,'es'))}));
   return reply({rivals,clausesEnabled:data.league.settings.clausesEnabled===true});
+ }
+ const seasonPublicMatch=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/seasons$/);
+ if(seasonPublicMatch){
+  if(request.method!=='GET')throw fail('Método no permitido.',405);
+  const data=await detail(db,seasonPublicMatch[1],uid,currentTime,await allowedTeams());
+  await ensureManager(db,data.league,uid);
+  return reply(await listSeasonArchives(db,data.league.id));
  }
  const game=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(squad|coaches|coach|presentation|search|favourites|alerts|lineup|table|transactions)$/);if(game){const data=await detail(db,game[1],uid,currentTime,await allowedTeams());return reply(await gameRoute({db,league:data.league,uid,now:currentTime,action:game[2],getNow:clock,targetNext:url.searchParams.get('next')==='1',method:request.method,readBody:()=>body(request),players:['table','alerts','presentation','coaches'].includes(game[2])?[]:await prices(db,data.league.pool,data.league.settings.points)}))}
  const clause=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(clause(?:\/boost)?)$/);

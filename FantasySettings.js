@@ -6,6 +6,7 @@ import FantasyUserSettings from './FantasyUserSettings';
 import FantasyGameSettings from './FantasyGameSettings';
 import FantasyLeagueCreationSettings from './FantasyLeagueCreationSettings';
 import FantasyLeagueReset from './FantasyLeagueReset';
+import FantasyLeagueManage from './FantasyLeagueManage';
 import FantasyClauseSettings from './FantasyClauseSettings';
 import FantasyAdminTransfer from './FantasyAdminTransfer';
 import FantasyPointsSettings from './FantasyPointsSettings';
@@ -27,8 +28,9 @@ export default function FantasySettings({request,onBack,account}){
    <FantasyAccessSettings request={request}/>
    <FantasyUserSettings request={request}/>
   </SettingsGroup>}
-  {isAdmin&&matches("Ligas crear reiniciar clausulas temporadas equipos plazas inscripciones")&&<SettingsGroup key={"leagues:"+term} initiallyOpen={!!term} title="Club · Ligas y competición" subtitle="Crear y reiniciar ligas">
+  {isAdmin&&matches("Ligas crear reiniciar nombres cambiar nombre limite participantes temporadas equipos plazas inscripciones")&&<SettingsGroup key={"leagues:"+term} initiallyOpen={!!term} title="Club · Ligas y competición" subtitle="Crear y reiniciar ligas">
    <FantasyLeagueCreationSettings request={request}/>
+   <FantasyLeagueManage request={request}/>
    <FantasyLeagueReset request={request}/>
   </SettingsGroup>}
   {isAdmin&&matches("Puntuaciones puntos goles asistencias tarjetas actas estadisticas victoria empate derrota MVP")&&<SettingsGroup key={"points:"+term} initiallyOpen={!!term} title="Club · Puntuaciones y premios" subtitle="Reglas, estadísticas y MVP">

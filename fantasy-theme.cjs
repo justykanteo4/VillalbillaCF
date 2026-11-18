@@ -1,3 +1,4 @@
-// Mantener la paleta predeterminada actual mientras se integran los tres modos.
+// Paleta mutable compartida por las pantallas Fantasy.
+// Las constantes originales de la política son inmutables.
 const {DARK}=require('./fantasy-theme-modes.cjs');
-module.exports=DARK;
+module.exports={...DARK};

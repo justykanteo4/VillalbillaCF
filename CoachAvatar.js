@@ -15,5 +15,13 @@ export default function CoachAvatar({account,teamId}){
  const hasOfficial=failedOfficial?null:official||federationPhoto;
  useEffect(()=>{let active=true;sm(null);AsyncStorage.getItem(key).then(value=>{if(active)sm(value)}).catch(()=>{});return()=>{active=false}},[key]);
  async function choose(){try{const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:true,aspect:[1,1],quality:.8});if(result.canceled)return;const asset=result.assets?.[0];if(!asset?.uri)throw Error();const image=await ImageManipulator.manipulateAsync(asset.uri,[{resize:{width:256}}],{compress:.7,format:ImageManipulator.SaveFormat.JPEG,base64:true});if(!image.base64)throw Error();const value='data:image/jpeg;base64,'+image.base64;await AsyncStorage.setItem(key,value);sm(value);se('')}catch{se('No se pudo guardar la foto.')}}
- return <View style={{alignItems:'center',gap:3}}><Pressable accessibilityRole="button" accessibilityLabel={hasOfficial?'Foto de la ficha del entrenador':'Añadir o cambiar foto del entrenador'} onPress={hasOfficial?undefined:choose} disabled={!!hasOfficial}><PlayerPortrait playerId={detected} name={name} photo={hasOfficial||manual} onPhotoError={()=>sfFailed(true)} disableLookup size={42}/>{!hasOfficial&&!manual&&<Text style={{color:'#91adff',fontSize:9}}>+ Foto</Text>}</Pressable>{!!error&&<Text style={{color:'#ffc1c9',fontSize:9,maxWidth:100}}>{error}</Text>}</View>;
+ async function remove(){try{await AsyncStorage.removeItem(key);sm(null);se('')}catch{se('No se pudo quitar la foto.')}}
+ return <View style={{alignItems:'center',gap:3}}>
+  <Pressable accessibilityRole="button" accessibilityLabel="Añadir o cambiar foto del entrenador" onPress={choose}>
+   <PlayerPortrait playerId={detected} name={name} photo={manual||hasOfficial} onPhotoError={()=>sfFailed(true)} disableLookup size={42}/>
+   <Text style={{color:'#91adff',fontSize:9,textAlign:'center'}}>{manual||hasOfficial?'Cambiar foto':'+ Foto'}</Text>
+  </Pressable>
+  {!!manual&&<Pressable accessibilityRole="button" accessibilityLabel="Quitar foto personalizada del entrenador" onPress={remove}><Text style={{color:'#aab8cb',fontSize:9}}>Quitar</Text></Pressable>}
+  {!!error&&<Text style={{color:'#ffc1c9',fontSize:9,maxWidth:100}}>{error}</Text>}
+ </View>;
 }

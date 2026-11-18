@@ -138,6 +138,13 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
    const leagues=await db.prepare('SELECT id,name,created_at FROM fantasy_leagues ORDER BY name,id').all();
    return reply({leagues:leagues.results});
  }
+ if(path==='/api/fantasy/admin/leagues/history'){
+  if(request.method!=='GET')throw fail('Método no permitido.',405);
+  const leagueId=url.searchParams.get('league');
+  if(!/^[a-zA-Z0-9-]{1,80}$/.test(leagueId||''))throw fail('Liga no válida.');
+  const events=await db.prepare('SELECT actor_uid AS actor,kind,before_json AS beforeJson,after_json AS afterJson,created_at AS createdAt FROM fantasy_league_admin_events WHERE league_id=? ORDER BY created_at DESC,id DESC LIMIT 50').bind(leagueId).all();
+  return reply({events:events.results.map(event=>({...event,before:JSON.parse(event.beforeJson),after:JSON.parse(event.afterJson),beforeJson:undefined,afterJson:undefined}))});
+ }
  const leagueSettingsMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/settings$/);
  if(leagueSettingsMatch){
   const leagueId=leagueSettingsMatch[1];
@@ -158,9 +165,16 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   if(value.expectedName!==row.name||value.expectedMaxMembers!==settings.maxMembers)throw fail('La liga ha cambiado. Actualiza antes de guardar.',409);
   if(name===row.name&&limit===settings.maxMembers)return reply({...payload,saved:true});
   const next=JSON.stringify({...settings,maxMembers:limit});
-  const updated=await db.prepare('UPDATE fantasy_leagues SET name=?,settings_json=? WHERE id=? AND name=? AND settings_json=? AND (SELECT COUNT(*) FROM fantasy_members WHERE league_id=?)<=? RETURNING id')
-    .bind(name,next,leagueId,row.name,row.settings_json,leagueId,limit).first();
-  if(!updated)throw fail('La liga o sus participantes han cambiado. Actualiza antes de guardar.',409);
+  const auditId=crypto.randomUUID();
+  const results=await db.batch([
+    db.prepare('UPDATE fantasy_leagues SET name=?,settings_json=? WHERE id=? AND name=? AND settings_json=? AND (SELECT COUNT(*) FROM fantasy_members WHERE league_id=?)<=?')
+      .bind(name,next,leagueId,row.name,row.settings_json,leagueId,limit),
+    // changes() is the affected-row count of the immediately previous statement in this D1 batch.
+    // Audit and update commit together; stale writes never create history entries.
+    db.prepare("INSERT INTO fantasy_league_admin_events(id,league_id,actor_uid,kind,before_json,after_json,created_at) SELECT ?,?,?,?,?,?,? WHERE changes()=1")
+      .bind(auditId,leagueId,uid,'settings',JSON.stringify({name:row.name,maxMembers:settings.maxMembers}),JSON.stringify({name,maxMembers:limit}),currentTime),
+  ]);
+  if(results[0]?.meta?.changes!==1)throw fail('La liga o sus participantes han cambiado. Actualiza antes de guardar.',409);
   return reply({id:leagueId,name,maxMembers:limit,memberCount:members,mode:row.mode,saved:true});
  }
  const transferMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/transfer$/);

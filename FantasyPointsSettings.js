@@ -5,7 +5,7 @@ import {Button,ErrorText,text,panel,theme} from './FantasyUI';
 
 const editable=ruleFields.filter(r=>!['captain','idealXI'].includes(r.key));
 export default function FantasyPointsSettings({request}){
- const [values,setValues]=useState(null),[original,setOriginal]=useState(null),[revision,setRevision]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ const [values,setValues]=useState(null),[original,setOriginal]=useState(null),[revision,setRevision]=useState(0),[history,setHistory]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const lock=useRef(false),active=useRef(true);
  useEffect(()=>{active.current=true;load();return()=>{active.current=false}},[]);
  async function load(){
@@ -15,6 +15,13 @@ export default function FantasyPointsSettings({request}){
    if(active.current){setValues(Object.fromEntries(editable.map(r=>[r.key,String(data.points[r.key])])));setOriginal(data.points);setRevision(data.revision)}
   }catch(e){if(active.current)setError(e.message||'No se pudieron cargar los puntos.')}
   finally{if(active.current)setBusy(false)}
+ }
+ async function loadHistory(){
+  if(lock.current)return;
+  lock.current=true;setBusy(true);setError('');
+  try{const result=await request('/admin/points/history',{cache:'reload'});if(active.current)setHistory(result.history||[])}
+  catch(e){if(active.current)setError(e.message||'No se pudo cargar el historial.')}
+  finally{lock.current=false;if(active.current)setBusy(false)}
  }
  const parsed=values&&Object.fromEntries(editable.map(r=>[r.key,Number(values[r.key])]));
  const valid=!!values&&editable.every(r=>/^-?\d+$/.test(values[r.key]?.trim()||'')&&Number.isInteger(parsed[r.key])&&parsed[r.key]>=-20&&parsed[r.key]<=20);
@@ -37,6 +44,13 @@ export default function FantasyPointsSettings({request}){
   <Text style={{...text,fontSize:12,color:theme.muted}}>Valores enteros de −20 a +20. El capitán sigue multiplicando ×2. El once ideal premia en dinero.</Text>
   <Button onPress={save} disabled={busy||!changed}>{busy?'Guardando…':'Guardar puntuaciones'}</Button>
   <Button secondary disabled={busy} onPress={load}>Restaurar valores actuales</Button>
+  <Button secondary disabled={busy} onPress={loadHistory}>Ver historial de puntuaciones</Button>
+  {history?.length===0&&<Text style={{...text,color:theme.muted}}>Todavía no hay cambios registrados.</Text>}
+  {history?.map(item=><View key={item.revision} style={{padding:10,borderTopWidth:1,borderColor:theme.border,gap:5}}>
+    <Text style={{...text,fontWeight:'800'}}>Revisión {item.revision} · {new Date(item.createdAt).toLocaleString('es-ES')}</Text>
+    <Text style={{...text,color:theme.muted}}>Modificado por {item.actor}</Text>
+    {editable.filter(field=>item.before?.[field.key]!==item.after?.[field.key]).map(field=><Text key={field.key} style={text}>{field.label}: {item.before?.[field.key]} → {item.after?.[field.key]}</Text>)}
+  </View>)}
   <ErrorText>{error}</ErrorText>
   {!!notice&&<Text style={{...text,color:theme.accent}}>{notice}</Text>}
  </View>;

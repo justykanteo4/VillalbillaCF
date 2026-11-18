@@ -4,7 +4,7 @@ import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
 
 // Only administrators can open this UI; the server independently verifies the role.
 export default function FantasyLeagueManage({request}){
- const [list,setList]=useState(null),[current,setCurrent]=useState(null),[history,setHistory]=useState(null);
+ const [list,setList]=useState(null),[current,setCurrent]=useState(null),[history,setHistory]=useState(null),[inscriptions,setInscriptions]=useState(null);
  const [name,setName]=useState(''),[limit,setLimit]=useState('');
  const [copyOpen,setCopyOpen]=useState(false),[copyName,setCopyName]=useState(''),[copyNickname,setCopyNickname]=useState('');
  const requestId=useRef(null);
@@ -17,8 +17,11 @@ export default function FantasyLeagueManage({request}){
  }
  async function load(){await run(async()=>{const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);setNotice('')})}
  async function choose(id){await run(async()=>{
-  const result=await request('/admin/leagues/'+encodeURIComponent(id)+'/settings',{cache:'reload'});
-  setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);setCopyOpen(false);setCopyName(result.name+' - copia');setCopyNickname('Club');requestId.current=null;
+  const [result,enrollment]=await Promise.all([
+   request('/admin/leagues/'+encodeURIComponent(id)+'/settings',{cache:'reload'}),
+   request('/admin/leagues/'+encodeURIComponent(id)+'/inscriptions',{cache:'reload'})
+  ]);
+  setInscriptions(enrollment);setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);setCopyOpen(false);setCopyName(result.name+' - copia');setCopyNickname('Club');requestId.current=null;
  })}
  async function save(){if(!current||lock.current)return;await run(async()=>{
   const next=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/settings',{
@@ -28,6 +31,16 @@ export default function FantasyLeagueManage({request}){
   setNotice('Nombre y límite guardados. Las plantillas y los saldos no se han modificado.');setHistory(null);
   const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);
  })}
+ async function changeInscriptions(open){
+  if(!current||!inscriptions||lock.current)return;
+  await run(async()=>{
+   const changed=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/inscriptions',{
+    method:'POST',body:JSON.stringify({open,expectedOpen:inscriptions.open})
+   });
+   setInscriptions(changed);
+   setNotice(open?'Inscripciones abiertas: nuevos participantes pueden entrar.':'Inscripciones cerradas: los participantes actuales conservan su acceso.');
+  });
+ }
  async function duplicate(){
   if(!current||lock.current||copyName.trim().length<3||copyName.trim().length>60||copyNickname.trim().length<2||copyNickname.trim().length>32)return;
   if(!requestId.current)requestId.current='copy-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);
@@ -57,6 +70,11 @@ export default function FantasyLeagueManage({request}){
    <Text style={{...text,color:theme.muted}}>Inscritos actualmente: {current.memberCount}. Nunca se expulsará a nadie por cambiar el límite.</Text>
    {current.mode==='classic'&&<Text style={{...text,color:theme.muted}}>Liga clásica: límite fijo; puedes cambiar el nombre.</Text>}
    <Button disabled={busy||!valid} onPress={save}>{busy?'Guardando…':'Guardar cambios de liga'}</Button>
+   {inscriptions&&<View style={{gap:8,padding:10,borderRadius:10,borderWidth:1,borderColor:theme.border}}>
+    <Text style={{...text,fontWeight:'800'}}>Inscripciones · {inscriptions.open?'Abiertas':'Cerradas'}</Text>
+    <Text style={{...text,color:theme.muted}}>Cerrar impide que entren nuevos participantes, incluso con código de invitación. Los miembros actuales siguen jugando.</Text>
+    <Button secondary disabled={busy} onPress={()=>changeInscriptions(!inscriptions.open)}>{inscriptions.open?'Cerrar inscripciones':'Abrir inscripciones'}</Button>
+   </View>}
    <Button secondary disabled={busy} onPress={loadHistory}>Ver historial de cambios</Button>
    <Button secondary disabled={busy} onPress={()=>setCopyOpen(old=>!old)}>{copyOpen?'Cancelar duplicación':'Duplicar configuración en otra liga'}</Button>
    {copyOpen&&<View style={{gap:9,padding:12,borderRadius:9,borderWidth:1,borderColor:theme.border}}>

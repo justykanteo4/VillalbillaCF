@@ -21,7 +21,7 @@ export async function handleClubMvp(request,env,{authorize=authorizeClubResultEd
    await authorizeAdmin(request,env);
    const db=env.CHAT_DB;if(!db)throw fail('Historial no disponible.',503);
    const exists=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='club_mvp_audit'").first();
-   const history=exists?(await db.prepare('SELECT * FROM club_mvp_audit ORDER BY created_at DESC LIMIT 100').all()).results:[];
+   const history=exists?(await db.prepare('SELECT * FROM club_mvp_audit ORDER BY new_revision DESC, created_at DESC LIMIT 100').all()).results:[];
    return reply({history,limit:100});
   }
   if(request.method!=='GET'&&request.method!=='POST')throw fail('Método no permitido.',405);

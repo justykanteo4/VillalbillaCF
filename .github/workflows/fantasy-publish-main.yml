@@ -61,8 +61,9 @@ jobs:
           node-version: '22.16.0'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Confirm all 77 settings before the combined publication
-        run: node scripts/check-77-release.cjs
+      # Partial release explicitly requested by the Club. Do not claim the 77 options are complete.
+      - name: Verify the 77-feature inventory without certifying incomplete items
+        run: node --test settings-upgrade-catalog.test.cjs
       - name: Prepare public release data
         run: pnpm run prepare:release-data
       - name: Verify cache, business rules and release data

@@ -37,6 +37,8 @@ jobs:
           node-version: '22.16.0'
           cache: pnpm
       - run: pnpm install --no-frozen-lockfile
+      - name: Recreate release data and verify weekly prizes against live match snapshot
+        run: pnpm run prepare:release-data && node --test fantasy-economy.test.mjs
       - name: Verify Fantasy clause and trade rules
         run: node offline-policy-cache.test.cjs && node --test fantasy-unlimited-transfers.test.mjs fantasy-clauses.test.cjs fantasy-market-extensions.test.mjs fantasy-league-reset.test.mjs fantasy-sales.test.mjs fantasy-economy.test.mjs fantasy-game.test.mjs fantasy-service.test.mjs && node --test club-result-editor-ui.test.cjs result-edits.test.mjs club-result-authorization.test.mjs && node --test release-launcher.test.cjs activity.test.mjs publish-verified-windows.test.cjs federation-player-team.test.cjs
   # Platform bundles must work before a native build or public deployment.

@@ -1,8 +1,19 @@
 import {verifyAdmin} from './free-notifications.mjs';
 const reply=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
 export async function handleActivity(request,env,{authorize=verifyAdmin}={}){
- const url=new URL(request.url);if(!['/api/activity','/api/admin/usage'].includes(url.pathname))return null;
+ const url=new URL(request.url);if(!['/api/activity','/api/admin/usage','/api/admin/system-status'].includes(url.pathname))return null;
  try{
+  if(url.pathname==='/api/admin/system-status'){
+   await authorize(request,env);
+   if(request.method!=='GET')return reply({error:'Método no permitido.'},405);
+   const targets=[['club','VISITS_DB'],['fantasy','CHAT_DB'],['notifications','NOTIFICATIONS_DB']];
+   const checks=await Promise.all(targets.map(async([name,binding])=>{
+    if(!env[binding])return {name,ok:false};
+    try{const value=await env[binding].prepare('SELECT 1 AS ok').first();return {name,ok:Number(value?.ok)===1}}
+    catch{return {name,ok:false}}
+   }));
+   return reply({healthy:checks.every(x=>x.ok),checks,checkedAt:new Date().toISOString()});
+  }
   if(url.pathname==='/api/admin/usage'){
    await authorize(request,env);if(request.method!=='GET')return reply({error:'Método no permitido.'},405);
    if(!env.VISITS_DB)return reply({error:'Estadísticas no disponibles.'},503);

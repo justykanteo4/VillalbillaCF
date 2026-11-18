@@ -1,6 +1,7 @@
 // Verified production publish for Windows PowerShell.
 // Run: node scripts/publish-verified-windows.cjs --publish
 // No D1 migrations, resets or destructive operations are performed.
+// EAS message must be one shell-safe token: Windows shell:true otherwise splits it.
 const {spawnSync}=require('node:child_process');
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
@@ -60,7 +61,7 @@ function main(){
   command(['exec','expo','export','--platform','android','--output-dir',output],{env});
   command(['dlx','eas-cli@25.3.0','update','--channel','production','--platform','android',
    '--environment','production','--input-dir',output,'--skip-bundler','--non-interactive',
-   '--message','Villalbilla C.F. / Fantasy '+runtime],{env});
+   '--message','Villalbilla-Fantasy-'+runtime],{env});
  }
  console.log('Actualizaciones web y Android publicadas. Comprueba su aplicación en dispositivos reales.');
 }

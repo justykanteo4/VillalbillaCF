@@ -30,6 +30,7 @@ import {marketRoute} from './fantasy-market.mjs';
 import leaguePolicy from './fantasy-leagues.cjs';
 import teams from './teams.json' with {type:'json'};
 import catalog from './fantasy-players.json' with {type:'json'};
+import statCorrections from './fantasy-stat-corrections.cjs';
 const reply=(value,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store'}}),fail=(message,status=400)=>Object.assign(Error(message),{status});
 async function verifyFantasyUser(request){const uid=await verifyAccessUser(request);if(!verification.verifiedClaims(decodeJwt(request.headers.get('Authorization').slice(7))))throw fail('Verifica tu cuenta para jugar en Fantasy.',403);return uid}
 function randomCode(){const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from(crypto.getRandomValues(new Uint8Array(8)),n=>alphabet[n%32]).join('')}
@@ -206,7 +207,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   const match=schedule.matches.find(m=>m.teamId===teamId&&m.id===matchId&&m.closed);
   if(!match||!match.players.some(p=>String(p.id)===playerId))throw fail('El jugador no pertenece a ese acta cerrada.',404);
   if(!Number.isSafeInteger(value.revision)||value.revision<0)throw fail('Actualiza las estadísticas antes de guardarlas.');
-  const edits=(await import('./fantasy-stat-corrections.cjs')).default;
+  const edits=statCorrections;
   if(!edits.validStats(value.stats))throw fail('Las estadísticas deben ser enteros de 0 a 20. La segunda amarilla debe ser 0 o 1 y requiere una roja.');
   const current=await db.prepare('SELECT stats_json,revision FROM fantasy_stat_corrections WHERE team_id=? AND match_id=? AND player_id=?').bind(teamId,matchId,playerId).first();
   if((current?.revision||0)!==value.revision)throw fail('Otro administrador ha modificado estas estadísticas. Actualiza.',409);

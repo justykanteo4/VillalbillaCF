@@ -10,6 +10,8 @@ on:
       - 'FantasyTeamIdentity.js'
       - 'FantasyArea.js'
       - 'FantasyRivals.js'
+      - 'fantasy-exchanges.mjs'
+      - 'fantasy-exchanges-schema.sql'
       - 'fantasy-refresh-policy.cjs'
       - 'fantasy-refresh-policy.test.cjs'
       - 'fantasy-service.mjs'
@@ -220,6 +222,15 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-league-creation-schema.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT id,enabled,revision FROM fantasy_league_creation_settings WHERE id=1"
+      - name: Migrate Fantasy exchanges (after verified backup)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -s /tmp/fantasy-backup-before-photos.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-exchanges-schema.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name='fantasy_player_exchanges';"
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='trigger' AND name='fantasy_exchange_settle';"
       - name: Migrate administrator Fantasy scoring settings
         shell: bash
         run: |

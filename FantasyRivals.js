@@ -9,6 +9,7 @@ const million=value=>Number(value||0).toLocaleString('es-ES',{maximumFractionDig
 export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
  const [data,setData]=useState(null),[selected,setSelected]=useState(null),[expanded,setExpanded]=useState(null);
  const [operation,setOperation]=useState(null),[amount,setAmount]=useState(''),[quote,setQuote]=useState(null);
+ const [exchanges,setExchanges]=useState([]),[myPlayers,setMyPlayers]=useState([]),[exchangeMine,setExchangeMine]=useState(null);
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const alive=useRef(true),locked=useRef(false),requestId=useRef(null),sequence=useRef(0);
  async function refresh(force=false){
@@ -18,6 +19,8 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
    const apply=value=>{if(alive.current&&generation===sequence.current)setData(value)};
    const next=await request('/leagues/'+leagueId+'/rivals',{...(force?{cache:'reload'}:{}),onCached:apply});
    apply(next);
+   const operations=await request('/leagues/'+leagueId+'/exchanges',{cache:'reload'});
+   if(alive.current&&generation===sequence.current)setExchanges(operations.exchanges||[]);
   }catch(e){if(alive.current&&generation===sequence.current)setError(e.message||'No se pudieron consultar las plantillas.')}
   finally{if(alive.current&&generation===sequence.current)setLoading(false)}
  }
@@ -29,6 +32,24 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
   const listener=AppState.addEventListener('change',state=>{if(state==='active')void refresh(true)});
   return()=>{alive.current=false;sequence.current++;clearInterval(timer);listener.remove()};
  },[leagueId]);
+ async function openExchange(player){
+  setError('');setNotice('');setSelected(player);setOperation('exchange');setQuote(null);setExchangeMine(null);
+  requestId.current='exchange-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+  try{
+   const market=await request('/leagues/'+leagueId+'/market',{cache:'reload'});
+   if(alive.current)setMyPlayers((market.roster||[]).filter(p=>p.mine));
+  }catch(e){if(alive.current)setError(e.message||'No se pudo consultar tu plantilla.')}
+ }
+ async function decideExchange(exchange,decision){
+  if(locked.current)return;
+  locked.current=true;setBusy(true);setError('');
+  try{
+   const result=await request('/leagues/'+leagueId+'/exchanges/'+exchange.id+'/'+decision,{method:'POST',body:'{}'});
+   if(result?.saved!==true)throw Error('No se confirmó la operación.');
+   if(alive.current){setNotice(decision==='accept'?'Intercambio aceptado. Revisa tu alineación.':decision==='reject'?'Intercambio rechazado.':'Propuesta cancelada.');await refresh(true);await onUpdated()}
+  }catch(e){if(alive.current)setError(e.message||'No se pudo actualizar el intercambio.')}
+  finally{locked.current=false;if(alive.current)setBusy(false)}
+ }
  function openOffer(player){
   setError('');setNotice('');setSelected(player);setOperation('offer');setQuote(null);setAmount(String(Number(player.price||1).toFixed(2)));
   requestId.current='rival-offer-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
@@ -45,27 +66,36 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
   if(locked.current||!selected)return;
   const value=Number(amount.replace(',','.'));
   const validOffer=operation==='offer'&&amount.trim()!==''&&Number.isFinite(value)&&value>=1&&value<=1000&&Math.abs(value*100-Math.round(value*100))<1e-6;
-  if(operation==='offer'&&!validOffer||operation==='clause'&&(!quote?.enabled||quote?.protectedRoundsRemaining>0||!quote?.amountCents))return;
+  if(operation==='offer'&&!validOffer||operation==='clause'&&(!quote?.enabled||quote?.protectedRoundsRemaining>0||!quote?.amountCents)||operation==='exchange'&&!exchangeMine)return;
   locked.current=true;setBusy(true);setError('');
   try{
-   const payload=operation==='offer'
-    ?{ownershipId:selected.ownershipId,amount:value,requestId:requestId.current}
+   const payload=operation==='exchange'
+    ?{myOwnershipId:exchangeMine.ownershipId,rivalOwnershipId:selected.ownershipId,requestId:requestId.current}
+    :operation==='offer'?{ownershipId:selected.ownershipId,amount:value,requestId:requestId.current}
     :{ownershipId:selected.ownershipId,expectedCents:quote.amountCents,requestId:requestId.current};
-   const result=await request('/leagues/'+leagueId+'/'+(operation==='offer'?'offers':'clause'),{method:'POST',body:JSON.stringify(payload)});
+   const result=await request('/leagues/'+leagueId+'/'+(operation==='exchange'?'exchanges':operation==='offer'?'offers':'clause'),{method:'POST',body:JSON.stringify(payload)});
    if(operation==='offer'&&result?.saved!==true)throw Error('No se confirmó el envío de la oferta.');
-   if(alive.current){setOperation(null);setSelected(null);setQuote(null);setNotice(operation==='offer'?'Oferta enviada. Puedes consultarla en Mercado → Mis operaciones.':'Cláusula pagada. El jugador ya pertenece a tu plantilla.');await refresh(true);await onUpdated()}
+   if(alive.current){setOperation(null);setSelected(null);setQuote(null);setNotice(operation==='exchange'?'Intercambio propuesto. El rival deberá aceptarlo.':operation==='offer'?'Oferta enviada. Puedes consultarla en Mercado → Mis operaciones.':'Cláusula pagada. El jugador ya pertenece a tu plantilla.');await refresh(true);await onUpdated()}
   }catch(e){if(alive.current)setError(e.message||'No se pudo completar la operación.')}
   finally{locked.current=false;if(alive.current)setBusy(false)}
  }
  const offerValue=Number(amount.replace(',','.')),offerValid=amount.trim()!==''&&Number.isFinite(offerValue)&&offerValue>=1&&offerValue<=1000&&Math.abs(offerValue*100-Math.round(offerValue*100))<1e-6;
  return <View style={{gap:14}}>
   <Text accessibilityRole="header" style={{...title,fontSize:25}}>Rivales</Text>
-  <Text style={{...text,color:theme.muted}}>Consulta las plantillas de tu liga, haz ofertas y paga cláusulas cuando estén disponibles.</Text>
+  <Text style={{...text,color:theme.muted}}>Consulta las plantillas, haz ofertas, propone intercambios o paga cláusulas.</Text>
   <ErrorText>{error}</ErrorText>
   {!!notice&&<Text accessibilityRole="alert" style={{...text,color:theme.accent}}>{notice}</Text>}
   {loading&&!data&&<Text style={text}>Cargando las plantillas…</Text>}
   {data?.offline&&<Text style={{...text,color:theme.accent}}>Mostrando la última copia guardada. Para fichar necesitas conexión.</Text>}
   {data?.rivals?.length===0&&<Text style={text}>Todavía no hay otros participantes en esta liga.</Text>}
+  {!!exchanges.length&&<View style={panel}><Text style={{...title,fontSize:19}}>Intercambios</Text>
+   {exchanges.map(e=><View key={e.id} style={{gap:7,borderTopWidth:1,borderColor:theme.border,paddingTop:10}}>
+    <Text style={{...text,fontWeight:'800'}}>{e.incoming?'Propuesta de '+e.proposer:'Propuesta para '+e.receiver}</Text>
+    <Text style={text}>Ofrecido: {e.proposerPlayerName} · Solicitado: {e.receiverPlayerName}</Text>
+    <Text style={{...text,color:theme.muted}}>Estado: {({pending:'Pendiente',accepted:'Aceptado',rejected:'Rechazado',cancelled:'Cancelado',expired:'Caducado'})[e.status]||e.status}</Text>
+    {e.status==='pending'&&(e.incoming?<View style={{gap:7}}><Button disabled={busy} onPress={()=>decideExchange(e,'accept')}>Aceptar intercambio</Button><Button secondary disabled={busy} onPress={()=>decideExchange(e,'reject')}>Rechazar</Button></View>:<Button secondary disabled={busy} onPress={()=>decideExchange(e,'cancel')}>Cancelar propuesta</Button>)}
+   </View>)}
+  </View>}
   {(data?.rivals||[]).map(rival=><View key={rival.id} style={panel}>
    <Pressable accessibilityRole="button" accessibilityLabel={'Ver plantilla de '+rival.name} accessibilityState={{expanded:expanded===rival.id}} onPress={()=>setExpanded(expanded===rival.id?null:rival.id)} style={{flexDirection:'row',alignItems:'center',gap:12,paddingVertical:6}}>
     <FantasyTeamPhoto photo={rival.photo} size={52}/><View style={{flex:1,gap:4}}>
@@ -92,6 +122,7 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
       <View style={{flex:1}}><Button secondary disabled={busy} onPress={()=>openOffer(player)}>Hacer oferta</Button></View>
       <View style={{flex:1}}><Button secondary disabled={busy||!data.clausesEnabled} onPress={()=>openClause(player)}>Pagar cláusula</Button></View>
      </View>
+     <Button secondary disabled={busy} onPress={()=>openExchange(player)}>Proponer intercambio</Button>
     </View>)}
    </View>}
   </View>)}
@@ -100,9 +131,13 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
    <View style={{flex:1,justifyContent:'center',padding:16,backgroundColor:'#000b'}}>
     <View accessibilityViewIsModal style={{...panel,maxHeight:'90%'}}>
      <ScrollView contentContainerStyle={{gap:12}}>
-      <Text style={title}>{operation==='offer'?'Hacer oferta':'Pagar cláusula'}</Text>
+      <Text style={title}>{operation==='exchange'?'Proponer intercambio':operation==='offer'?'Hacer oferta':'Pagar cláusula'}</Text>
       <Text style={{...text,fontWeight:'800'}}>{selected?.name}</Text>
-      {operation==='offer'?<>
+      {operation==='exchange'?<>
+       <Text style={text}>Elige un jugador de tu plantilla para cambiarlo por el jugador del rival. Ambos equipos conservarán el mismo número de futbolistas. La operación solo se hará cuando el rival acepte.</Text>
+       {myPlayers.map(p=><Button key={p.ownershipId} secondary disabled={busy} onPress={()=>setExchangeMine(p)}>{exchangeMine?.ownershipId===p.ownershipId?'● ':''}{p.name}</Button>)}
+       {!myPlayers.length&&<Text style={text}>No hay jugadores disponibles. Comprueba la conexión.</Text>}
+      </>:operation==='offer'?<>
        <Text style={text}>Ofrece una cantidad por este jugador. El propietario podrá aceptarla o rechazarla.</Text>
        <Text style={text}>Tu oferta en millones</Text>
        <TextInput accessibilityLabel="Importe de oferta al rival" editable={!busy} keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={input}/>
@@ -115,7 +150,7 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
       </>}
       <ErrorText>{error}</ErrorText>
      </ScrollView>
-     <Button disabled={busy||operation==='offer'&&!offerValid||operation==='clause'&&(!quote?.enabled||quote?.protectedRoundsRemaining>0)} onPress={execute}>{busy?'Procesando…':operation==='offer'?'Enviar oferta':'Confirmar pago de cláusula'}</Button>
+     <Button disabled={busy||operation==='exchange'&&!exchangeMine||operation==='offer'&&!offerValid||operation==='clause'&&(!quote?.enabled||quote?.protectedRoundsRemaining>0)} onPress={execute}>{busy?'Procesando…':operation==='exchange'?'Enviar propuesta de intercambio':operation==='offer'?'Enviar oferta':'Confirmar pago de cláusula'}</Button>
      <Button secondary disabled={busy} onPress={()=>{setOperation(null);setSelected(null);setError('')}}>Cancelar</Button>
     </View>
    </View>

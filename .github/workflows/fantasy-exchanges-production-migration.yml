@@ -1,0 +1,63 @@
+name: Fantasy exchanges D1 migration (manual, backup first)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fantasy-exchanges-d1-migration
+  cancel-in-progress: false
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate schema locally before touching production
+        run: node --test fantasy-exchanges.test.mjs
+      - name: Confirm Cloudflare credentials and database name
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          grep -q '"database_name": "villalbilla-chats"' wrangler.jsonc
+          test -s fantasy-exchanges-schema.sql
+      - name: Export full backup to runner (never uploaded)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          pnpm exec wrangler d1 export villalbilla-chats --remote --output backup-before-fantasy-exchanges.sql
+          test -s backup-before-fantasy-exchanges.sql
+          grep -q 'CREATE TABLE' backup-before-fantasy-exchanges.sql
+      - name: Check required tables before migration
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('fantasy_roster','fantasy_managers','fantasy_lineups','fantasy_league_lifecycle');"
+      - name: Apply idempotent exchange tables and guards
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-exchanges-schema.sql
+      - name: Verify migration without editing league records
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name='fantasy_player_exchanges';"
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('fantasy_exchange_propose_guard','fantasy_exchange_accept_guard','fantasy_exchange_settle');"

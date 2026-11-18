@@ -1,3 +1,4 @@
+import {exchangeRoute} from './fantasy-exchanges.mjs';
 import identity from './fantasy-team-identity.cjs';
 import {transferFantasyPlayer} from './fantasy-admin-transfer.mjs';
 import {inbox} from './fantasy-inbox.mjs';
@@ -654,6 +655,13 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
    else await db.prepare('INSERT INTO fantasy_team_photos(league_id,uid,photo_data,updated_at) VALUES(?,?,?,?) ON CONFLICT(league_id,uid) DO UPDATE SET photo_data=excluded.photo_data,updated_at=excluded.updated_at').bind(leagueId,uid,photo,currentTime).run();
   }
   return reply({saved:true,name});
+ }
+ const exchangeMatch=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/exchanges(?:\/([a-zA-Z0-9-]{1,80}\/(?:accept|reject|cancel)))?$/);
+ if(exchangeMatch){
+  const data=await detail(db,exchangeMatch[1],uid,currentTime,await allowedTeams());
+  await ensureManager(db,data.league,uid);
+  if(request.method==='POST'&&(!exchangeMatch[2]||exchangeMatch[2].endsWith('/accept')))await assertMarketOpen(data.league.id);
+  return reply(await exchangeRoute({db,league:data.league,uid,now:clock(),method:request.method,action:exchangeMatch[2]||'',readBody:()=>body(request),canPlay:async target=>!!await db.prepare('SELECT 1 FROM fantasy_participant_teams WHERE uid=? AND team_id=?').bind(target,data.league.teamId).first()}));
  }
  const rivalsMatch=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/rivals$/);
  if(rivalsMatch){

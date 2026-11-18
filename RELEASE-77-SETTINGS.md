@@ -1,6 +1,6 @@
-# Entrega conjunta de los 77 ajustes — BLOQUEADA HASTA COMPLETAR
+# Seguimiento de 77 ajustes — publicación parcial autorizada
 
-**No fusionar esta rama ni publicar en Android, web o iOS hasta que las 77 funciones estén desarrolladas, comprobadas y aceptadas.**
+**El Club ha pedido publicar las funciones ya terminadas y verificadas, aunque las 77 todavía no estén completas.** Esta publicación parcial no equivale a la aceptación de las 77 opciones. El resto sigue pendiente de desarrollo.
 
 Origen exacto del alcance: `settings-upgrade-catalog.cjs`. Este inventario de 77 funciones es una lista de requisitos, **no una lista de funciones terminadas**. El nuevo rol Editor está excluido.
 
@@ -17,6 +17,6 @@ La PR #47 fue fusionada en `main` antes de que el usuario exigiese no publicar p
 - [ ] Las migraciones preservan usuarios, dinero, fichajes, clasificaciones, registros y la privacidad de menores.
 - [ ] Cada una de las 77 opciones dispone de pruebas comprobables (no basta con que figure en el catálogo).
 - [ ] Las compilaciones y comprobaciones finales pasan para Android, web e iOS.
-- [ ] La publicación se realiza en una única entrega, nunca por adelantado desde esta rama.
+- [ ] La entrega final de las 77 funciones completas se realizará tras verificaciones individuales; los cambios parciales publicados quedan identificados como tales.
 
-**Estado:** incompleto. No publicar.
+**Estado:** inventario incompleto; publicación parcial autorizada solo tras pasar las comprobaciones de producción. No marcar las 77 como aprobadas.

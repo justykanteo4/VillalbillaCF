@@ -28,6 +28,7 @@ import {fantasyTeamIds} from './fantasy-teams.mjs';
 import config from './fantasy-config.cjs';
 import {marketRoute} from './fantasy-market.mjs';
 import leaguePolicy from './fantasy-leagues.cjs';
+import marketWindowPolicy from './fantasy-market-window-policy.cjs';
 import teams from './teams.json' with {type:'json'};
 import catalog from './fantasy-players.json' with {type:'json'};
 import statCorrections from './fantasy-stat-corrections.cjs';
@@ -142,6 +143,34 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(!['GET','POST'].includes(request.method))return reply({error:'Método no permitido.'},405);
  if(!db)throw fail('No se pudo conectar con las ligas.',503);
  if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ const marketWindowMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/market-window$/);
+ if(marketWindowMatch){
+  const leagueId=marketWindowMatch[1];
+  const league=await db.prepare('SELECT id,name FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
+  if(!league)throw fail('Liga no encontrada.',404);
+  const old=await db.prepare('SELECT start_day AS startDay,end_day AS endDay,revision FROM fantasy_market_windows WHERE league_id=?').bind(leagueId).first();
+  const existing={startDay:old?.startDay??null,endDay:old?.endDay??null,revision:old?.revision??0};
+  if(request.method==='GET')return reply({league,...existing,open:marketWindowPolicy.isOpen(existing,currentTime),startDate:marketWindowPolicy.label(existing.startDay),endDate:marketWindowPolicy.label(existing.endDay)});
+  if(request.method!=='POST')throw fail('Método no permitido.',405);
+  const value=await body(request);
+  if(!Number.isSafeInteger(value?.revision)||value.revision<0)throw fail('La revisión de mercado no es válida.');
+  let startDay,endDay;
+  try{startDay=marketWindowPolicy.parseDate(value.startDate);endDay=marketWindowPolicy.parseDate(value.endDate);marketWindowPolicy.validWindow(startDay,endDay)}
+  catch(e){throw fail(e.message)}
+  if(value.revision!==existing.revision)throw fail('Otro administrador ha cambiado el mercado. Actualiza antes de guardar.',409);
+  if(startDay===existing.startDay&&endDay===existing.endDay)return reply({league,...existing,startDate:marketWindowPolicy.label(startDay),endDate:marketWindowPolicy.label(endDay),open:marketWindowPolicy.isOpen(existing,currentTime),saved:true});
+  const next=await db.prepare(`INSERT INTO fantasy_market_windows(league_id,start_day,end_day,revision,updated_at,updated_by) VALUES(?,?,?,1,?,?)
+    ON CONFLICT(league_id) DO UPDATE SET start_day=excluded.start_day,end_day=excluded.end_day,
+    revision=fantasy_market_windows.revision+1,updated_at=excluded.updated_at,updated_by=excluded.updated_by
+    WHERE fantasy_market_windows.revision=? RETURNING start_day AS startDay,end_day AS endDay,revision`)
+    .bind(leagueId,startDay,endDay,currentTime,uid,value.revision).first();
+  if(!next)throw fail('La fecha del mercado ha cambiado. Actualiza antes de guardar.',409);
+  return reply({league,...next,startDate:marketWindowPolicy.label(next.startDay),endDate:marketWindowPolicy.label(next.endDay),open:marketWindowPolicy.isOpen(next,currentTime),saved:true});
+ }
+ const assertMarketOpen=async leagueId=>{
+  const window=await db.prepare('SELECT start_day AS startDay,end_day AS endDay FROM fantasy_market_windows WHERE league_id=?').bind(leagueId).first();
+  if(!marketWindowPolicy.isOpen(window,currentTime))throw fail('El mercado de esta liga está cerrado. Consulta las fechas en Mercado.',409);
+ };
  const playerBlockMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/player-blocks$/);
  if(playerBlockMatch){
   const leagueId=playerBlockMatch[1];
@@ -509,11 +538,14 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(listing){
   const data=await detail(db,listing[1],uid,currentTime,await allowedTeams());
   await ensureManager(db,data.league,uid);
+  const submitted=request.method==='POST'?await body(request):null;
+  // Cancel an existing sale listing even when new acquisitions are closed.
+  if(request.method==='POST'&&submitted?.cancel!==true)await assertMarketOpen(data.league.id);
   return reply(await managerListingRoute({db,league:data.league,uid,now:currentTime,
-    getNow:clock,method:request.method,readBody:()=>body(request),
+    getNow:clock,method:request.method,readBody:async()=>submitted,
     playerId:url.searchParams.get('playerId')}));
  }
- const sale=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/sell$/);if(sale){const data=await detail(db,sale[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);return reply(await saleRoute({db,league:data.league,uid,now:clock(),getNow:clock,method:request.method,playerId:url.searchParams.get('playerId'),readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points)}))}
+ const sale=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/sell$/);if(sale){const data=await detail(db,sale[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);if(request.method==='POST')await assertMarketOpen(data.league.id);return reply(await saleRoute({db,league:data.league,uid,now:clock(),getNow:clock,method:request.method,playerId:url.searchParams.get('playerId'),readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points)}))}
  const profileMatch=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/team-profile$/);
  if(profileMatch){
   const leagueId=profileMatch[1];
@@ -561,6 +593,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(clause){
   const data=await detail(db,clause[1],uid,currentTime,await allowedTeams());
   await ensureManager(db,data.league,uid);
+  if(request.method==='POST')await assertMarketOpen(data.league.id);
   const [allPlayers,live]=await Promise.all([prices(db,data.league.pool,data.league.settings.points),sports(db)]);
   return reply(await clauseRoute({db,league:data.league,uid,now:currentTime,
     action:clause[2],method:request.method,readBody:()=>body(request),
@@ -569,7 +602,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
     canPlay:async target=>!!await db.prepare('SELECT 1 FROM fantasy_participant_teams WHERE uid=? AND team_id=?').bind(target,data.league.teamId).first()
   }));
  }
- const market=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(market|roster|buy|bid|offers(?:\/[a-zA-Z0-9-]{1,80}\/(?:accept|reject|cancel))?)$/);if(market){const data=await detail(db,market[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);const result=await marketRoute({db,league:data.league,uid,now:currentTime,action:market[2],method:request.method,readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points),getNow:clock,catalogVersion:catalog.version+'-actas-30-v2',canPlay:async target=>!!await db.prepare('SELECT 1 FROM fantasy_participant_teams WHERE uid=? AND team_id=?').bind(target,data.league.teamId).first()});if((market[2]==='offers'||/^offers\/[^/]+\/(accept|reject)$/.test(market[2]))&&request.method==='POST')ctx?.waitUntil?.(dispatchOfferNotifications(env).catch(()=>{}));return reply(result)}
+ const market=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(market|roster|buy|bid|offers(?:\/[a-zA-Z0-9-]{1,80}\/(?:accept|reject|cancel))?)$/);if(market){const data=await detail(db,market[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);if(request.method==='POST'&&!/\/reject$|\/cancel$/.test(market[2]))await assertMarketOpen(data.league.id);const result=await marketRoute({db,league:data.league,uid,now:currentTime,action:market[2],method:request.method,readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points),getNow:clock,catalogVersion:catalog.version+'-actas-30-v2',canPlay:async target=>!!await db.prepare('SELECT 1 FROM fantasy_participant_teams WHERE uid=? AND team_id=?').bind(target,data.league.teamId).first()});if((market[2]==='offers'||/^offers\/[^/]+\/(accept|reject)$/.test(market[2]))&&request.method==='POST')ctx?.waitUntil?.(dispatchOfferNotifications(env).catch(()=>{}));if(request.method==='GET'&&market[2]==='market'){const dates=await db.prepare('SELECT start_day AS startDay,end_day AS endDay FROM fantasy_market_windows WHERE league_id=?').bind(data.league.id).first();return reply({...result,marketWindow:{startDate:marketWindowPolicy.label(dates?.startDay),endDate:marketWindowPolicy.label(dates?.endDay),open:marketWindowPolicy.isOpen(dates,currentTime)}})}return reply(result)}
  const match=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})(\/players)?$/);if(match&&request.method==='GET'){const data=await detail(db,match[1],uid,currentTime,await allowedTeams());if(match[2]){const snapshot={},[players,owners]=await Promise.all([prices(db,data.league.pool,data.league.settings.points,snapshot),playerOwnership(db,match[1],uid)]);return reply({players:players.map(p=>({...p,...(owners.get(p.id)||{ownershipId:null,owner:null,mine:false})})),finance:data.league.finance,weeklyEleven:weeklyEleven(players,snapshot.live.matches,snapshot.awards,data.league.settings.points,currentTime),version:catalog.version,updatedAt:catalog.updatedAt})}return reply(data)}
  return reply({error:'Apartado no disponible.'},404);
  }catch(e){if(/FANTASY_GIFT_CHANGED|fantasy_award_changes|fantasy_coach_changes|fantasy_roster.league_id, fantasy_roster.player_id/.test(e.message))return reply({error:'La elección o el reparto cambiaron en otro dispositivo. Actualiza y vuelve a elegir.'},409);if(/FANTASY_FULL/.test(e.message))return reply({error:'La liga ya está completa.'},409);if(/FANTASY_LEAGUE_INACTIVE/.test(e.message))return reply({error:'La liga está pausada o archivada. No se permiten nuevas operaciones.'},409);if(/FANTASY_PLAYER_BLOCKED/.test(e.message))return reply({error:'El Club ha bloqueado nuevos fichajes de este jugador en esta liga.'},409);return reply({error:e.status?e.message:'No se pudo guardar o consultar la liga. Vuelve a intentarlo.'},e.status||503)}

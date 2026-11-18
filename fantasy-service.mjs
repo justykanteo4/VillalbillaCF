@@ -160,15 +160,24 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   const existing=await db.prepare('SELECT 1 FROM fantasy_player_blocks WHERE league_id=? AND player_id=?').bind(leagueId,id).first();
   if(Boolean(existing)!==value.expectedBlocked)throw fail('El bloqueo ha cambiado. Actualiza antes de guardar.',409);
   if(value.blocked===Boolean(existing))return reply({saved:true,playerId:id,blocked:value.blocked});
+  let cancelledBids=0,cancelledOffers=0;
   if(value.blocked){
-   const change=await db.prepare('INSERT OR IGNORE INTO fantasy_player_blocks(league_id,player_id,blocked_by,blocked_at) VALUES(?,?,?,?)')
-     .bind(leagueId,id,uid,currentTime).run();
-   if(change.meta?.changes!==1)throw fail('El jugador ya estaba bloqueado. Actualiza la lista.',409);
+   const results=await db.batch([
+    db.prepare('INSERT OR IGNORE INTO fantasy_player_blocks(league_id,player_id,blocked_by,blocked_at) VALUES(?,?,?,?)')
+      .bind(leagueId,id,uid,currentTime),
+    db.prepare("UPDATE fantasy_auction_bids SET status='invalid' WHERE league_id=? AND status='active' AND listing_id IN(SELECT id FROM fantasy_market_listings WHERE league_id=? AND player_id=?)")
+      .bind(leagueId,leagueId,id),
+    db.prepare("UPDATE fantasy_offers SET status='cancelled' WHERE league_id=? AND player_id=? AND status='pending'")
+      .bind(leagueId,id)
+   ]);
+   if(results[0]?.meta?.changes!==1)throw fail('El jugador ya estaba bloqueado. Actualiza la lista.',409);
+   cancelledBids=results[1]?.meta?.changes||0;
+   cancelledOffers=results[2]?.meta?.changes||0;
   }else{
    const change=await db.prepare('DELETE FROM fantasy_player_blocks WHERE league_id=? AND player_id=?').bind(leagueId,id).run();
    if(change.meta?.changes!==1)throw fail('El jugador ya estaba desbloqueado. Actualiza la lista.',409);
   }
-  return reply({saved:true,playerId:id,blocked:value.blocked});
+  return reply({saved:true,playerId:id,blocked:value.blocked,cancelledBids,cancelledOffers});
  }
  const lifecycleMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/lifecycle$/);
  if(lifecycleMatch){

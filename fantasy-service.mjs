@@ -188,6 +188,22 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   ]);
   return reply({saved:true,id:newId,name,sourceId,code,onlyConfiguration:true},201);
  }
+ const visibilityMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/visibility$/);
+ if(visibilityMatch){
+  if(!['GET','POST'].includes(request.method))throw fail('Método no permitido.',405);
+  const leagueId=visibilityMatch[1],row=await db.prepare('SELECT settings_json,mode FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
+  if(!row)throw fail('Liga no encontrada.',404);
+  const settings=JSON.parse(row.settings_json),isPublic=row.mode==='custom'&&settings.publicLeague===true;
+  if(request.method==='GET')return reply({leagueId,public:isPublic,editable:row.mode==='custom'});
+  const value=await body(request);
+  if(row.mode!=='custom')throw fail('Solo se puede cambiar la visibilidad de ligas personalizadas.');
+  if(typeof value?.public!=='boolean'||typeof value?.expectedPublic!=='boolean')throw fail('Indica la visibilidad y el estado consultado.');
+  if(value.expectedPublic!==isPublic)throw fail('La visibilidad ha cambiado. Actualiza.',409);
+  const next=JSON.stringify({...settings,publicLeague:value.public});
+  const result=await db.prepare('UPDATE fantasy_leagues SET settings_json=? WHERE id=? AND settings_json=? RETURNING id').bind(next,leagueId,row.settings_json).first();
+  if(!result)throw fail('La liga ha cambiado. Actualiza antes de guardar.',409);
+  return reply({leagueId,public:value.public,editable:true,saved:true});
+ }
  const inscriptionsMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/inscriptions$/);
  if(inscriptionsMatch){
   if(!['GET','POST'].includes(request.method))throw fail('Método no permitido.',405);

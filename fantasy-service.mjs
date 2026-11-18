@@ -656,7 +656,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   }
   return reply({saved:true,name});
  }
- const exchangeMatch=path.match(/^\\/api\\/fantasy\\/leagues\\/([a-zA-Z0-9-]{1,80})\\/exchanges(?:\\/([a-zA-Z0-9-]{1,80}\\/(?:accept|reject|cancel)))?$/);
+ const exchangeMatch=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/exchanges(?:\/([a-zA-Z0-9-]{1,80}\/(?:accept|reject|cancel)))?$/);
  if(exchangeMatch){
   const data=await detail(db,exchangeMatch[1],uid,currentTime,await allowedTeams());
   await ensureManager(db,data.league,uid);

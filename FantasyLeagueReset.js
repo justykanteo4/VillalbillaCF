@@ -37,7 +37,7 @@ export default function FantasyLeagueReset({request}){
  }
  return <View style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:20}}>Club · Reinicio de ligas de prueba</Text>
-  <Text style={text}>Solo administradores. Borra plantillas, compras, subastas, cláusulas y resultados de Fantasy de una liga, sin borrar la liga, sus participantes, sus ajustes ni sus mensajes.</Text>
+  <Text style={text}>Solo administradores. Borra plantillas, compras, subastas, cláusulas y resultados de Fantasy de una liga, sin borrar la liga, sus participantes, sus ajustes, sus mensajes ni las temporadas archivadas.</Text>
   <Button secondary disabled={busy} onPress={()=>open?setOpen(false):list()}>{open?'Ocultar reinicios':'Gestionar reinicio de ligas'}</Button>
   {open&&<>
    <Button secondary disabled={busy} onPress={list}>Actualizar lista</Button>

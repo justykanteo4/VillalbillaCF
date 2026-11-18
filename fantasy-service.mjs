@@ -143,6 +143,48 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(!['GET','POST'].includes(request.method))return reply({error:'Método no permitido.'},405);
  if(!db)throw fail('No se pudo conectar con las ligas.',503);
  if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ const specialRoundsMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/special-rounds$/);
+ if(specialRoundsMatch){
+  const leagueId=specialRoundsMatch[1];
+  const league=await db.prepare('SELECT id,name FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
+  if(!league)throw fail('Liga no encontrada.',404);
+  const [groups,existing,live]=await Promise.all([
+   db.prepare('SELECT team_id FROM fantasy_league_groups WHERE league_id=?').bind(leagueId).all(),
+   db.prepare('SELECT week,multiplier,revision FROM fantasy_special_rounds WHERE league_id=?').bind(leagueId).all(),
+   sports(db)
+  ]);
+  const allowed=new Set(groups.results.map(g=>String(g.team_id))),configured=new Map(existing.results.map(r=>[r.week,r]));
+  const rounds=new Map();
+  for(const fixture of live.schedule){
+   if(!allowed.has(String(fixture.teamId))||!Number.isSafeInteger(fixture.week)||!Number.isFinite(fixture.startsAt))continue;
+   const previous=rounds.get(fixture.week);
+   if(!previous||fixture.startsAt<previous.startsAt)
+    rounds.set(fixture.week,{week:fixture.week,round:fixture.round||null,startsAt:fixture.startsAt});
+  }
+  const windows=[...rounds.values()].sort((a,b)=>a.startsAt-b.startsAt).map(row=>{
+   const config=configured.get(row.week);
+   return {...row,multiplier:config?.multiplier??1,revision:config?.revision??0,
+    editable:row.startsAt>currentTime,
+    date:new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(row.startsAt))};
+  });
+  if(request.method==='GET')return reply({league,weeks:windows});
+  if(request.method!=='POST')throw fail('Método no permitido.',405);
+  const value=await body(request);
+  if(!Number.isSafeInteger(value?.week)||![1,2].includes(value?.multiplier)||!Number.isSafeInteger(value?.revision)||value.revision<0)throw fail('Jornada especial no válida.');
+  const round=windows.find(r=>r.week===value.week);
+  if(!round)throw fail('La jornada no pertenece a los equipos de esta liga.',404);
+  if(!round.editable)throw fail('Solo puedes modificar jornadas antes de que empiece su primer partido.',409);
+  if(round.revision!==value.revision)throw fail('La jornada cambió desde otro dispositivo. Actualiza antes de guardar.',409);
+  if(round.multiplier===value.multiplier)return reply({...round,saved:true});
+  const next=await db.prepare(`INSERT INTO fantasy_special_rounds(league_id,week,multiplier,revision,actor_uid,updated_at) VALUES(?,?,?,1,?,?)
+    ON CONFLICT(league_id,week) DO UPDATE SET multiplier=excluded.multiplier,
+    revision=fantasy_special_rounds.revision+1,actor_uid=excluded.actor_uid,updated_at=excluded.updated_at
+    WHERE fantasy_special_rounds.revision=? RETURNING multiplier,revision`)
+    .bind(leagueId,value.week,value.multiplier,uid,currentTime,value.revision).first();
+  if(!next)throw fail('La jornada cambió. Actualiza antes de guardar.',409);
+  await db.prepare('UPDATE fantasy_prize_state SET next_at=0 WHERE league_id=?').bind(leagueId).run();
+  return reply({...round,multiplier:next.multiplier,revision:next.revision,saved:true});
+ }
  const marketSlotsMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/market-slots$/);
  if(marketSlotsMatch){
   const leagueId=marketSlotsMatch[1];

@@ -146,6 +146,19 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
    const leagues=await db.prepare('SELECT id,name,created_at FROM fantasy_leagues ORDER BY name,id').all();
    return reply({leagues:leagues.results});
  }
+ if(path==='/api/fantasy/admin/activity'){
+  if(request.method!=='GET')throw fail('Método no permitido.',405);
+  const events=await db.prepare(`SELECT activity_type AS type,scope,actor,created_at AS createdAt,summary
+   FROM (
+    SELECT 'league' AS activity_type,league_id AS scope,actor_uid AS actor,created_at,
+           json_extract(after_json,'$.name') AS summary FROM fantasy_league_admin_events
+    UNION ALL
+    SELECT 'scoring' AS activity_type,'global' AS scope,actor_uid AS actor,created_at,
+           'Puntuaciones de Fantasy' AS summary FROM fantasy_point_history
+   )
+   ORDER BY created_at DESC LIMIT 50`).all();
+  return reply({events:events.results});
+ }
  if(path==='/api/fantasy/admin/leagues/history'){
   if(request.method!=='GET')throw fail('Método no permitido.',405);
   const leagueId=url.searchParams.get('league');

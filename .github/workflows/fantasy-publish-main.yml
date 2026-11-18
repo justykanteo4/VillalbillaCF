@@ -19,6 +19,14 @@ on:
       - 'FantasyLeagueReset.js'
       - 'fantasy-league-admin-history-schema.sql'
       - 'fantasy-point-history-schema.sql'
+      - 'fantasy-lineup-lock-schema.sql'
+      - 'fantasy-league-lifecycle-schema.sql'
+      - 'fantasy-player-blocks-schema.sql'
+      - 'FantasyPlayerBlocks.js'
+      - 'fantasy-auctions.mjs'
+      - 'fantasy-market.mjs'
+      - 'FantasyLeagueManage.js'
+      - 'fantasy-game.mjs'
       - 'FantasyPointsSettings.js'
       - 'startup-screen-preference.cjs'
       - 'StartupScreenPreference.js'
@@ -53,6 +61,9 @@ jobs:
           node-version: '22.16.0'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Partial release explicitly requested by the Club. Do not claim the 77 options are complete.
+      - name: Verify the 77-feature inventory without certifying incomplete items
+        run: node --test settings-upgrade-catalog.test.cjs
       - name: Prepare public release data
         run: pnpm run prepare:release-data
       - name: Verify cache, business rules and release data
@@ -135,6 +146,29 @@ jobs:
           test -s /tmp/fantasy-backup-before-photos.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-point-history-schema.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT COUNT(*) AS revisions FROM fantasy_point_history;"
+      - name: Install guarded league lifecycle after verified D1 backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -s /tmp/fantasy-backup-before-photos.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-league-lifecycle-schema.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name='fantasy_league_lifecycle';"
+      - name: Install guarded Fantasy player blocks (after verified D1 backup)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -s /tmp/fantasy-backup-before-photos.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-player-blocks-schema.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name='fantasy_player_blocks';"
+      - name: Enforce server-side Club lineup locks (after verified backup)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s /tmp/fantasy-backup-before-photos.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-lineup-lock-schema.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('fantasy_lineup_club_lock_insert','fantasy_lineup_club_lock_update');"
       - name: Create new leagues switch in D1 (preserve existing leagues)
         shell: bash
         run: |
@@ -154,8 +188,8 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
-          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type IN ('table','trigger') AND name IN ('fantasy_clause_boosts','fantasy_clause_boost_events','fantasy_clause_purchases','fantasy_manager_listings','fantasy_clause_boost_guard','fantasy_clause_boost_apply','fantasy_clause_purchase_guard','fantasy_clause_offer_proof','fantasy_manager_listing_guard','fantasy_manager_offer_proof','fantasy_sale_manager_listing_guard','fantasy_team_photos','fantasy_league_creation_settings','fantasy_point_settings','fantasy_stat_corrections','fantasy_stat_correction_history','fantasy_league_admin_events','fantasy_point_history') ORDER BY name;" > /tmp/schema.json
-          for name in fantasy_clause_boosts fantasy_clause_boost_events fantasy_clause_purchases fantasy_manager_listings fantasy_clause_boost_guard fantasy_clause_boost_apply fantasy_clause_purchase_guard fantasy_clause_offer_proof fantasy_manager_listing_guard fantasy_manager_offer_proof fantasy_sale_manager_listing_guard fantasy_team_photos fantasy_league_creation_settings fantasy_point_settings fantasy_stat_corrections fantasy_stat_correction_history fantasy_league_admin_events fantasy_point_history; do
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type IN ('table','trigger') AND name IN ('fantasy_clause_boosts','fantasy_clause_boost_events','fantasy_clause_purchases','fantasy_manager_listings','fantasy_clause_boost_guard','fantasy_clause_boost_apply','fantasy_clause_purchase_guard','fantasy_clause_offer_proof','fantasy_manager_listing_guard','fantasy_manager_offer_proof','fantasy_sale_manager_listing_guard','fantasy_team_photos','fantasy_league_creation_settings','fantasy_point_settings','fantasy_stat_corrections','fantasy_stat_correction_history','fantasy_league_admin_events','fantasy_point_history','fantasy_league_lifecycle','fantasy_player_blocks') ORDER BY name;" > /tmp/schema.json
+          for name in fantasy_clause_boosts fantasy_clause_boost_events fantasy_clause_purchases fantasy_manager_listings fantasy_clause_boost_guard fantasy_clause_boost_apply fantasy_clause_purchase_guard fantasy_clause_offer_proof fantasy_manager_listing_guard fantasy_manager_offer_proof fantasy_sale_manager_listing_guard fantasy_team_photos fantasy_league_creation_settings fantasy_point_settings fantasy_stat_corrections fantasy_stat_correction_history fantasy_league_admin_events fantasy_point_history fantasy_league_lifecycle fantasy_player_blocks; do
             grep -q "\"$name\"" /tmp/schema.json || { echo "::error::Missing D1 schema: $name. Deployment blocked."; exit 1; }
           done
       - name: Deploy Cloudflare Worker + web

@@ -4,7 +4,7 @@ const base='https://club.test/api/fantasy',owner={authorize:async()=> 'owner-uid
 const request=(path,body)=>new Request(base+path,{method:body?'POST':'GET',...(body?{body:JSON.stringify(body)}:{})});
 async function fixtureLeague(e,uid,value){const id=crypto.randomUUID(),teamId=value.teamId||value.pool?.teamId||'680163',settings=value.mode==='custom'?value.settings:policy.classicSettings;await e.CHAT_DB.batch([e.CHAT_DB.prepare('INSERT INTO fantasy_leagues VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,uid,value.requestId,'fixture',value.name,value.mode,JSON.stringify({type:'club'}),JSON.stringify(settings),crypto.randomUUID().replace(/[^A-HJ-NP-Z2-9]/g,'').padEnd(8,'A').slice(0,8),Date.parse('2026-11-13T12:00:00Z')),e.CHAT_DB.prepare('INSERT INTO fantasy_league_groups VALUES(?,?)').bind(id,teamId),e.CHAT_DB.prepare('INSERT INTO fantasy_members VALUES(?,?,?,?)').bind(id,uid,value.nickname,Date.parse('2026-11-13T12:00:00Z'))]);return (await handleFantasy(request('/leagues/'+id),e,{authorize:async()=>uid})).json()};
 const classic=(id='request-0001')=>({requestId:id,mode:'classic',name:'Liga Aficionado',nickname:'Creador',pool:{type:'team',teamId:'680163'}});
-function env(t){const sql=new DatabaseSync(':memory:');sql.exec(readFileSync('fantasy-schema.sql','utf8'));sql.exec(readFileSync('social-schema.sql','utf8'));sql.exec(readFileSync('fantasy-club-schema.sql','utf8'));sql.exec(readFileSync('fantasy-actas-schema.sql','utf8'));sql.exec(readFileSync('fantasy-access-schema.sql','utf8'));sql.exec(readFileSync('fantasy-game-schema.sql','utf8'));sql.exec(readFileSync('fantasy-rewards-schema.sql','utf8'));sql.exec(readFileSync('fantasy-auction-schema.sql','utf8'));sql.exec(readFileSync('fantasy-sales-schema.sql','utf8'));sql.exec(readFileSync('fantasy-resale-schema.sql','utf8'));sql.exec(readFileSync('fantasy-clause-schema.sql','utf8'));sql.exec(readFileSync('fantasy-manager-listings-schema.sql','utf8'));sql.exec(readFileSync('fantasy-player-positions-schema.sql','utf8'));sql.exec(readFileSync('fantasy-stat-corrections-schema.sql','utf8'));sql.exec(readFileSync('fantasy-league-admin-history-schema.sql','utf8'));sql.exec(readFileSync('fantasy-point-history-schema.sql','utf8'));sql.prepare('UPDATE fantasy_economy_policy SET settings_json=?').run(JSON.stringify({weeklyIncomeCents:200,fromWeek:0,prizesFromWeek:2967}));sql.prepare('UPDATE fantasy_salary_policy SET settings_json=?,revision=0').run(JSON.stringify({baseCents:null,voteCents:0,winCents:0,drawCents:0,extraTeamCents:0}));sql.exec("DROP TRIGGER IF EXISTS fantasy_roster_min;DROP TRIGGER IF EXISTS fantasy_roster_max;CREATE TRIGGER IF NOT EXISTS legacy_fixture_manager AFTER INSERT ON fantasy_members BEGIN INSERT OR IGNORE INTO fantasy_managers VALUES(NEW.league_id,NEW.uid,'legacy-fixture',1,1,1,1);END;");sql.exec('UPDATE fantasy_access_settings SET disabled=0');t.after(()=>sql.close());const prepare=(q,args=[])=>({bind:(...v)=>prepare(q,v),first:async()=>sql.prepare(q).get(...args),all:async()=>({results:sql.prepare(q).all(...args)}),run:()=>({meta:{changes:Number(sql.prepare(q).run(...args).changes)}})});return {sql,env:{CHAT_DB:{prepare,batch:async statements=>{sql.exec('BEGIN');try{const rows=[];for(const s of statements)rows.push(s.run());sql.exec('COMMIT');return rows}catch(e){sql.exec('ROLLBACK');throw e}}}}}}
+function env(t){const sql=new DatabaseSync(':memory:');sql.exec(readFileSync('fantasy-schema.sql','utf8'));sql.exec(readFileSync('social-schema.sql','utf8'));sql.exec(readFileSync('fantasy-club-schema.sql','utf8'));sql.exec(readFileSync('fantasy-actas-schema.sql','utf8'));sql.exec(readFileSync('fantasy-access-schema.sql','utf8'));sql.exec(readFileSync('fantasy-game-schema.sql','utf8'));sql.exec(readFileSync('fantasy-lineup-lock-schema.sql','utf8'));sql.exec(readFileSync('fantasy-rewards-schema.sql','utf8'));sql.exec(readFileSync('fantasy-auction-schema.sql','utf8'));sql.exec(readFileSync('fantasy-sales-schema.sql','utf8'));sql.exec(readFileSync('fantasy-resale-schema.sql','utf8'));sql.exec(readFileSync('fantasy-clause-schema.sql','utf8'));sql.exec(readFileSync('fantasy-manager-listings-schema.sql','utf8'));sql.exec(readFileSync('fantasy-player-positions-schema.sql','utf8'));sql.exec(readFileSync('fantasy-stat-corrections-schema.sql','utf8'));sql.exec(readFileSync('fantasy-league-admin-history-schema.sql','utf8'));sql.exec(readFileSync('fantasy-point-history-schema.sql','utf8'));sql.exec(readFileSync('fantasy-league-lifecycle-schema.sql','utf8'));sql.exec(readFileSync('fantasy-player-blocks-schema.sql','utf8'));sql.prepare('UPDATE fantasy_economy_policy SET settings_json=?').run(JSON.stringify({weeklyIncomeCents:200,fromWeek:0,prizesFromWeek:2967}));sql.prepare('UPDATE fantasy_salary_policy SET settings_json=?,revision=0').run(JSON.stringify({baseCents:null,voteCents:0,winCents:0,drawCents:0,extraTeamCents:0}));sql.exec("DROP TRIGGER IF EXISTS fantasy_roster_min;DROP TRIGGER IF EXISTS fantasy_roster_max;CREATE TRIGGER IF NOT EXISTS legacy_fixture_manager AFTER INSERT ON fantasy_members BEGIN INSERT OR IGNORE INTO fantasy_managers VALUES(NEW.league_id,NEW.uid,'legacy-fixture',1,1,1,1);END;");sql.exec('UPDATE fantasy_access_settings SET disabled=0');t.after(()=>sql.close());const prepare=(q,args=[])=>({bind:(...v)=>prepare(q,v),first:async()=>sql.prepare(q).get(...args),all:async()=>({results:sql.prepare(q).all(...args)}),run:()=>({meta:{changes:Number(sql.prepare(q).run(...args).changes)}})});return {sql,env:{CHAT_DB:{prepare,batch:async statements=>{sql.exec('BEGIN');try{const rows=[];for(const s of statements)rows.push(s.run());sql.exec('COMMIT');return rows}catch(e){sql.exec('ROLLBACK');throw e}}}}}}
 test('every Fantasy route requires authentication, and private preview is not cached',async()=>{assert.equal((await handleFantasy(request('/preview'),{})).status,401);for(const path of ['/leagues','/join','/leagues/fake/players'])assert.equal((await handleFantasy(request(path),{},{authorize:async()=>{throw Object.assign(Error('Solo admin'),{status:403})}})).status,403);const r=await handleFantasy(request('/preview'),{},owner);assert.equal(r.headers.get('Cache-Control'),'no-store');assert.deepEqual((await r.json()).rules.points,config.rules.points);assert.equal(await handleFantasy(new Request('https://club.test/api/news'),{}),null)});
 test('price criteria reward goals and wins; top players cost more, scope excludes other teams and data uncertainty is visible',()=>{const prices=policy.pricePlayers([{id:'a',name:'Top',goals:10,wins:7,played:9,cleanSheets:0,red:0},{id:'b',name:'Base',goals:0,wins:0,played:0,cleanSheets:0,red:0}]);assert(prices[0].price>prices[1].price);assert(prices[0].top);assert(prices.every(p=>p.price>=7.02&&p.price<=60.84));const team=catalog.teams.find(t=>t.id==='680163'),rows=policy.playersForPool(catalog,{type:'team',teamId:team.id});assert(rows.length>=11);assert(rows.every(p=>p.teams.every(t=>t.id===team.id)));assert(rows.some(p=>p.top));assert(rows.every(p=>typeof p.partial==='boolean'))});
 test('the 80 percent increase is preserved instead of reducing prices to fit the starting budget',()=>{const c={teams:[{id:'team',category:'Juvenil',players:Array.from({length:11},(_,i)=>({id:String(i),name:'Jugador '+i,goals:30,wins:30,played:30,cleanSheets:0,red:0,partial:false}))}]},p=policy.playersForPool(c,{type:'team',teamId:'team'});assert(p.reduce((n,v)=>n+v.price,0)>40);assert(p.every(p=>p.price>=7.02))});
@@ -172,14 +172,15 @@ test('puntuaciones Fantasy: solo club, revisión concurrente y cambios en todas 
  assert.equal(prior.points.win,6);
  const denied=await handleFantasy(request('/admin/points'),e,{authorize:async()=> 'second-uid',adminAuthorize:async()=>{throw Object.assign(Error('No club'),{status:403})}});
  assert.equal(denied.status,403);
- const points={win:8,draw:4,loss:0,goal:2,cleanSheet:3,mvp:2,yellow:-2,secondYellow:-4,red:-6,ownGoal:-3};
+ const points={win:8,draw:4,loss:0,goal:2,cleanSheet:3,mvp:2,yellow:-2,secondYellow:-4,red:-6,ownGoal:-3,captain:3};
  const invalid=await handleFantasy(request('/admin/points',{points:{...points,win:100},revision:prior.revision}),e,owner);
+ assert.equal((await handleFantasy(request('/admin/points',{points:{...points,captain:6},revision:prior.revision}),e,owner)).status,400);
  assert.equal(invalid.status,400);
  const updated=await handleFantasy(request('/admin/points',{points,revision:prior.revision}),e,owner);
  assert.equal(updated.status,200,await updated.clone().text());
  const result=await updated.json();
  assert.equal(result.points.win,8);
- assert.equal(result.points.captain,2);
+ assert.equal(result.points.captain,3);
  assert.equal(result.points.idealXI,0);
  assert.equal((await handleFantasy(request('/admin/points',{points,revision:prior.revision}),e,owner)).status,409);
  const revisions=await handleFantasy(request('/admin/points/history'),e,owner);
@@ -198,7 +199,7 @@ test('puntuaciones Fantasy: solo club, revisión concurrente y cambios en todas 
   const actual=JSON.parse(sql.prepare('SELECT settings_json FROM fantasy_leagues WHERE id=?').get(id).settings_json);
   assert.equal(actual.points.goal,2);
   assert.equal(actual.points.win,8);
-  assert.equal(actual.points.captain,2);
+  assert.equal(actual.points.captain,3);
  }
  const join=await handleFantasy(request('/team-league',{teamId:'680163',nickname:'Nuevo'}),e,owner);
  assert.equal(join.status,200,await join.clone().text());
@@ -313,4 +314,173 @@ test('Club duplicates only league configuration into a new independent competiti
  const invalid={...payload,requestId:'copy-request-0002',name:'<script>bad</script>'};
  assert.equal((await handleFantasy(request(path,invalid),e,owner)).status,400);
  assert.equal((await handleFantasy(request(path,{...payload,requestId:'copy-request-0003',name:'Nueva liga'}),e,forbidden)).status,403);
+});
+
+test('Club activity lists scoring and league changes without exposing them to other users',async t=>{
+ const {env:e,sql}=env(t),now=Date.parse('2026-11-18T12:00:00Z');
+ sql.prepare('INSERT INTO fantasy_league_admin_events(id,league_id,actor_uid,kind,before_json,after_json,created_at) VALUES(?,?,?,?,?,?,?)').run('ev-1','league-1','club-admin','settings',JSON.stringify({name:'Antigua',maxMembers:5}),JSON.stringify({name:'Nueva',maxMembers:6}),now);
+ sql.prepare('INSERT INTO fantasy_point_history(id,revision,actor_uid,before_json,after_json,created_at) VALUES(?,?,?,?,?,?)').run('ev-2',123,'club-admin',JSON.stringify({win:6}),JSON.stringify({win:7}),now+10);
+ const result=await handleFantasy(request('/admin/activity'),e,owner);
+ assert.equal(result.status,200);
+ const activity=(await result.json()).events;
+ assert.deepEqual(activity.map(x=>x.type),['scoring','league']);
+ assert.equal(activity[1].summary,'Nueva');
+ assert.equal(activity[0].actor,'club-admin');
+ const denied={authorize:async()=> 'other',adminAuthorize:async()=>{throw Object.assign(Error('No club'),{status:403})}};
+ assert.equal((await handleFantasy(request('/admin/activity'),e,denied)).status,403);
+ assert.equal((await handleFantasy(request('/admin/activity',{any:true}),e,owner)).status,405);
+});
+
+test('Club exports league settings without personal data, participant identities or invite codes',async t=>{
+ const {env:e}=env(t);
+ const created=await fixtureLeague(e,'owner-uid',{requestId:'export-2026',mode:'custom',name:'Liga exportada',nickname:'Nombre privado',teamId:'680163',settings:{...policy.classicSettings,maxMembers:8}});
+ const path='/admin/leagues/'+created.league.id+'/export';
+ const response=await handleFantasy(request(path),e,owner);
+ assert.equal(response.status,200);
+ const data=await response.json();
+ assert.equal(data.format,'villalbilla-fantasy-league-settings-v1');
+ assert.equal(data.league.name,'Liga exportada');
+ assert.equal(data.league.memberCount,1);
+ assert.equal(data.league.settings.maxMembers,8);
+ const result=JSON.stringify(data);
+ assert(!result.includes('Nombre privado'));
+ assert(!result.includes(created.league.code));
+ assert(!result.includes('owner-uid'));
+ const denied={authorize:async()=> 'other',adminAuthorize:async()=>{throw Object.assign(Error('Denied'),{status:403})}};
+ assert.equal((await handleFantasy(request(path),e,denied)).status,403);
+ assert.equal((await handleFantasy(request(path,{a:1}),e,owner)).status,405);
+});
+
+test('Club can close enrollment and server rejects new members by invitation, existing members retain access',async t=>{
+ const {env:e,sql}=env(t);
+ const existing=await fixtureLeague(e,'owner-uid',classic('enrollment-2026'));
+ const id=existing.league.id,path='/admin/leagues/'+id+'/inscriptions';
+ const old=await handleFantasy(request(path),e,owner);
+ assert.equal(old.status,200);
+ assert.equal((await old.json()).open,true);
+ const closed=await handleFantasy(request(path,{open:false,expectedOpen:true}),e,owner);
+ assert.equal(closed.status,200);
+ assert.equal((await closed.json()).open,false);
+ assert.equal((await handleFantasy(request(path,{open:true,expectedOpen:true}),e,owner)).status,409);
+ const join='/join',payload={code:existing.league.code,nickname:'Amigo'};
+ assert.equal((await handleFantasy(request(join,payload),e,{authorize:async()=> 'new-uid'})).status,403);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').get(id).n,1);
+ assert.equal((await handleFantasy(request(join,{code:existing.league.code,nickname:'Creador'}),e,owner)).status,200);
+ const outsider={authorize:async()=> 'new-uid',adminAuthorize:async()=>{throw Object.assign(Error('No club'),{status:403})}};
+ assert.equal((await handleFantasy(request(path),e,outsider)).status,403);
+ const reopened=await handleFantasy(request(path,{open:true,expectedOpen:false}),e,owner);
+ assert.equal(reopened.status,200);
+ assert.equal((await handleFantasy(request(join,payload),e,{authorize:async()=> 'new-uid'})).status,200);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').get(id).n,2);
+});
+
+test('Public custom leagues appear only for eligible teammates and join without sharing an invitation code',async t=>{
+ const {env:e}=env(t);
+ const created=await fixtureLeague(e,'owner-uid',{requestId:'visibility-2026',mode:'custom',name:'Liga de los compañeros',nickname:'Creador',teamId:'680163',settings:{...policy.classicSettings,maxMembers:5}});
+ const id=created.league.id,endpoint='/admin/leagues/'+id+'/visibility';
+ const publicList=async deps=> (await (await handleFantasy(request('/leagues'),e,deps)).json()).availableLeagues||[];
+ const teammate={authorize:async()=> 'teammate-uid',getTeams:async()=>['680163']};
+ const outsider={authorize:async()=> 'outsider-uid',getTeams:async()=>[]};
+ assert.equal((await publicList(teammate)).some(x=>x.id===id),false);
+ const initial=await handleFantasy(request(endpoint),e,owner);
+ assert.equal((await initial.json()).public,false);
+ const edited=await handleFantasy(request(endpoint,{public:true,expectedPublic:false}),e,owner);
+ assert.equal(edited.status,200,await edited.clone().text());
+ assert.equal((await publicList(teammate)).find(x=>x.id===id)?.kind,'public');
+ assert.equal((await publicList(outsider)).some(x=>x.id===id),false);
+ assert.equal((await handleFantasy(request('/join-public',{leagueId:id,nickname:'No es compañero'}),e,outsider)).status,403);
+ assert.equal((await handleFantasy(request('/join-public',{leagueId:id,nickname:'Compañero'}),e,teammate)).status,200);
+ const closed=await handleFantasy(request(endpoint,{public:false,expectedPublic:true}),e,owner);
+ assert.equal(closed.status,200);
+ assert.equal((await publicList(outsider)).some(x=>x.id===id),false);
+ assert.equal((await publicList({authorize:async()=> 'third',getTeams:async()=>['680163']})).some(x=>x.id===id),false);
+ assert.equal((await handleFantasy(request('/join-public',{leagueId:id,nickname:'Tercero'}),e,{authorize:async()=> 'third',getTeams:async()=>['680163']})).status,404);
+ const denied={authorize:async()=> 'not-admin',adminAuthorize:async()=>{throw Object.assign(Error('Denied'),{status:403})}};
+ assert.equal((await handleFantasy(request(endpoint,{public:true,expectedPublic:false}),e,denied)).status,403);
+});
+
+test('Club can pause, archive and restore a Fantasy league without deleting balances or membership',async t=>{
+ const {env:e,sql}=env(t);
+ const created=await fixtureLeague(e,'owner-uid',classic('lifecycle-test-001'));
+ const id=created.league.id;
+ const path='/admin/leagues/'+id+'/lifecycle';
+ const initial=await handleFantasy(request(path),e,owner);
+ assert.equal(initial.status,200);
+ assert.equal((await initial.json()).state,'active');
+ const forbidden={authorize:async()=> 'guest-uid',adminAuthorize:async()=>{throw Object.assign(Error('Forbidden'),{status:403})}};
+ assert.equal((await handleFantasy(request(path),e,forbidden)).status,403);
+ const pause=await handleFantasy(request(path,{state:'paused',revision:0}),e,owner);
+ assert.equal(pause.status,200,await pause.clone().text());
+ assert.equal((await pause.json()).revision,1);
+ assert.equal((await handleFantasy(request(path,{state:'active',revision:0}),e,owner)).status,409);
+ const view=await handleFantasy(request('/leagues/'+id),e,owner);
+ assert.equal(view.status,200,await view.clone().text());
+ assert.equal((await view.json()).league.lifecycleState,'paused');
+ const marketWrite=await handleFantasy(request('/leagues/'+id+'/bid',{amount:500}),e,owner);
+ assert.equal(marketWrite.status,409);
+ assert.throws(()=>sql.prepare('INSERT INTO fantasy_members VALUES(?,?,?,?)').run(id,'new-member','Nuevo',Date.now()),/FANTASY_LEAGUE_INACTIVE/);
+ const before=sql.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').get(id).n;
+ assert.equal(before,1);
+ assert.equal((await handleFantasy(request(path,{state:'archived',revision:1}),e,owner)).status,400);
+ const archived=await handleFantasy(request(path,{state:'archived',revision:1,confirmation:'ARCHIVAR Liga Aficionado'}),e,owner);
+ assert.equal(archived.status,200,await archived.clone().text());
+ assert.equal((await archived.json()).state,'archived');
+ assert.equal((await handleFantasy(request('/leagues/'+id+'/lineup',{formation:'4-4-2'}),e,owner)).status,409);
+ assert.equal((await handleFantasy(request('/leagues/'+id),e,owner)).status,200);
+ const revive=await handleFantasy(request(path,{state:'active',revision:2}),e,owner);
+ assert.equal(revive.status,200,await revive.clone().text());
+ assert.equal((await revive.json()).state,'active');
+ const timeline=await handleFantasy(request('/admin/leagues/history?league='+id),e,owner);
+ assert.equal(timeline.status,200);
+ const history=(await timeline.json()).events;
+ const changes=history.filter(event=>event.kind==='lifecycle');
+ assert.equal(changes.length,3);
+ assert.deepEqual(new Set(changes.map(event=>event.after.state)),new Set(['active','paused','archived']));
+ assert(changes.every(event=>event.actor==='owner-uid'));
+ const activity=await handleFantasy(request('/admin/activity'),e,owner);
+ assert.equal(activity.status,200);
+ assert((await activity.json()).events.some(event=>event.type==='lifecycle'&&event.scope===id));
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_league_lifecycle_events WHERE league_id=?').get(id).n,3);
+
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').get(id).n,1);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_leagues WHERE id=?').get(id).n,1);
+});
+test('Club pause/archive endpoint rejects unsupported states and unconfirmed archive',async t=>{
+ const {env:e}=env(t);
+ const created=await fixtureLeague(e,'owner-uid',classic('lifecycle-test-002'));
+ const path='/admin/leagues/'+created.league.id+'/lifecycle';
+ for(const input of [
+  {state:'deleted',revision:0},{state:'paused',revision:-1},
+  {state:'archived',revision:0,confirmation:'ARCHIVAR algo'},
+  {state:'archived',revision:0,confirmation:''}
+ ]){
+  assert.equal((await handleFantasy(request(path,input),e,owner)).status,400);
+ }
+ assert.equal((await handleFantasy(request(path),e,owner)).status,200);
+});
+
+test('Club blocks new acquisitions per league and only the Club can lift the block',async t=>{
+ const {env:e,sql}=env(t),playerId=catalog.teams[0].players[0].id;
+ const data=await fixtureLeague(e,'owner-uid',classic('blocks-test-001')),leagueId=data.league.id;
+ const path='/admin/leagues/'+leagueId+'/player-blocks';
+ const forbidden={authorize:async()=> 'guest-uid',adminAuthorize:async()=>{throw Object.assign(Error('Forbidden'),{status:403})}};
+ assert.equal((await handleFantasy(request(path),e,forbidden)).status,403);
+ assert.equal((await handleFantasy(request(path,{playerId,blocked:true,expectedBlocked:false}),e,forbidden)).status,403);
+ const first=await handleFantasy(request(path),e,owner);
+ assert.equal(first.status,200);
+ assert((await first.json()).players.some(p=>p.id===playerId));
+ const locked=await handleFantasy(request(path,{playerId,blocked:true,expectedBlocked:false}),e,owner);
+ assert.equal(locked.status,200,await locked.clone().text());
+ assert.equal((await locked.json()).blocked,true);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_player_blocks WHERE league_id=? AND player_id=?').get(leagueId,playerId).n,1);
+ assert.equal((await handleFantasy(request(path,{playerId,blocked:false,expectedBlocked:false}),e,owner)).status,409);
+ const blockedResponse=await handleFantasy(request(path),e,owner);
+ assert((await blockedResponse.json()).blocked.some(p=>p.playerId===playerId));
+ assert.throws(()=>sql.prepare('INSERT INTO fantasy_offers(id,league_id,buyer_uid,seller_uid,ownership_id,player_id,amount_units,request_id,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run(
+  'offer-block-test',leagueId,'owner-uid','owner-uid','ownership-block-test',playerId,100,'blocked-offer-01',Date.now(),Date.now()+86400000
+ ),/FANTASY_PLAYER_BLOCKED/);
+ const released=await handleFantasy(request(path,{playerId,blocked:false,expectedBlocked:true}),e,owner);
+ assert.equal(released.status,200,await released.clone().text());
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_player_blocks WHERE league_id=?').get(leagueId).n,0);
+ assert.equal((await handleFantasy(request(path,{playerId:'unknown',blocked:true,expectedBlocked:false}),e,owner)).status,400);
 });

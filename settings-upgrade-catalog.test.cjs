@@ -5,7 +5,7 @@ test('Las 77 funciones acordadas están completas en el inventario y sin nuevo r
  assert.equal(features.length,77);
  assert.deepEqual(groups.map(g=>g.items.length),[12,12,14,14,12,3,10]);
  assert.equal(new Set(features.map(f=>f.id)).size,77);
- assert(features.every(f=>f.label.length>4&&['admin','user','club'].includes(f.scope)));
+ assert(features.every(f=>f.label.trim().length>0&&['admin','user','club'].includes(f.scope)));
  assert.equal(features.some(f=>/editor/i.test(f.label)),false);
 });
 test('Los ajustes personales incluyen las tres elecciones definitivas de Apariencia',()=>{

@@ -5,7 +5,7 @@ import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
 // Only administrators can open this UI; the server independently verifies the role.
 export default function FantasyLeagueManage({request}){
  const [list,setList]=useState(null),[current,setCurrent]=useState(null),[history,setHistory]=useState(null),[inscriptions,setInscriptions]=useState(null),[visibility,setVisibility]=useState(null),[lineupLock,setLineupLock]=useState(null);
- const [name,setName]=useState(''),[limit,setLimit]=useState('');
+ const [name,setName]=useState(''),[limit,setLimit]=useState(''),[lifecycle,setLifecycle]=useState(null),[archiveConfirm,setArchiveConfirm]=useState('');
  const [copyOpen,setCopyOpen]=useState(false),[copyName,setCopyName]=useState(''),[copyNickname,setCopyNickname]=useState('');
  const requestId=useRef(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
@@ -17,13 +17,14 @@ export default function FantasyLeagueManage({request}){
  }
  async function load(){await run(async()=>{const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);setNotice('')})}
  async function choose(id){await run(async()=>{
-  const [result,enrollment,appearance,lineup]=await Promise.all([
+  const [result,enrollment,appearance,lineup,lifecycleState]=await Promise.all([
    request('/admin/leagues/'+encodeURIComponent(id)+'/settings',{cache:'reload'}),
    request('/admin/leagues/'+encodeURIComponent(id)+'/inscriptions',{cache:'reload'}),
    request('/admin/leagues/'+encodeURIComponent(id)+'/visibility',{cache:'reload'}),
-   request('/admin/leagues/'+encodeURIComponent(id)+'/lineup-lock',{cache:'reload'})
+   request('/admin/leagues/'+encodeURIComponent(id)+'/lineup-lock',{cache:'reload'}),
+   request('/admin/leagues/'+encodeURIComponent(id)+'/lifecycle',{cache:'reload'})
   ]);
-  setInscriptions(enrollment);setVisibility(appearance);setLineupLock(lineup);setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);setCopyOpen(false);setCopyName(result.name+' - copia');setCopyNickname('Club');requestId.current=null;
+  setInscriptions(enrollment);setVisibility(appearance);setLineupLock(lineup);setLifecycle(lifecycleState);setArchiveConfirm('');setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);setCopyOpen(false);setCopyName(result.name+' - copia');setCopyNickname('Club');requestId.current=null;
  })}
  async function save(){if(!current||lock.current)return;await run(async()=>{
   const next=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/settings',{
@@ -33,6 +34,17 @@ export default function FantasyLeagueManage({request}){
   setNotice('Nombre y límite guardados. Las plantillas y los saldos no se han modificado.');setHistory(null);
   const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);
  })}
+ async function changeLifecycle(next){
+  if(!current||!lifecycle||lock.current)return;
+  if(next==='archived'&&archiveConfirm!=='ARCHIVAR '+current.name){setError('Escribe la confirmación exacta para archivar.');return}
+  await run(async()=>{
+   const result=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/lifecycle',{
+    method:'POST',body:JSON.stringify({state:next,revision:lifecycle.revision,confirmation:next==='archived'?archiveConfirm:undefined})
+   });
+   setLifecycle(result);setArchiveConfirm('');
+   setNotice(next==='active'?'Liga reactivada.':next==='paused'?'Liga pausada. Los miembros pueden consultar sus datos, pero no realizar operaciones nuevas.':'Liga archivada: se conservan sus datos y queda de solo lectura.');
+  });
+ }
  async function changeLineupLock(locked){
   if(!current||!lineupLock||lock.current)return;
   await run(async()=>{
@@ -91,6 +103,17 @@ export default function FantasyLeagueManage({request}){
    <Text style={{...text,color:theme.muted}}>Inscritos actualmente: {current.memberCount}. Nunca se expulsará a nadie por cambiar el límite.</Text>
    {current.mode==='classic'&&<Text style={{...text,color:theme.muted}}>Liga clásica: límite fijo; puedes cambiar el nombre.</Text>}
    <Button disabled={busy||!valid} onPress={save}>{busy?'Guardando…':'Guardar cambios de liga'}</Button>
+   {lifecycle&&<View style={{gap:9,padding:11,borderRadius:10,borderWidth:1,borderColor:theme.border}}>
+    <Text style={{...text,fontWeight:'800'}}>Estado de la liga · {lifecycle.state==='active'?'Activa':lifecycle.state==='paused'?'Pausada':'Archivada'}</Text>
+    <Text style={{...text,color:theme.muted}}>Pausar impide operaciones nuevas, conservando participantes y datos. Archivar deja la liga solo para consulta; no equivale a eliminarla.</Text>
+    {lifecycle.state==='active'&&<Button secondary disabled={busy} onPress={()=>changeLifecycle('paused')}>Pausar liga</Button>}
+    {lifecycle.state!=='active'&&<Button secondary disabled={busy} onPress={()=>changeLifecycle('active')}>Reactivar liga</Button>}
+    {lifecycle.state!=='archived'&&<>
+     <Text style={{...text,color:theme.muted}}>Para archivar escribe exactamente: ARCHIVAR {current.name}</Text>
+     <TextInput accessibilityLabel="Confirmar archivo de liga" value={archiveConfirm} onChangeText={setArchiveConfirm} editable={!busy} placeholder="ARCHIVAR nombre de la liga" placeholderTextColor={theme.muted} style={{color:theme.text,padding:12,borderWidth:1,borderRadius:8,borderColor:theme.border}}/>
+     <Button secondary disabled={busy||archiveConfirm!=='ARCHIVAR '+current.name} onPress={()=>changeLifecycle('archived')}>Archivar liga sin borrar datos</Button>
+    </>}
+   </View>}
    {lineupLock&&<View style={{gap:8,padding:10,borderRadius:10,borderWidth:1,borderColor:theme.border}}>
     <Text style={{...text,fontWeight:'800'}}>Alineaciones · {lineupLock.locked?'Bloqueadas':'Permitidas'}</Text>
     <Text style={{...text,color:theme.muted}}>El bloqueo impide cambiar el once en esta liga. No borra alineaciones guardadas ni amplía los plazos normales.</Text>

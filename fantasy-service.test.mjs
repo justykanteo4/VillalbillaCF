@@ -458,3 +458,29 @@ test('Club pause/archive endpoint rejects unsupported states and unconfirmed arc
  }
  assert.equal((await handleFantasy(request(path),e,owner)).status,200);
 });
+
+test('Club blocks new acquisitions per league and only the Club can lift the block',async t=>{
+ const {env:e,sql}=env(t),playerId=catalog.teams[0].players[0].id;
+ const data=await fixtureLeague(e,'owner-uid',classic('blocks-test-001')),leagueId=data.league.id;
+ const path='/admin/leagues/'+leagueId+'/player-blocks';
+ const forbidden={authorize:async()=> 'guest-uid',adminAuthorize:async()=>{throw Object.assign(Error('Forbidden'),{status:403})}};
+ assert.equal((await handleFantasy(request(path),e,forbidden)).status,403);
+ assert.equal((await handleFantasy(request(path,{playerId,blocked:true,expectedBlocked:false}),e,forbidden)).status,403);
+ const first=await handleFantasy(request(path),e,owner);
+ assert.equal(first.status,200);
+ assert((await first.json()).players.some(p=>p.id===playerId));
+ const locked=await handleFantasy(request(path,{playerId,blocked:true,expectedBlocked:false}),e,owner);
+ assert.equal(locked.status,200,await locked.clone().text());
+ assert.equal((await locked.json()).blocked,true);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_player_blocks WHERE league_id=? AND player_id=?').get(leagueId,playerId).n,1);
+ assert.equal((await handleFantasy(request(path,{playerId,blocked:false,expectedBlocked:false}),e,owner)).status,409);
+ const blockedResponse=await handleFantasy(request(path),e,owner);
+ assert((await blockedResponse.json()).blocked.some(p=>p.playerId===playerId));
+ assert.throws(()=>sql.prepare('INSERT INTO fantasy_offers(id,league_id,buyer_uid,seller_uid,ownership_id,player_id,amount_units,request_id,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run(
+  'offer-block-test',leagueId,'owner-uid','owner-uid','ownership-block-test',playerId,100,'blocked-offer-01',Date.now(),Date.now()+86400000
+ ),/FANTASY_PLAYER_BLOCKED/);
+ const released=await handleFantasy(request(path,{playerId,blocked:false,expectedBlocked:true}),e,owner);
+ assert.equal(released.status,200,await released.clone().text());
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_player_blocks WHERE league_id=?').get(leagueId).n,0);
+ assert.equal((await handleFantasy(request(path,{playerId:'unknown',blocked:true,expectedBlocked:false}),e,owner)).status,400);
+});

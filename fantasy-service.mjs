@@ -107,11 +107,11 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   if(request.method==='GET')return reply({points:JSON.parse(current.points_json),revision:current.revision,updatedAt:current.updated_at});
   if(request.method!=='POST')throw fail('Método no permitido.',405);
   const value=await body(request),input=value?.points;
-  const editable=['win','draw','loss','goal','cleanSheet','mvp','yellow','secondYellow','red','ownGoal'];
-  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length!==editable.length||!editable.every(k=>Object.hasOwn(input,k)&&Number.isInteger(input[k])&&input[k]>=-20&&input[k]<=20))throw fail('Introduce puntuaciones enteras entre −20 y 20.');
+  const editable=['win','draw','loss','goal','cleanSheet','mvp','yellow','secondYellow','red','ownGoal','captain'];
+  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length!==editable.length||!editable.every(k=>Object.hasOwn(input,k)&&Number.isInteger(input[k])&&(k==='captain'?input[k]>=1&&input[k]<=5:input[k]>=-20&&input[k]<=20)))throw fail('Introduce puntuaciones enteras entre −20 y 20 y un multiplicador del capitán entre 1 y 5.');
   if(!Number.isSafeInteger(value?.revision)||value.revision<0)throw fail('Actualiza los puntos antes de guardar.');
   if(value.revision!==current.revision)throw fail('Otro administrador ha cambiado los puntos. Actualiza la lista.',409);
-  const points={...leaguePolicy.classicSettings.points,...input,idealXI:0,captain:2},encoded=JSON.stringify(points);
+  const points={...leaguePolicy.classicSettings.points,...input,idealXI:0},encoded=JSON.stringify(points);
   // Atomic: revision check and all league rule updates are committed together.
   await db.batch([
    db.prepare("SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM fantasy_point_settings WHERE id=1 AND revision=?) THEN json('FANTASY_POINTS_CHANGED') ELSE 'ok' END").bind(value.revision),

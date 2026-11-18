@@ -1,3 +1,5 @@
+import catalog from './fantasy-players.json' with {type:'json'};
+const playerNames=new Map(catalog.teams.flatMap(team=>team.players.map(player=>[player.id,player.name])));
 const fail=(message,status=400)=>Object.assign(Error(message),{status});
 const validId=value=>typeof value==='string'&&/^[A-Za-z0-9-]{1,80}$/.test(value);
 const validRequest=value=>typeof value==='string'&&/^[A-Za-z0-9_-]{8,80}$/.test(value);
@@ -16,7 +18,7 @@ export async function exchangeRoute({db,league,uid,now,method,action='',readBody
      JOIN fantasy_members r ON r.league_id=e.league_id AND r.uid=e.receiver_uid
      WHERE e.league_id=? AND (e.proposer_uid=? OR e.receiver_uid=?)
      ORDER BY e.created_at DESC LIMIT 100`).bind(league.id,uid,uid).all();
-   return {exchanges:results.map(e=>({id:e.id,proposer:e.proposer_name,receiver:e.receiver_name,proposerPlayerId:e.proposer_player_id,receiverPlayerId:e.receiver_player_id,incoming:e.receiver_uid===uid,status:e.status==='pending'&&e.expires_at<=now?'expired':e.status,expiresAt:e.expires_at}))};
+   return {exchanges:results.map(e=>({id:e.id,proposer:e.proposer_name,receiver:e.receiver_name,proposerPlayerId:e.proposer_player_id,receiverPlayerId:e.receiver_player_id,proposerPlayerName:playerNames.get(e.proposer_player_id)||'Jugador',receiverPlayerName:playerNames.get(e.receiver_player_id)||'Jugador',incoming:e.receiver_uid===uid,status:e.status==='pending'&&e.expires_at<=now?'expired':e.status,expiresAt:e.expires_at}))};
   }
   if(method!=='POST')throw fail('Método no permitido.',405);
   const value=await readBody();

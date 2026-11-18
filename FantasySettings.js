@@ -23,23 +23,21 @@ export default function FantasySettings({request,onBack,account}){
   <Button secondary onPress={onBack}>‹ Volver a Fantasy</Button>
   <Text accessibilityRole="header" style={{...text,fontSize:24,fontWeight:'900'}}>Ajustes Fantasy</Text>
   <TextInput accessibilityLabel="Buscar ajustes Fantasy" placeholder="Buscar ajustes Fantasy…" placeholderTextColor={theme.muted} value={search} onChangeText={setSearch} style={{backgroundColor:'#162544',borderWidth:1,borderColor:'#334667',color:'#fff',padding:13,borderRadius:12}}/>
-  {matches("Acceso usuarios participantes permisos invitaciones")&&<SettingsGroup key={"access:"+term} title="Acceso y usuarios" subtitle="Permisos y participantes" initiallyOpen>
+  {isAdmin&&matches("Administración y seguridad acceso usuarios participantes permisos invitaciones suspender")&&<SettingsGroup key={"access:"+term} title="Club · Administración y seguridad" subtitle="Acceso y gestión de participantes" initiallyOpen>
    <FantasyAccessSettings request={request}/>
    <FantasyUserSettings request={request}/>
-  </SettingsGroup>}
-  {isAdmin&&matches("Ligas crear reiniciar clausulas temporadas equipos plazas inscripciones")&&<SettingsGroup key={"leagues:"+term} initiallyOpen={!!term} title="Ligas" subtitle="Crear, cláusulas y reiniciar">
+  </SettingsGroup>
+  {isAdmin&&matches("Ligas crear reiniciar clausulas temporadas equipos plazas inscripciones")&&<SettingsGroup key={"leagues:"+term} initiallyOpen={!!term} title="Club · Ligas y competición" subtitle="Crear y reiniciar ligas">
    <FantasyLeagueCreationSettings request={request}/>
-   <FantasyClauseSettings request={request}/>
    <FantasyLeagueReset request={request}/>
   </SettingsGroup>}
-  {isAdmin&&matches("Puntuaciones puntos goles asistencias tarjetas actas estadisticas victoria empate derrota MVP")&&<SettingsGroup key={"points:"+term} initiallyOpen={!!term} title="Puntuaciones" subtitle="Modificar puntos de los jugadores">
+  {isAdmin&&matches("Puntuaciones puntos goles asistencias tarjetas actas estadisticas victoria empate derrota MVP")&&<SettingsGroup key={"points:"+term} initiallyOpen={!!term} title="Club · Puntuaciones y premios" subtitle="Reglas, estadísticas y MVP">
    <FantasyPointsSettings request={request}/>
    <FantasyPlayerStatsEditor request={request}/>
-  </SettingsGroup>}
-  {matches("Premios entrenadores MVP once ideal salarios bonificaciones")&&<SettingsGroup key={"awards:"+term} initiallyOpen={!!term} title="Premios y entrenadores" subtitle="MVP, once ideal y salarios">
    <FantasyGameSettings request={request}/>
   </SettingsGroup>}
-  {isAdmin&&matches("Mercado precios traspasos fichajes clausulas ofertas subastas")&&<SettingsGroup key={"market:"+term} initiallyOpen={!!term} title="Mercado" subtitle="Precios y traspasos">
+  {isAdmin&&matches("Mercado precios traspasos fichajes clausulas ofertas subastas")&&<SettingsGroup key={"market:"+term} initiallyOpen={!!term} title="Club · Mercado y economía" subtitle="Precios, cláusulas y traspasos">
+   <FantasyClauseSettings request={request}/>
    <FantasyPriceSettings key={account?.id} request={request} account={account}/>
    <FantasyAdminTransfer request={request}/>
   </SettingsGroup>}

@@ -4,7 +4,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {resetLeague} from './fantasy-league-reset.mjs';
 import {handleFantasy} from './fantasy-service.mjs';
-const files=['fantasy-schema.sql','social-schema.sql','fantasy-club-schema.sql','fantasy-actas-schema.sql','fantasy-access-schema.sql','fantasy-game-schema.sql','fantasy-rewards-schema.sql','fantasy-auction-schema.sql','fantasy-sales-schema.sql','fantasy-resale-schema.sql','fantasy-clause-schema.sql','fantasy-manager-listings-schema.sql','fantasy-league-lifecycle-schema.sql'];
+const files=['fantasy-schema.sql','social-schema.sql','fantasy-club-schema.sql','fantasy-actas-schema.sql','fantasy-access-schema.sql','fantasy-game-schema.sql','fantasy-rewards-schema.sql','fantasy-auction-schema.sql','fantasy-sales-schema.sql','fantasy-resale-schema.sql','fantasy-clause-schema.sql','fantasy-manager-listings-schema.sql','fantasy-league-lifecycle-schema.sql','fantasy-player-blocks-schema.sql'];
 function fixture(t){
  const sql=new DatabaseSync(':memory:');
  for(const file of files)sql.exec(readFileSync(file,'utf8'));

@@ -94,6 +94,12 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   if(!changed)throw fail('Otro administrador ha cambiado este ajuste. Actualiza antes de guardar.',409);
   return reply({enabled:changed.enabled===1,revision:changed.revision,updatedAt:changed.updated_at});
  }
+ if(path==='/api/fantasy/admin/points/history'){
+  if(!db)throw fail('Historial de puntos no disponible.',503);
+  if(request.method!=='GET')throw fail('Método no permitido.',405);
+  const history=(await db.prepare('SELECT revision,actor_uid AS actor,before_json AS beforeJson,after_json AS afterJson,created_at AS createdAt FROM fantasy_point_history ORDER BY revision DESC LIMIT 50').all()).results;
+  return reply({history:history.map(item=>({revision:item.revision,actor:item.actor,before:JSON.parse(item.beforeJson),after:JSON.parse(item.afterJson),createdAt:item.createdAt}))});
+ }
  if(path==='/api/fantasy/admin/points'){
   if(!db)throw fail('No se pudo consultar la puntuación.',503);
   const current=await db.prepare('SELECT points_json,revision,updated_at FROM fantasy_point_settings WHERE id=1').first();
@@ -110,7 +116,9 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   await db.batch([
    db.prepare("SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM fantasy_point_settings WHERE id=1 AND revision=?) THEN json('FANTASY_POINTS_CHANGED') ELSE 'ok' END").bind(value.revision),
    db.prepare("UPDATE fantasy_point_settings SET points_json=?,revision=revision+1,updated_at=? WHERE id=1 AND revision=?").bind(encoded,currentTime,value.revision),
-   db.prepare("UPDATE fantasy_leagues SET settings_json=json_set(settings_json,'$.points',json(?))").bind(encoded)
+   db.prepare("UPDATE fantasy_leagues SET settings_json=json_set(settings_json,'$.points',json(?))").bind(encoded),
+   db.prepare('INSERT INTO fantasy_point_history(id,revision,actor_uid,before_json,after_json,created_at) VALUES(?,?,?,?,?,?)')
+    .bind(crypto.randomUUID(),value.revision+1,uid,current.points_json,encoded,currentTime)
   ]);
   return reply({points,revision:value.revision+1,updatedAt:currentTime});
  }

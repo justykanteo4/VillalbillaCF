@@ -255,7 +255,7 @@ jobs:
           test -s /tmp/fantasy-backup-before-photos.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-loans-schema.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name='fantasy_player_loans';"
-          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('fantasy_loan_accept_guard','fantasy_loan_return_guard','fantasy_loan_player_delete');"
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT COUNT(*) AS loan_count FROM fantasy_player_loans;"
       - name: Migrate Fantasy season archives after verified backup
         shell: bash
         run: |

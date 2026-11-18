@@ -143,6 +143,30 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(!['GET','POST'].includes(request.method))return reply({error:'Método no permitido.'},405);
  if(!db)throw fail('No se pudo conectar con las ligas.',503);
  if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ const marketSlotsMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/market-slots$/);
+ if(marketSlotsMatch){
+  const leagueId=marketSlotsMatch[1];
+  const league=await db.prepare('SELECT id,name FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
+  if(!league)throw fail('Liga no encontrada.',404);
+  const row=await db.prepare('SELECT slots,revision FROM fantasy_market_slot_settings WHERE league_id=?').bind(leagueId).first();
+  const current={slots:row?.slots??16,revision:row?.revision??0};
+  if(request.method==='GET')return reply({league,...current});
+  if(request.method!=='POST')throw fail('Método no permitido.',405);
+  const data=await body(request);
+  if(!Number.isInteger(data?.slots)||data.slots<16||data.slots>24||!Number.isSafeInteger(data?.revision)||data.revision<0)throw fail('Cantidad de mercado no válida: elige entre 16 y 24 jugadores.');
+  if(data.revision!==current.revision)throw fail('Otro administrador cambió la cantidad. Actualiza antes de guardar.',409);
+  if(data.slots===current.slots)return reply({league,...current,saved:true});
+  if(data.slots<current.slots){
+   const busy=await db.prepare("SELECT COUNT(*) AS n FROM fantasy_auction_bids b JOIN fantasy_auction_rounds r ON r.league_id=b.league_id AND r.listing_id=b.listing_id AND r.day=b.day WHERE b.league_id=? AND b.status='active' AND r.status='open'").bind(leagueId).first();
+   if(busy.n>0)throw fail('No reduzcas las plazas mientras haya pujas activas; espera a que finalicen.',409);
+  }
+  const updated=await db.prepare(`INSERT INTO fantasy_market_slot_settings(league_id,slots,revision,changed_by,changed_at)
+   VALUES(?,?,1,?,?) ON CONFLICT(league_id) DO UPDATE SET slots=excluded.slots,revision=fantasy_market_slot_settings.revision+1,changed_by=excluded.changed_by,changed_at=excluded.changed_at
+   WHERE fantasy_market_slot_settings.revision=? RETURNING slots,revision`)
+    .bind(leagueId,data.slots,uid,currentTime,data.revision).first();
+  if(!updated)throw fail('La cantidad ha cambiado. Actualiza los ajustes.',409);
+  return reply({league,...updated,saved:true});
+ }
  const marketWindowMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/market-window$/);
  if(marketWindowMatch){
   const leagueId=marketWindowMatch[1];

@@ -314,3 +314,18 @@ test('Club duplicates only league configuration into a new independent competiti
  assert.equal((await handleFantasy(request(path,invalid),e,owner)).status,400);
  assert.equal((await handleFantasy(request(path,{...payload,requestId:'copy-request-0003',name:'Nueva liga'}),e,forbidden)).status,403);
 });
+
+test('Club activity lists scoring and league changes without exposing them to other users',async t=>{
+ const {env:e,sql}=env(t),now=Date.parse('2026-11-18T12:00:00Z');
+ sql.prepare('INSERT INTO fantasy_league_admin_events(id,league_id,actor_uid,kind,before_json,after_json,created_at) VALUES(?,?,?,?,?,?,?)').run('ev-1','league-1','club-admin','settings',JSON.stringify({name:'Antigua',maxMembers:5}),JSON.stringify({name:'Nueva',maxMembers:6}),now);
+ sql.prepare('INSERT INTO fantasy_point_history(id,revision,actor_uid,before_json,after_json,created_at) VALUES(?,?,?,?,?,?)').run('ev-2',123,'club-admin',JSON.stringify({win:6}),JSON.stringify({win:7}),now+10);
+ const result=await handleFantasy(request('/admin/activity'),e,owner);
+ assert.equal(result.status,200);
+ const activity=(await result.json()).events;
+ assert.deepEqual(activity.map(x=>x.type),['scoring','league']);
+ assert.equal(activity[1].summary,'Nueva');
+ assert.equal(activity[0].actor,'club-admin');
+ const denied={authorize:async()=> 'other',adminAuthorize:async()=>{throw Object.assign(Error('No club'),{status:403})}};
+ assert.equal((await handleFantasy(request('/admin/activity'),e,denied)).status,403);
+ assert.equal((await handleFantasy(request('/admin/activity',{any:true}),e,owner)).status,405);
+});

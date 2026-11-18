@@ -166,7 +166,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   const value=await body(request);
   const name=typeof value?.name==='string'?value.name.trim():'';
   const limit=value?.maxMembers;
-  if(name.length<3||name.length>60||/[\\x00-\\x1f\\x7f<>]/.test(name))throw fail('El nombre debe tener entre 3 y 60 caracteres, sin símbolos prohibidos.');
+  if(name.length<3||name.length>60||/[\u0000-\u001f\u007f<>]/.test(name))throw fail('El nombre debe tener entre 3 y 60 caracteres, sin símbolos prohibidos.');
   if(!Number.isInteger(limit)||limit<2||limit>15)throw fail('El límite debe estar entre 2 y 15 participantes.');
   if(row.mode==='classic'&&limit!==settings.maxMembers)throw fail('El límite de una liga clásica es fijo. Para modificarlo crea una liga personalizada.');
   if(limit<members)throw fail('El límite no puede ser menor que los participantes actuales.',409);

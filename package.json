@@ -25,7 +25,7 @@
     "build:presentation": "node scripts/build-presentation.cjs",
     "build:visuals": "npm run build:simulator && npm run build:presentation && npm run build:roster-export",
     "build:roster-export": "node scripts/build-roster-export.cjs",
-    "check:fantasy-clauses": "node --test fantasy-clauses.test.cjs fantasy-market-extensions.test.mjs fantasy-sales.test.mjs fantasy-economy.test.mjs fantasy-game.test.mjs fantasy-service.test.mjs",
+    "check:fantasy-clauses": "node --test club-result-authorization.test.mjs result-edits.test.mjs fantasy-clauses.test.cjs fantasy-market-extensions.test.mjs fantasy-sales.test.mjs fantasy-economy.test.mjs fantasy-game.test.mjs fantasy-service.test.mjs",
     "check:web-android-ios": "node scripts/check-release.cjs && pnpm run check:fantasy-clauses && expo export --platform all --output-dir work/verify-all-platforms"
   },
   "dependencies": {

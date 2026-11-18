@@ -182,6 +182,18 @@ test('puntuaciones Fantasy: solo club, revisión concurrente y cambios en todas 
  assert.equal(result.points.captain,2);
  assert.equal(result.points.idealXI,0);
  assert.equal((await handleFantasy(request('/admin/points',{points,revision:prior.revision}),e,owner)).status,409);
+ const revisions=await handleFantasy(request('/admin/points/history'),e,owner);
+ assert.equal(revisions.status,200);
+ const history=(await revisions.json()).history;
+ assert.equal(history.length,1);
+ assert.equal(history[0].actor,'owner-uid');
+ assert.equal(history[0].before.win,6);
+ assert.equal(history[0].after.win,8);
+ assert.equal(history[0].revision,prior.revision+1);
+ const deniedHistory=await handleFantasy(request('/admin/points/history'),e,{authorize:async()=> 'second-uid',adminAuthorize:async()=>{throw Object.assign(Error('No club'),{status:403})}});
+ assert.equal(deniedHistory.status,403);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_point_history').get().n,1);
+
  for(const id of [first.league.id,second.league.id]){
   const actual=JSON.parse(sql.prepare('SELECT settings_json FROM fantasy_leagues WHERE id=?').get(id).settings_json);
   assert.equal(actual.points.goal,2);

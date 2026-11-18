@@ -285,3 +285,32 @@ test('Club cannot shrink below enrolled member count or change classic maximum',
  assert.equal((await handleFantasy(request(classicPath,{name:'Liga clasica nueva',maxMembers:14,expectedName:'Liga Aficionado',expectedMaxMembers:15}),e,owner)).status,400);
  assert.equal((await handleFantasy(request(classicPath,{name:'Liga clásica nueva',maxMembers:15,expectedName:'Liga Aficionado',expectedMaxMembers:15}),e,owner)).status,200);
 });
+
+test('Club duplicates only league configuration into a new independent competition',async t=>{
+ const {env:e,sql}=env(t);
+ const src=await fixtureLeague(e,'owner-uid',{requestId:'copy-src-2026',mode:'custom',name:'Original Villalbilla',nickname:'Creador',teamId:'680163',settings:{...policy.classicSettings,budget:175,maxMembers:7,transfers:4}});
+ const original=sql.prepare('SELECT id,settings_json FROM fantasy_leagues WHERE id=?').get(src.league.id);
+ const payload={name:'Copia Villalbilla',nickname:'Club',requestId:'copy-request-0001'};
+ const path='/admin/leagues/'+src.league.id+'/duplicate';
+ const forbidden={authorize:async()=> 'fan-uid',adminAuthorize:async()=>{throw Object.assign(Error('No club'),{status:403})}};
+ assert.equal((await handleFantasy(request(path,payload),e,forbidden)).status,403);
+ const created=await handleFantasy(request(path,payload),e,owner);
+ assert.equal(created.status,201,await created.clone().text());
+ const result=await created.json();
+ assert.equal(result.onlyConfiguration,true);
+ assert.notEqual(result.id,original.id);
+ const duplicate=sql.prepare('SELECT id,owner_uid,name,mode,settings_json,code FROM fantasy_leagues WHERE id=?').get(result.id);
+ assert.equal(duplicate.owner_uid,'owner-uid');
+ assert.equal(duplicate.name,'Copia Villalbilla');
+ assert.equal(duplicate.mode,'custom');
+ assert.equal(duplicate.settings_json,original.settings_json);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').get(result.id).n,1);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_roster WHERE league_id=?').get(result.id).n,0);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_trades WHERE league_id=?').get(result.id).n,0);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').get(original.id).n,1);
+ assert.equal((await handleFantasy(request(path,payload),e,owner)).status,200);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_leagues').get().n,2);
+ const invalid={...payload,requestId:'copy-request-0002',name:'<script>bad</script>'};
+ assert.equal((await handleFantasy(request(path,invalid),e,owner)).status,400);
+ assert.equal((await handleFantasy(request(path,{...payload,requestId:'copy-request-0003',name:'Nueva liga'}),e,forbidden)).status,403);
+});

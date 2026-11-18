@@ -1,7 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {View,Text,TextInput,Pressable,ScrollView} from 'react-native';
 import {Button,ErrorText,text,panel,title,theme} from './FantasyUI';
-const keys=[['goals','Goles'],['assists','Asistencias'],['yellow','Amarillas'],['red','Rojas'],['ownGoals','Goles en propia']];
+const keys=[['goals','Goles'],['assists','Asistencias'],['yellow','Amarillas'],['red','Rojas'],['ownGoals','Goles en propia'],['secondYellow','Segunda amarilla']];
 const label={...text,color:theme.muted,fontSize:12};
 export default function FantasyPlayerStatsEditor({request}){
  const [matches,setMatches]=useState([]),[selected,setSelected]=useState(null),[data,setData]=useState(null);
@@ -14,7 +14,7 @@ export default function FantasyPlayerStatsEditor({request}){
  function choose(p){setPlayer(p);setDraft(Object.fromEntries(keys.map(([k])=>[k,String(p.stats[k]??0)])));setNotice('');setError('')}
  async function save(){if(!selected||!player||busy)return;
   const values=Object.fromEntries(keys.map(([k])=>[k,Number(draft[k])]));
-  if(keys.some(([k])=>!/^(?:0|[1-9]\d?)$/.test(draft[k]||'')||values[k]>20)||values.ownGoals>values.goals){setError('Introduce valores enteros entre 0 y 20. Los goles propios no pueden superar los goles.');return}
+  if(keys.some(([k])=>!/^(?:0|[1-9]\d?)$/.test(draft[k]||'')||values[k]>20)||values.secondYellow>1||values.secondYellow>values.red){setError('Introduce valores enteros entre 0 y 20. Segunda amarilla debe ser 0 o 1 y requiere una tarjeta roja.');return}
   setBusy(true);setError('');setNotice('');
   try{
    await request('/admin/player-stats',{method:'POST',body:JSON.stringify({teamId:selected.teamId,matchId:selected.matchId,playerId:player.id,revision:player.revision,stats:values})});

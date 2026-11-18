@@ -163,3 +163,34 @@ test('el club activa ligas nuevas, los usuarios crean ligas independientes y al 
  assert.equal(saved.league.name,'Los Galácticos','existing leagues keep working');
  assert.equal((await(await handleFantasy(request('/leagues'),e,owner)).json()).creationEnabled,false);
 });
+
+test('puntuaciones Fantasy: solo club, revisión concurrente y cambios en todas las ligas y nuevas',async t=>{
+ const {env:e,sql}=env(t);
+ const first=await fixtureLeague(e,'owner-uid',classic('points-legacy-a'));
+ const second=await fixtureLeague(e,'second-uid',classic('points-legacy-b'));
+ const prior=await (await handleFantasy(request('/admin/points'),e,owner)).json();
+ assert.equal(prior.points.win,6);
+ const denied=await handleFantasy(request('/admin/points'),e,{authorize:async()=> 'second-uid',adminAuthorize:async()=>{throw Object.assign(Error('No club'),{status:403})}});
+ assert.equal(denied.status,403);
+ const points={win:8,draw:4,loss:0,goal:2,cleanSheet:3,mvp:2,yellow:-2,secondYellow:-4,red:-6,ownGoal:-3};
+ const invalid=await handleFantasy(request('/admin/points',{points:{...points,win:100},revision:prior.revision}),e,owner);
+ assert.equal(invalid.status,400);
+ const updated=await handleFantasy(request('/admin/points',{points,revision:prior.revision}),e,owner);
+ assert.equal(updated.status,200,await updated.clone().text());
+ const result=await updated.json();
+ assert.equal(result.points.win,8);
+ assert.equal(result.points.captain,2);
+ assert.equal(result.points.idealXI,0);
+ assert.equal((await handleFantasy(request('/admin/points',{points,revision:prior.revision}),e,owner)).status,409);
+ for(const id of [first.league.id,second.league.id]){
+  const actual=JSON.parse(sql.prepare('SELECT settings_json FROM fantasy_leagues WHERE id=?').get(id).settings_json);
+  assert.equal(actual.points.goal,2);
+  assert.equal(actual.points.win,8);
+  assert.equal(actual.points.captain,2);
+ }
+ const join=await handleFantasy(request('/team-league',{teamId:'680163',nickname:'Nuevo'}),e,owner);
+ assert.equal(join.status,200,await join.clone().text());
+ const fresh=(await join.json()).league;
+ assert.equal(fresh.settings.points.goal,2);
+ assert.equal(fresh.settings.points.mvp,2);
+});

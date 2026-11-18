@@ -1,4 +1,4 @@
-import React from 'react';
+import React,{useEffect,useState} from 'react';
 import {View,Text,Pressable,TextInput} from 'react-native';
 import theme from './fantasy-theme.cjs';
 export {theme};
@@ -44,10 +44,22 @@ const rules = [
   ]],
 ];
 
-export function FantasyRules(){
+export function FantasyRules({request}){
+  const [points,setPoints]=useState(null);
+  useEffect(()=>{if(!request)return;let active=true;request('/leagues',{cache:'reload'}).then(data=>{if(active)setPoints(data.leagues?.[0]?.settings?.points||null)}).catch(()=>{});return()=>{active=false}},[request]);
+  const sections=rules.map(([heading,items])=>{
+   if(!points)return [heading,items];
+   if(heading==='Puntos de los jugadores')return [heading,[
+    'Victoria '+points.win+' · Empate '+points.draw+' · Derrota '+points.loss+' · Gol '+points.goal+'.',
+    'Portero sin goles encajados '+points.cleanSheet+'.',
+    'Gol en propia puerta '+points.ownGoal+' · Amarilla '+points.yellow+' · Doble amarilla '+points.secondYellow+' · Roja '+points.red+'.'
+   ]];
+   if(heading==='MVP, once ideal y capitán')return [heading,items.map(item=>item.replace('Cada MVP suma 1 punto.','Cada MVP suma '+points.mvp+' puntos.'))];
+   return [heading,items];
+  });
   return <View style={panel}>
     <Text accessibilityRole="header" style={title}>Reglas de VillalbillaFantasy</Text>
-    {rules.map(([heading,items])=><View key={heading} style={{gap:7,borderTopWidth:1,borderColor:theme.border,paddingTop:12}}>
+    {sections.map(([heading,items])=><View key={heading} style={{gap:7,borderTopWidth:1,borderColor:theme.border,paddingTop:12}}>
       <Text accessibilityRole="header" style={{...text,color:theme.accent,fontSize:16,fontWeight:'800'}}>{heading}</Text>
       {items.map(item=><View key={item} style={{flexDirection:'row',gap:8}}>
         <Text style={{...text,color:theme.accent}}>•</Text>

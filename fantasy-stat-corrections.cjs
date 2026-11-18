@@ -1,10 +1,10 @@
 // Fantasy-only overlays: immutable official report objects and partial flags are preserved.
-const fields=['goals','assists','yellow','red','ownGoals'];
+const fields=['goals','assists','yellow','red','ownGoals','secondYellow'];
 const digits=value=>Number.isSafeInteger(value)&&value>=0&&value<=20;
 function validStats(value){
  return value&&typeof value==='object'&&!Array.isArray(value)&&
  Object.keys(value).length===fields.length&&fields.every(k=>Object.hasOwn(value,k)&&digits(value[k]))&&
- value.ownGoals<=value.goals;
+ value.secondYellow<=1&&value.secondYellow<=value.red;
 }
 function statsFromPlayer(player){
  return Object.fromEntries(fields.map(k=>[k,Number.isSafeInteger(player[k])&&player[k]>=0?player[k]:0]));
@@ -23,7 +23,7 @@ function applyStatCorrections(matches,rows){
   if(!changed)return match;
   return {...match,players:match.players.map(player=>{
    const edit=changed.get(String(player.id));
-   return edit?{...player,...edit,statsCorrected:true}:player;
+   return edit?{...player,...edit,secondYellow:!!edit.secondYellow,directRed:Math.max(0,edit.red-edit.secondYellow),statsCorrected:true}:player;
   })};
  });
 }

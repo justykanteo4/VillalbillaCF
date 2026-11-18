@@ -138,6 +138,31 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
    const leagues=await db.prepare('SELECT id,name,created_at FROM fantasy_leagues ORDER BY name,id').all();
    return reply({leagues:leagues.results});
  }
+ const leagueSettingsMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/settings$/);
+ if(leagueSettingsMatch){
+  const leagueId=leagueSettingsMatch[1];
+  const row=await db.prepare('SELECT name,mode,settings_json FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
+  if(!row)throw fail('Liga no encontrada.',404);
+  const settings=JSON.parse(row.settings_json);
+  const members=(await db.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').bind(leagueId).first()).n;
+  const payload={id:leagueId,name:row.name,mode:row.mode,maxMembers:settings.maxMembers,memberCount:members};
+  if(request.method==='GET')return reply(payload);
+  if(request.method!=='POST')throw fail('Método no permitido.',405);
+  const value=await body(request);
+  const name=typeof value?.name==='string'?value.name.trim():'';
+  const limit=value?.maxMembers;
+  if(name.length<3||name.length>60)throw fail('El nombre debe tener entre 3 y 60 caracteres.');
+  if(!Number.isInteger(limit)||limit<2||limit>15)throw fail('El límite debe estar entre 2 y 15 participantes.');
+  if(row.mode==='classic'&&limit!==settings.maxMembers)throw fail('El límite de una liga clásica es fijo. Para modificarlo crea una liga personalizada.');
+  if(limit<members)throw fail('El límite no puede ser menor que los participantes actuales.',409);
+  if(value.expectedName!==row.name||value.expectedMaxMembers!==settings.maxMembers)throw fail('La liga ha cambiado. Actualiza antes de guardar.',409);
+  if(name===row.name&&limit===settings.maxMembers)return reply({...payload,saved:true});
+  const next=JSON.stringify({...settings,maxMembers:limit});
+  const updated=await db.prepare('UPDATE fantasy_leagues SET name=?,settings_json=? WHERE id=? AND name=? AND settings_json=? AND (SELECT COUNT(*) FROM fantasy_members WHERE league_id=?)<=? RETURNING id')
+    .bind(name,next,leagueId,row.name,row.settings_json,leagueId,limit).first();
+  if(!updated)throw fail('La liga o sus participantes han cambiado. Actualiza antes de guardar.',409);
+  return reply({id:leagueId,name,maxMembers:limit,memberCount:members,mode:row.mode,saved:true});
+ }
  const transferMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/transfer$/);
  if(transferMatch){
   const leagueId=transferMatch[1];

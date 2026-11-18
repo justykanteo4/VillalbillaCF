@@ -1,13 +1,10 @@
 {
-  "id": "2026.11.17.traspasos",
-  "date": "2026-11-17",
-  "title": "Fantasy: traspasos manuales",
+  "id": "2026.11.18.fantasy-temporadas",
+  "date": "2026-11-18",
+  "title": "Fantasy: temporadas y clasificación histórica",
   "changes": [
-    "Los administradores pueden asignar a un jugador libre o de un rival a otro equipo desde Ajustes de Fantasy.",
-    "En cada partido ganado se pueden elegir tres o más MVP entre los convocados, incluidos los suplentes.",
-    "Las tareas pendientes y el cierre de jornada reconocen cualquier selección válida de al menos tres MVP.",
-    "La plantilla inicial se presenta a pantalla completa: toca cada sobre para descubrir al jugador y pulsa Siguiente para continuar, sin avance automático.",
-    "Cada fichaje confirmado, tanto en el mercado como por una oferta a un rival, se revela con el mismo sobre y su foto, puntos, valor e importe pagado.",
-    "El sobre y el estadio están incluidos en la app. Las presentaciones respetan el movimiento reducido y se coordinan con las ofertas y premios para evitar pantallas superpuestas."
+    "En Jornadas se pueden seleccionar temporadas anteriores utilizando las fechas de los partidos ya registrados.",
+    "Cada temporada muestra sus jornadas disponibles y una clasificación calculada a partir de puntuaciones confirmadas.",
+    "Los empates comparten puesto y no se inventan puntos cuando falta un acta."
   ]
 }

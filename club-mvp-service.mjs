@@ -10,7 +10,7 @@ const reply=(value,status=200)=>Response.json(value,{status,headers:{'Cache-Cont
 // Additive D1 schema: created before the first non-admin MVP change, with no reset
 // or alteration of existing Fantasy leagues, awards, wallets or participants.
 export const mvpAuditTable="CREATE TABLE IF NOT EXISTS club_mvp_audit(id TEXT PRIMARY KEY,match_id TEXT NOT NULL,team_id TEXT NOT NULL,previous_revision INTEGER NOT NULL,new_revision INTEGER NOT NULL,previous_player_ids TEXT NOT NULL,player_ids TEXT NOT NULL,actor_uid TEXT NOT NULL,actor_name TEXT NOT NULL,actor_role TEXT NOT NULL CHECK(actor_role IN ('admin','editor','trainer')),created_at INTEGER NOT NULL,UNIQUE(match_id,team_id,new_revision))";
-const validScope=(teamId,matchId)=>teams.some(t=>t.id===teamId)&&/^\\d{1,20}$/.test(matchId||'');
+const validScope=(teamId,matchId)=>teams.some(t=>t.id===teamId)&&/^[0-9]{1,20}$/.test(matchId||'');
 
 export async function handleClubMvp(request,env,{authorize=authorizeClubResultEditor,authorizeAdmin=verifyAdmin,game=adminGame,settle=settleAwardEconomy,clock=Date.now,ctx}={}){
  const url=new URL(request.url),path=url.pathname;

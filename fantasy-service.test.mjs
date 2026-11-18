@@ -229,3 +229,36 @@ test('admin Fantasy player statistics persist, recalculate and protect concurren
  assert.equal(edited.goals,stats.goals);
  assert.equal(edited.assists,1);
 });
+
+test('Club renames custom league and changes capacity without changing players, members or money',async t=>{
+ const {env:e,sql}=env(t);
+ const created=await fixtureLeague(e,'owner-uid',{requestId:'manage-league-2026',mode:'custom',name:'Liga de pruebas',nickname:'Propietario',teamId:'680163',settings:{...policy.classicSettings,maxMembers:5}});
+ const id=created.league.id,path='/admin/leagues/'+id+'/settings';
+ const initial=await handleFantasy(request(path),e,owner);
+ assert.equal(initial.status,200);
+ const settings=await initial.json();
+ assert.equal(settings.name,'Liga de pruebas');assert.equal(settings.maxMembers,5);assert.equal(settings.memberCount,1);
+ const edited=await handleFantasy(request(path,{name:'Liga Villalbilla 2027',maxMembers:7,expectedName:settings.name,expectedMaxMembers:5}),e,owner);
+ assert.equal(edited.status,200,JSON.stringify(await edited.clone().json()));
+ assert.equal((await edited.json()).maxMembers,7);
+ const row=sql.prepare('SELECT name,settings_json FROM fantasy_leagues WHERE id=?').get(id);
+ assert.equal(row.name,'Liga Villalbilla 2027');assert.equal(JSON.parse(row.settings_json).maxMembers,7);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').get(id).n,1);
+ assert.equal((await handleFantasy(request(path,{name:'Cambio antiguo',maxMembers:6,expectedName:settings.name,expectedMaxMembers:5}),e,owner)).status,409);
+ for(const maxMembers of [0,1,16,2.5,'8'])assert.equal((await handleFantasy(request(path,{name:'Otra liga',maxMembers,expectedName:row.name,expectedMaxMembers:7}),e,owner)).status,400);
+ const forbidden={authorize:async()=> 'member-uid',adminAuthorize:async()=>{throw Object.assign(Error('Forbidden'),{status:403})}};
+ assert.equal((await handleFantasy(request(path),e,forbidden)).status,403);
+ assert.equal((await handleFantasy(request(path,{name:'No permitido',maxMembers:7,expectedName:row.name,expectedMaxMembers:7}),e,forbidden)).status,403);
+});
+test('Club cannot shrink below enrolled member count or change classic maximum',async t=>{
+ const {env:e,sql}=env(t);
+ const custom=await fixtureLeague(e,'owner-uid',{requestId:'size-league-2026',mode:'custom',name:'Liga de ensayo',nickname:'Dueño',teamId:'680163',settings:{...policy.classicSettings,maxMembers:5}});
+ const id=custom.league.id;
+ sql.prepare('INSERT INTO fantasy_members VALUES(?,?,?,?)').run(id,'friend','Amigo',Date.parse('2026-11-13T12:00:00Z'));
+ const path='/admin/leagues/'+id+'/settings';
+ assert.equal((await handleFantasy(request(path,{name:'Liga reducida',maxMembers:1,expectedName:'Liga de ensayo',expectedMaxMembers:5}),e,owner)).status,400);
+ const classicLeague=await fixtureLeague(e,'owner-uid',classic('classic-manage-2026'));
+ const classicPath='/admin/leagues/'+classicLeague.league.id+'/settings';
+ assert.equal((await handleFantasy(request(classicPath,{name:'Liga clasica nueva',maxMembers:14,expectedName:'Liga Aficionado',expectedMaxMembers:15}),e,owner)).status,400);
+ assert.equal((await handleFantasy(request(classicPath,{name:'Liga clásica nueva',maxMembers:15,expectedName:'Liga Aficionado',expectedMaxMembers:15}),e,owner)).status,200);
+});

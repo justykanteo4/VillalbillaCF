@@ -570,13 +570,34 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
     playerId:url.searchParams.get('playerId')}));
  }
  const sale=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/sell$/);if(sale){const data=await detail(db,sale[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);if(request.method==='POST')await assertMarketOpen(data.league.id);return reply(await saleRoute({db,league:data.league,uid,now:clock(),getNow:clock,method:request.method,playerId:url.searchParams.get('playerId'),readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points)}))}
+ const privacyMatch=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/team-privacy$/);
+ if(privacyMatch){
+  if(request.method!=='POST')throw fail('Método no permitido.',405);
+  const leagueId=privacyMatch[1];
+  await detail(db,leagueId,uid,currentTime,await allowedTeams());
+  const membership=await db.prepare('SELECT 1 FROM fantasy_members WHERE league_id=? AND uid=?').bind(leagueId,uid).first();
+  if(!membership)throw fail('Solo puedes cambiar la privacidad de tu propio equipo.',403);
+  const value=await body(request);
+  if(typeof value?.visible!=='boolean'||!Number.isSafeInteger(value?.revision)||value.revision<0)throw fail('Actualiza tus ajustes de privacidad antes de guardarlos.');
+  const previous=await db.prepare('SELECT visible,revision FROM fantasy_team_photo_privacy WHERE league_id=? AND uid=?').bind(leagueId,uid).first();
+  const revision=previous?.revision??0,visible=previous?.visible!==0;
+  if(value.revision!==revision)throw fail('La privacidad ha cambiado desde otro dispositivo. Actualiza antes de guardar.',409);
+  if(value.visible===visible)return reply({saved:true,visible,revision});
+  const next=await db.prepare(`INSERT INTO fantasy_team_photo_privacy(league_id,uid,visible,revision,updated_at)
+   VALUES(?,?,?,1,?) ON CONFLICT(league_id,uid) DO UPDATE SET
+    visible=excluded.visible,revision=fantasy_team_photo_privacy.revision+1,updated_at=excluded.updated_at
+    WHERE fantasy_team_photo_privacy.revision=? RETURNING visible,revision`)
+    .bind(leagueId,uid,value.visible?1:0,currentTime,revision).first();
+  if(!next)throw fail('La privacidad ha cambiado desde otro dispositivo. Actualiza antes de guardar.',409);
+  return reply({saved:true,visible:next.visible===1,revision:next.revision});
+ }
  const profileMatch=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/team-profile$/);
  if(profileMatch){
   const leagueId=profileMatch[1];
   await detail(db,leagueId,uid,currentTime,await allowedTeams());
   if(request.method==='GET'){
-   const members=await db.prepare('SELECT m.uid AS id,m.nickname AS name,p.photo_data AS photo FROM fantasy_members m LEFT JOIN fantasy_team_photos p ON p.league_id=m.league_id AND p.uid=m.uid WHERE m.league_id=? ORDER BY m.nickname').bind(leagueId).all();
-   return reply({teams:members.results.map(m=>({...m,me:m.id===uid}))});
+   const members=await db.prepare('SELECT m.uid AS id,m.nickname AS name,CASE WHEN m.uid=? OR COALESCE(v.visible,1)=1 THEN p.photo_data ELSE NULL END AS photo,COALESCE(v.visible,1) AS photo_visible,COALESCE(v.revision,0) AS photo_revision FROM fantasy_members m LEFT JOIN fantasy_team_photos p ON p.league_id=m.league_id AND p.uid=m.uid LEFT JOIN fantasy_team_photo_privacy v ON v.league_id=m.league_id AND v.uid=m.uid WHERE m.league_id=? ORDER BY m.nickname').bind(uid,leagueId).all();
+   return reply({teams:members.results.map(m=>({id:m.id,name:m.name,photo:m.photo||null,me:m.id===uid,photoVisible:m.photo_visible===1,privacyRevision:m.id===uid?m.photo_revision:undefined}))});
   }
   if(request.method!=='POST')throw fail('Método no permitido.',405);
   const input=await body(request,70000),name=identity.normalizeTeamName(input?.name);
@@ -598,7 +619,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   const data=await detail(db,rivalsMatch[1],uid,currentTime,await allowedTeams());
   await ensureManager(db,data.league,uid);
   const [members,roster,availablePlayers]=await Promise.all([
-   db.prepare('SELECT m.uid,m.nickname,p.photo_data AS photo FROM fantasy_members m LEFT JOIN fantasy_team_photos p ON p.league_id=m.league_id AND p.uid=m.uid WHERE m.league_id=? AND m.uid<>? ORDER BY m.nickname,m.uid').bind(rivalsMatch[1],uid).all(),
+   db.prepare('SELECT m.uid,m.nickname,CASE WHEN COALESCE(v.visible,1)=1 THEN p.photo_data ELSE NULL END AS photo FROM fantasy_members m LEFT JOIN fantasy_team_photos p ON p.league_id=m.league_id AND p.uid=m.uid LEFT JOIN fantasy_team_photo_privacy v ON v.league_id=m.league_id AND v.uid=m.uid WHERE m.league_id=? AND m.uid<>? ORDER BY m.nickname,m.uid').bind(rivalsMatch[1],uid).all(),
    db.prepare('SELECT id,uid,player_id,acquired_at FROM fantasy_roster WHERE league_id=? AND uid<>? ORDER BY acquired_at').bind(rivalsMatch[1],uid).all(),
    prices(db,data.league.pool,data.league.settings.points)
   ]);

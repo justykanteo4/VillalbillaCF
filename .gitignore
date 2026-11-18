@@ -63,3 +63,6 @@ firebase-debug.log
 # Local Firebase native configuration
 /google-services.json
 /GoogleService-Info.plist
+
+# Never commit local production D1 backups
+/copias-seguridad/

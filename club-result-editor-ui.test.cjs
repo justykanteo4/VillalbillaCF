@@ -11,3 +11,13 @@ test('solo propone partidos oficiales con identificador numérico',()=>{
  assert.deepEqual(editableFixtures(source).map(x=>x.id),['124','123']);
  assert.deepEqual(editableFixtures(null),[]);
 });
+
+test('busca partidos por rival, fecha y jornada y permite recuperar históricos',()=>{
+ const {filterEditableFixtures}=require('./club-result-editor-ui.cjs');
+ const fixtures=[{id:'1',date:'2026-11-01',round:2,home:'Villalbilla',away:'Alcalá'},{id:'2',date:'2026-10-25',round:1,home:'Torrejón',away:'Villalbilla'}];
+ assert.deepEqual(filterEditableFixtures(fixtures,'alcala').map(p=>p.id),['1']);
+ assert.deepEqual(filterEditableFixtures(fixtures,'JornAda 2').map(p=>p.id),[]);
+ assert.deepEqual(filterEditableFixtures(fixtures,'2026-10-25').map(p=>p.id),['2']);
+ assert.deepEqual(filterEditableFixtures(fixtures,'2').map(p=>p.id),['1','2']);
+ assert.deepEqual(filterEditableFixtures(fixtures,'').map(p=>p.id),['1','2']);
+});

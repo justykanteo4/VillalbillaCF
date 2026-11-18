@@ -1,4 +1,5 @@
 import {decodeJwt} from 'jose';
+import {verifyAdmin} from './free-notifications.mjs';
 import {authorizeClubResultEditor} from './club-result-authorization.mjs';
 import teams from './teams.json' with {type:'json'};
 import news from './server/news.cjs';
@@ -12,8 +13,18 @@ export async function overlayResultEdits(value,path,db){
  if(path==='/api/team-calendar')return {...value,fixtures:(value.fixtures||[]).map(apply)};
  return apply(value);
 }
-export async function handleResultEdits(request,env,{authorize=authorizeClubResultEditor,loadTeam=id=>news.teamCalendar(id,false,{db:env.VISITS_DB}),actor=()=>decodeJwt(request.headers.get('Authorization').slice(7)),clock=Date.now}={}){
- const url=new URL(request.url);if(url.pathname!=='/api/admin/result-edits')return null;
+export async function handleResultEdits(request,env,{authorize=authorizeClubResultEditor,loadTeam=id=>news.teamCalendar(id,false,{db:env.VISITS_DB}),actor=()=>decodeJwt(request.headers.get('Authorization').slice(7)),clock=Date.now,authorizeAdmin=verifyAdmin}={}){
+ const url=new URL(request.url);
+ if(url.pathname==='/api/admin/result-edit-history'){
+  try{
+   if(request.method!=='GET')throw fail('Método no permitido.',405);
+   await authorizeAdmin(request,env);
+   if(!env.VISITS_DB)throw fail('Historial no disponible.',503);
+   const {results}=await env.VISITS_DB.prepare('SELECT id,match_id,team_id,revision,home_score,away_score,previous_home,previous_away,action,actor_uid,actor_name,actor_email,created_at FROM result_edit_history ORDER BY created_at DESC, revision DESC LIMIT 100').all();
+   return reply({history:results,limit:100});
+  }catch(e){return reply({error:e.status?e.message:'No se pudo consultar el historial.'},e.status||503)}
+ }
+ if(url.pathname!=='/api/admin/result-edits')return null;
  try{
   if(!['GET','POST'].includes(request.method))throw fail('Método no permitido.',405);
   const db=env.VISITS_DB;if(!db)throw fail('Servicio no disponible.',503);

@@ -10,3 +10,20 @@ test('solo administradores pueden leer autores y modificar resultados',async t=>
 test('edición guarda marcador y autor real; revisión obsoleta y datos inválidos se rechazan',async t=>{const f=fixture(t);let r=await f.call({homeScore:2,awayScore:1,revision:0,actor_uid:'fake',actor_name:'fake'});assert.equal(r.status,200);let d=await r.json();assert.equal(d.fixture.homeScore,2);assert.equal(d.history[0].actor_uid,'admin-a');assert.equal(d.history[0].actor_name,'Admin A');assert.equal(d.history[0].previous_home,1);assert.equal((await f.call({homeScore:5,awayScore:1,revision:0})).status,409);assert.equal((await f.call({homeScore:-1,awayScore:1,revision:1})).status,400);assert.equal((await f.call({homeScore:2.5,awayScore:1,revision:1})).status,400);r=await f.call({homeScore:3,awayScore:1,revision:1});assert.equal(r.status,200);assert.equal((await r.json()).history.length,2)});
 test('cambios simultáneos solo guardan una revisión y un autor',async t=>{const f=fixture(t),responses=await Promise.all([f.call({homeScore:2,awayScore:1,revision:0}),f.call({homeScore:3,awayScore:1,revision:0})]);assert.deepEqual(responses.map(r=>r.status).sort(),[200,409]);assert.equal(f.sql.prepare('SELECT COUNT(*) n FROM result_edit_history').get().n,1)});
 test('público ve corrección sin autor; restaurar recupera fuente y elimina copia manual antigua',async t=>{const f=fixture(t);await f.call({homeScore:4,awayScore:2,revision:0});const base={teams:[{id:'680163',fixtures:[f.match]}]},edited=await overlayResultEdits(base,'/api/news',f.db),m=edited.teams[0].fixtures[0];assert.equal(m.homeScore,4);assert(!JSON.stringify(edited).includes('admin'));assert(!JSON.stringify(edited).includes('actor'));assert(!JSON.stringify(edited).includes('change_id'));assert.equal(reports.matchWithReport(m,{id:'123',homeScore:1,awayScore:0}).homeScore,4);const r=await f.call({restore:true,revision:1});assert.equal(r.status,200);const restored=await overlayResultEdits(base,'/api/news',f.db),merged=results.mergeResults(edited,restored);assert.equal(merged.teams[0].fixtures[0].homeScore,1);assert.equal(merged.teams[0].fixtures[0].scoreOverride,null);assert.equal(results.mergeResults(restored,edited).teams[0].fixtures[0].homeScore,1);assert.equal((await r.json()).history[0].action,'restore');assert.equal((await overlayResultEdits(f.match,'/api/match',f.db)),f.match)});
+
+test('auditoría del club exige administrador y muestra autor, antes/después y fecha sin permitir escritura',async t=>{
+ const f=fixture(t);
+ await f.call({homeScore:3,awayScore:1,revision:0});
+ await f.call({homeScore:4,awayScore:2,revision:1});
+ const path='https://club.test/api/admin/result-edit-history',request=method=>new Request(path,{method});
+ const deny={authorizeAdmin:async()=>{throw Object.assign(Error('Solo administradores.'),{status:403})}};
+ assert.equal((await handleResultEdits(request('GET'),{VISITS_DB:f.db},deny)).status,403);
+ assert.equal((await handleResultEdits(request('POST'),{VISITS_DB:f.db},{authorizeAdmin:async()=>true})).status,405);
+ const response=await handleResultEdits(request('GET'),{VISITS_DB:f.db},{authorizeAdmin:async()=> 'admin'});
+ assert.equal(response.status,200);assert.equal(response.headers.get('Cache-Control'),'no-store');
+ const {history,limit}=await response.json();
+ assert.equal(limit,100);assert.equal(history.length,2);
+ assert.equal(history[0].actor_uid,'admin-a');assert.equal(history[0].actor_name,'Admin A');
+ assert.equal(history[0].previous_home,3);assert.equal(history[0].home_score,4);
+ assert.equal(f.sql.prepare('SELECT COUNT(*) n FROM result_edit_history').get().n,2);
+});

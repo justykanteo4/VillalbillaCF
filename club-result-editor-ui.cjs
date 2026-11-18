@@ -6,4 +6,12 @@ function editableFixtures(fixtures){
   .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||Number(b.round||0)-Number(a.round||0));
 }
 function scoreDraft(value){return Number.isInteger(value)&&value>=0&&value<=99?String(value):''}
-module.exports={validScore,editableFixtures,scoreDraft};
+
+// Search is local: never reveals fixtures beyond the authenticated team's directory.
+const normalizeSearch=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
+function filterEditableFixtures(fixtures,term){
+ const query=normalizeSearch(term).trim();
+ if(!query)return fixtures;
+ return fixtures.filter(m=>normalizeSearch([m.homeName,m.homeTeam,m.home,m.awayName,m.awayTeam,m.away,m.date,m.round,m.id].join(' ')).includes(query));
+}
+module.exports={validScore,editableFixtures,scoreDraft,filterEditableFixtures};

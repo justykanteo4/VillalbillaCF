@@ -20,3 +20,17 @@ test('comprueba que la devolución no deje a nadie por debajo de 12 ni encima de
  assert.throws(()=>validateLoanReturn({...ret,lenderCount:16}),/reservada una plaza/);
  assert.throws(()=>validateLoanReturn({...ret,expectedOwnershipId:'other'}),/propiedad/);
 });
+
+test('esquema D1 registra contratos pero impide activarlos prematuramente',()=>{
+ const {DatabaseSync}=require('node:sqlite');
+ const {readFileSync}=require('node:fs');
+ const db=new DatabaseSync(':memory:');
+ try{
+  db.exec("CREATE TABLE fantasy_leagues(id TEXT PRIMARY KEY); CREATE TABLE fantasy_members(league_id TEXT,uid TEXT,PRIMARY KEY(league_id,uid)); INSERT INTO fantasy_leagues VALUES('l'); INSERT INTO fantasy_members VALUES('l','a'),('l','b');");
+  db.exec(readFileSync('fantasy-loans-schema.sql','utf8'));
+  db.prepare("INSERT INTO fantasy_player_loans(id,league_id,lender_uid,borrower_uid,ownership_id,player_id,duration_weeks,status,request_id,created_at,starts_at,ends_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)").run('x','l','a','b','own1','p1',2,'pending','key-00001',1000,2000,3000);
+  assert.throws(()=>db.prepare("UPDATE fantasy_player_loans SET status='active' WHERE id='x'").run(),/FANTASY_LOAN_ACTIVATION_NOT_READY/);
+  assert.throws(()=>db.prepare("INSERT INTO fantasy_player_loans(id,league_id,lender_uid,borrower_uid,ownership_id,player_id,duration_weeks,status,request_id,created_at,starts_at,ends_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)").run('y','l','a','b','own1','p1',2,'pending','key-00002',1000,2000,3000),/UNIQUE/);
+  assert.equal(db.prepare("SELECT status FROM fantasy_player_loans WHERE id='x'").get().status,'pending');
+ }finally{db.close()}
+});

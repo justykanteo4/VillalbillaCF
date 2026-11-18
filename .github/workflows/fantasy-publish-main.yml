@@ -12,6 +12,11 @@ on:
       - 'FantasyRivals.js'
       - 'FantasyTable.js'
       - 'FantasyRounds.js'
+      - 'FantasyArchivedSeasons.js'
+      - 'FantasySeasonArchive.js'
+      - 'fantasy-seasons.mjs'
+      - 'fantasy-seasons-schema.sql'
+      - 'fantasy-league-reset.mjs'
       - 'FantasyAppearanceSettings.js'
       - 'fantasy-appearance.js'
       - 'fantasy-theme.cjs'
@@ -251,6 +256,14 @@ jobs:
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-loans-schema.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name='fantasy_player_loans';"
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('fantasy_loan_accept_guard','fantasy_loan_return_guard','fantasy_loan_player_delete');"
+      - name: Migrate Fantasy season archives after verified backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -s /tmp/fantasy-backup-before-photos.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-seasons-schema.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name='fantasy_season_archives';"
       - name: Migrate administrator Fantasy scoring settings
         shell: bash
         run: |

@@ -329,3 +329,23 @@ test('Club activity lists scoring and league changes without exposing them to ot
  assert.equal((await handleFantasy(request('/admin/activity'),e,denied)).status,403);
  assert.equal((await handleFantasy(request('/admin/activity',{any:true}),e,owner)).status,405);
 });
+
+test('Club exports league settings without personal data, participant identities or invite codes',async t=>{
+ const {env:e}=env(t);
+ const created=await fixtureLeague(e,'owner-uid',{requestId:'export-2026',mode:'custom',name:'Liga exportada',nickname:'Nombre privado',teamId:'680163',settings:{...policy.classicSettings,maxMembers:8}});
+ const path='/admin/leagues/'+created.league.id+'/export';
+ const response=await handleFantasy(request(path),e,owner);
+ assert.equal(response.status,200);
+ const data=await response.json();
+ assert.equal(data.format,'villalbilla-fantasy-league-settings-v1');
+ assert.equal(data.league.name,'Liga exportada');
+ assert.equal(data.league.memberCount,1);
+ assert.equal(data.league.settings.maxMembers,8);
+ const result=JSON.stringify(data);
+ assert(!result.includes('Nombre privado'));
+ assert(!result.includes(created.league.code));
+ assert(!result.includes('owner-uid'));
+ const denied={authorize:async()=> 'other',adminAuthorize:async()=>{throw Object.assign(Error('Denied'),{status:403})}};
+ assert.equal((await handleFantasy(request(path),e,denied)).status,403);
+ assert.equal((await handleFantasy(request(path,{a:1}),e,owner)).status,405);
+});

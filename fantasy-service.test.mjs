@@ -372,3 +372,28 @@ test('Club can close enrollment and server rejects new members by invitation, ex
  assert.equal((await handleFantasy(request(join,payload),e,{authorize:async()=> 'new-uid'})).status,200);
  assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_members WHERE league_id=?').get(id).n,2);
 });
+
+test('Public custom leagues appear only for eligible teammates and join without sharing an invitation code',async t=>{
+ const {env:e}=env(t);
+ const created=await fixtureLeague(e,'owner-uid',{requestId:'visibility-2026',mode:'custom',name:'Liga de los compañeros',nickname:'Creador',teamId:'680163',settings:{...policy.classicSettings,maxMembers:5}});
+ const id=created.league.id,endpoint='/admin/leagues/'+id+'/visibility';
+ const publicList=async deps=> (await (await handleFantasy(request('/leagues'),e,deps)).json()).availableLeagues||[];
+ const teammate={authorize:async()=> 'teammate-uid',getTeams:async()=>['680163']};
+ const outsider={authorize:async()=> 'outsider-uid',getTeams:async()=>[]};
+ assert.equal((await publicList(teammate)).some(x=>x.id===id),false);
+ const initial=await handleFantasy(request(endpoint),e,owner);
+ assert.equal((await initial.json()).public,false);
+ const edited=await handleFantasy(request(endpoint,{public:true,expectedPublic:false}),e,owner);
+ assert.equal(edited.status,200,await edited.clone().text());
+ assert.equal((await publicList(teammate)).find(x=>x.id===id)?.kind,'public');
+ assert.equal((await publicList(outsider)).some(x=>x.id===id),false);
+ assert.equal((await handleFantasy(request('/join-public',{leagueId:id,nickname:'No es compañero'}),e,outsider)).status,403);
+ assert.equal((await handleFantasy(request('/join-public',{leagueId:id,nickname:'Compañero'}),e,teammate)).status,200);
+ const closed=await handleFantasy(request(endpoint,{public:false,expectedPublic:true}),e,owner);
+ assert.equal(closed.status,200);
+ assert.equal((await publicList(outsider)).some(x=>x.id===id),false);
+ assert.equal((await publicList({authorize:async()=> 'third',getTeams:async()=>['680163']})).some(x=>x.id===id),false);
+ assert.equal((await handleFantasy(request('/join-public',{leagueId:id,nickname:'Tercero'}),e,{authorize:async()=> 'third',getTeams:async()=>['680163']})).status,404);
+ const denied={authorize:async()=> 'not-admin',adminAuthorize:async()=>{throw Object.assign(Error('Denied'),{status:403})}};
+ assert.equal((await handleFantasy(request(endpoint,{public:true,expectedPublic:false}),e,denied)).status,403);
+});

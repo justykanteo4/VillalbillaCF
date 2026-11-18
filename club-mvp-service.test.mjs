@@ -11,6 +11,8 @@ function setup(t){
  const sql=new DatabaseSync(':memory:');
  t.after(()=>sql.close());
  sql.exec(`CREATE TABLE fantasy_live_matches(team_id TEXT,match_id TEXT,payload TEXT,updated_at INTEGER);
+ CREATE TABLE fantasy_live_schedule(id INTEGER PRIMARY KEY,payload TEXT);
+ CREATE TABLE fantasy_original_schedule(id INTEGER PRIMARY KEY,payload TEXT);
  CREATE TABLE fantasy_awards(match_id TEXT,team_id TEXT,week INTEGER,player_id TEXT,kind TEXT,PRIMARY KEY(match_id,team_id,player_id,kind));
  CREATE TABLE fantasy_award_changes(previous_revision INTEGER PRIMARY KEY,created_at INTEGER);
  CREATE TABLE fantasy_prize_state(next_at INTEGER,fingerprint TEXT);

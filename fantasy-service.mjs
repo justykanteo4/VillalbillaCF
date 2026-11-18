@@ -142,6 +142,34 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(!['GET','POST'].includes(request.method))return reply({error:'Método no permitido.'},405);
  if(!db)throw fail('No se pudo conectar con las ligas.',503);
  if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ const playerBlockMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/player-blocks$/);
+ if(playerBlockMatch){
+  const leagueId=playerBlockMatch[1];
+  const league=await db.prepare('SELECT id,name FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
+  if(!league)throw fail('Liga no encontrada.',404);
+  if(request.method==='GET'){
+   const blocked=await db.prepare('SELECT player_id AS playerId,blocked_at AS blockedAt,blocked_by AS blockedBy FROM fantasy_player_blocks WHERE league_id=? ORDER BY blocked_at DESC,player_id').bind(leagueId).all();
+   const players=[...new Map(catalog.teams.flatMap(team=>team.players.map(player=>[player.id,{id:player.id,name:player.name,team:team.name}]))).values()];
+   return reply({league,blocked:blocked.results,players});
+  }
+  if(request.method!=='POST')throw fail('Método no permitido.',405);
+  const value=await body(request);
+  const id=value?.playerId;
+  if(typeof id!=='string'||id.length>128||!catalog.teams.some(t=>t.players.some(p=>p.id===id))||
+    typeof value.blocked!=='boolean'||typeof value.expectedBlocked!=='boolean')throw fail('Bloqueo de jugador no válido.');
+  const existing=await db.prepare('SELECT 1 FROM fantasy_player_blocks WHERE league_id=? AND player_id=?').bind(leagueId,id).first();
+  if(Boolean(existing)!==value.expectedBlocked)throw fail('El bloqueo ha cambiado. Actualiza antes de guardar.',409);
+  if(value.blocked===Boolean(existing))return reply({saved:true,playerId:id,blocked:value.blocked});
+  if(value.blocked){
+   const change=await db.prepare('INSERT OR IGNORE INTO fantasy_player_blocks(league_id,player_id,blocked_by,blocked_at) VALUES(?,?,?,?)')
+     .bind(leagueId,id,uid,currentTime).run();
+   if(change.meta?.changes!==1)throw fail('El jugador ya estaba bloqueado. Actualiza la lista.',409);
+  }else{
+   const change=await db.prepare('DELETE FROM fantasy_player_blocks WHERE league_id=? AND player_id=?').bind(leagueId,id).run();
+   if(change.meta?.changes!==1)throw fail('El jugador ya estaba desbloqueado. Actualiza la lista.',409);
+  }
+  return reply({saved:true,playerId:id,blocked:value.blocked});
+ }
  const lifecycleMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/lifecycle$/);
  if(lifecycleMatch){
   const leagueId=lifecycleMatch[1];
@@ -535,5 +563,5 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  const market=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(market|roster|buy|bid|offers(?:\/[a-zA-Z0-9-]{1,80}\/(?:accept|reject|cancel))?)$/);if(market){const data=await detail(db,market[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);const result=await marketRoute({db,league:data.league,uid,now:currentTime,action:market[2],method:request.method,readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points),getNow:clock,catalogVersion:catalog.version+'-actas-30-v2',canPlay:async target=>!!await db.prepare('SELECT 1 FROM fantasy_participant_teams WHERE uid=? AND team_id=?').bind(target,data.league.teamId).first()});if((market[2]==='offers'||/^offers\/[^/]+\/(accept|reject)$/.test(market[2]))&&request.method==='POST')ctx?.waitUntil?.(dispatchOfferNotifications(env).catch(()=>{}));return reply(result)}
  const match=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})(\/players)?$/);if(match&&request.method==='GET'){const data=await detail(db,match[1],uid,currentTime,await allowedTeams());if(match[2]){const snapshot={},[players,owners]=await Promise.all([prices(db,data.league.pool,data.league.settings.points,snapshot),playerOwnership(db,match[1],uid)]);return reply({players:players.map(p=>({...p,...(owners.get(p.id)||{ownershipId:null,owner:null,mine:false})})),finance:data.league.finance,weeklyEleven:weeklyEleven(players,snapshot.live.matches,snapshot.awards,data.league.settings.points,currentTime),version:catalog.version,updatedAt:catalog.updatedAt})}return reply(data)}
  return reply({error:'Apartado no disponible.'},404);
- }catch(e){if(/FANTASY_GIFT_CHANGED|fantasy_award_changes|fantasy_coach_changes|fantasy_roster.league_id, fantasy_roster.player_id/.test(e.message))return reply({error:'La elección o el reparto cambiaron en otro dispositivo. Actualiza y vuelve a elegir.'},409);if(/FANTASY_FULL/.test(e.message))return reply({error:'La liga ya está completa.'},409);if(/FANTASY_LEAGUE_INACTIVE/.test(e.message))return reply({error:'La liga está pausada o archivada. No se permiten nuevas operaciones.'},409);return reply({error:e.status?e.message:'No se pudo guardar o consultar la liga. Vuelve a intentarlo.'},e.status||503)}
+ }catch(e){if(/FANTASY_GIFT_CHANGED|fantasy_award_changes|fantasy_coach_changes|fantasy_roster.league_id, fantasy_roster.player_id/.test(e.message))return reply({error:'La elección o el reparto cambiaron en otro dispositivo. Actualiza y vuelve a elegir.'},409);if(/FANTASY_FULL/.test(e.message))return reply({error:'La liga ya está completa.'},409);if(/FANTASY_LEAGUE_INACTIVE/.test(e.message))return reply({error:'La liga está pausada o archivada. No se permiten nuevas operaciones.'},409);if(/FANTASY_PLAYER_BLOCKED/.test(e.message))return reply({error:'El Club ha bloqueado nuevos fichajes de este jugador en esta liga.'},409);return reply({error:e.status?e.message:'No se pudo guardar o consultar la liga. Vuelve a intentarlo.'},e.status||503)}
 }

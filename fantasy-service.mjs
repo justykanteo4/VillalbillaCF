@@ -538,9 +538,11 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  if(listing){
   const data=await detail(db,listing[1],uid,currentTime,await allowedTeams());
   await ensureManager(db,data.league,uid);
-  if(request.method==='POST')await assertMarketOpen(data.league.id);
+  const submitted=request.method==='POST'?await body(request):null;
+  // Cancel an existing sale listing even when new acquisitions are closed.
+  if(request.method==='POST'&&submitted?.cancel!==true)await assertMarketOpen(data.league.id);
   return reply(await managerListingRoute({db,league:data.league,uid,now:currentTime,
-    getNow:clock,method:request.method,readBody:()=>body(request),
+    getNow:clock,method:request.method,readBody:async()=>submitted,
     playerId:url.searchParams.get('playerId')}));
  }
  const sale=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/sell$/);if(sale){const data=await detail(db,sale[1],uid,currentTime,await allowedTeams());await ensureManager(db,data.league,uid);if(request.method==='POST')await assertMarketOpen(data.league.id);return reply(await saleRoute({db,league:data.league,uid,now:clock(),getNow:clock,method:request.method,playerId:url.searchParams.get('playerId'),readBody:()=>body(request),players:await prices(db,data.league.pool,data.league.settings.points)}))}

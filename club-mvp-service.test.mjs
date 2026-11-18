@@ -79,8 +79,8 @@ test('MVP: cambios auditados, mínimo tres, sin máximo artificial, autor verifi
  const history=await f.call(new Request(base+'/api/admin/club-mvp-audit'));
  const rows=(await history.json()).history;
  assert.equal(rows.length,2);
- assert.equal(rows[1].actor_uid,'coach-real');
- assert.deepEqual(JSON.parse(rows[1].player_ids),winners.slice(0,3));
+ assert.equal(rows[0].actor_uid,'coach-real');
+ assert.deepEqual(JSON.parse(rows[0].player_ids),winners.slice(0,3));
  assert.equal((await f.call(new Request(base+'/api/admin/club-mvp-audit'),{authorizeAdmin:async()=>{throw Object.assign(Error('Solo admin'),{status:403})}})).status,403);
 });
 test('MVP: sin autorizacion el historial y los cambios no son accesibles',async t=>{

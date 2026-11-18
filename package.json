@@ -26,7 +26,8 @@
     "build:visuals": "npm run build:simulator && npm run build:presentation && npm run build:roster-export",
     "build:roster-export": "node scripts/build-roster-export.cjs",
     "check:fantasy-clauses": "node --test federation-player-team.test.cjs local-data.test.cjs offline-first.test.cjs offline-policy-cache.test.cjs club-result-editor-ui.test.cjs club-result-authorization.test.mjs result-edits.test.mjs fantasy-clauses.test.cjs fantasy-market-extensions.test.mjs fantasy-sales.test.mjs fantasy-economy.test.mjs fantasy-game.test.mjs fantasy-service.test.mjs",
-    "check:web-android-ios": "node scripts/check-release.cjs && pnpm run check:fantasy-clauses && expo export --platform all --output-dir work/verify-all-platforms"
+    "check:web-android-ios": "node scripts/check-release.cjs && pnpm run check:fantasy-clauses && expo export --platform all --output-dir work/verify-all-platforms",
+    "publish:verified-windows": "node scripts/publish-verified-windows.cjs --publish"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

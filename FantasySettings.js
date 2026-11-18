@@ -10,6 +10,7 @@ import FantasyLeagueManage from './FantasyLeagueManage';
 import FantasyClauseSettings from './FantasyClauseSettings';
 import FantasyAdminTransfer from './FantasyAdminTransfer';
 import FantasyAdminActivity from './FantasyAdminActivity';
+import FantasyAdminExport from './FantasyAdminExport';
 import FantasyPointsSettings from './FantasyPointsSettings';
 import FantasyPlayerStatsEditor from './FantasyPlayerStatsEditor';
 import FantasyPriceSettings from './FantasyPriceSettings';
@@ -25,10 +26,11 @@ export default function FantasySettings({request,onBack,account}){
   <Button secondary onPress={onBack}>‹ Volver a Fantasy</Button>
   <Text accessibilityRole="header" style={{...text,fontSize:24,fontWeight:'900'}}>Ajustes Fantasy</Text>
   <TextInput accessibilityLabel="Buscar ajustes Fantasy" placeholder="Buscar ajustes Fantasy…" placeholderTextColor={theme.muted} value={search} onChangeText={setSearch} style={{backgroundColor:'#162544',borderWidth:1,borderColor:'#334667',color:'#fff',padding:13,borderRadius:12}}/>
-  {isAdmin&&matches("Administración y seguridad actividad reciente acceso usuarios participantes permisos invitaciones suspender")&&<SettingsGroup key={"access:"+term} title="Club · Administración y seguridad" subtitle="Acceso y gestión de participantes" initiallyOpen>
+  {isAdmin&&matches("Administración y seguridad exportar datos actividad reciente acceso usuarios participantes permisos invitaciones suspender")&&<SettingsGroup key={"access:"+term} title="Club · Administración y seguridad" subtitle="Acceso y gestión de participantes" initiallyOpen>
    <FantasyAccessSettings request={request}/>
    <FantasyUserSettings request={request}/>
    <FantasyAdminActivity request={request}/>
+   <FantasyAdminExport request={request}/>
   </SettingsGroup>}
   {isAdmin&&matches("Ligas crear reiniciar nombres cambiar nombre limite participantes temporadas equipos plazas inscripciones")&&<SettingsGroup key={"leagues:"+term} initiallyOpen={!!term} title="Club · Ligas y competición" subtitle="Crear y reiniciar ligas">
    <FantasyLeagueCreationSettings request={request}/>

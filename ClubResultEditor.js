@@ -5,7 +5,7 @@ import TeamSelector from './TeamSelector';
 import {auth} from './firebase';
 import {api} from './api';
 import {visibleClubTeamIds,canEditClubTeam} from './club-role-policy.cjs';
-import {editableFixtures,validScore,scoreDraft} from './club-result-editor-ui.cjs';
+import {editableFixtures,validScore,scoreDraft,filterEditableFixtures} from './club-result-editor-ui.cjs';
 
 const colors={text:'#eff4fa',muted:'#aab8cb',accent:'#91adff',panel:'#151f2d',header:'#1b2e69',error:'#ffc1c9'};
 const title={color:colors.text,fontSize:19,fontWeight:'800'},label={color:colors.muted,fontSize:12},card={padding:14,borderRadius:13,backgroundColor:colors.panel,gap:12};
@@ -32,6 +32,7 @@ export default function ClubResultEditor({account}){
  const selectable=teams.filter(t=>allowedIds.includes(String(t.id))&&canEditClubTeam(account,t.id,{capability:'results'}));
  const [teamId,setTeamId]=useState(selectable[0]?.id||null),[fixtures,setFixtures]=useState([]),[match,setMatch]=useState(null);
  const [home,setHome]=useState(''),[away,setAway]=useState(''),[revision,setRevision]=useState(null);
+ const [search,setSearch]=useState(''),[showAll,setShowAll]=useState(false);
  const [history,setHistory]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const seq=useRef(0),saving=useRef(false);
  useEffect(()=>{const id=++seq.current;setFixtures([]);setMatch(null);setRevision(null);setHistory([]);setError('');setNotice('');
@@ -70,18 +71,22 @@ export default function ClubResultEditor({account}){
   finally{saving.current=false;setBusy(false)}
  }
  if(!selectable.length)return <Text style={label}>No tienes equipos autorizados para corregir resultados.</Text>;
- const matchName=m=>[m.homeName||m.homeTeam||'Local',m.awayName||m.awayTeam||'Visitante'].join(' - ');
+ const matchName=m=>[m.homeName||m.homeTeam||m.home||'Local',m.awayName||m.awayTeam||m.away||'Visitante'].join(' - ');
+ const filtered=filterEditableFixtures(fixtures,search);
  return <View style={{gap:14}}>
   <Text accessibilityRole="header" style={{...title,fontSize:23}}>Corregir resultados</Text>
   <Text style={label}>Solo tus equipos autorizados. Los cambios se guardan con tu nombre y fecha.</Text>
   <TeamSelector value={teamId} onChange={setTeamId} options={selectable} label="Equipo"/>
   {busy&&!match&&<Text style={label}>Cargando partidos…</Text>}
   {!match?<View style={{gap:8}}>
+   <TextInput accessibilityLabel="Buscar partidos para corregir" placeholder="Buscar rival, fecha o jornada" placeholderTextColor={colors.muted} value={search} onChangeText={v=>{setSearch(v);setShowAll(false)}} style={{padding:12,backgroundColor:'#0b121d',color:colors.text,borderRadius:10}}/>
    {fixtures.length===0&&!busy&&<Text style={label}>No hay partidos disponibles.</Text>}
-   {fixtures.slice(0,40).map(fixture=><Pressable key={String(fixture.id)} accessibilityRole="button" onPress={()=>openMatch(fixture)} style={card}>
+   {!busy&&fixtures.length>0&&filtered.length===0&&<Text style={label}>No hay partidos para esta búsqueda.</Text>}
+   {(showAll?filtered:filtered.slice(0,40)).map(fixture=><Pressable key={String(fixture.id)} accessibilityRole="button" onPress={()=>openMatch(fixture)} style={card}>
     <Text style={{color:colors.text,fontWeight:'700'}}>{matchName(fixture)}</Text>
     <Text style={label}>{fixture.date||'Sin fecha'} · Jornada {fixture.round||'—'} · {fixture.homeScore??'—'} - {fixture.awayScore??'—'}</Text>
    </Pressable>)}
+   {!showAll&&filtered.length>40&&<Action onPress={()=>setShowAll(true)}>Mostrar los {filtered.length} partidos</Action>}
   </View>:<View style={card}>
    <Action onPress={()=>{seq.current++;setMatch(null);setRevision(null);setError('');setNotice('')}} disabled={busy}>‹ Volver a partidos</Action>
    <Text style={title}>{matchName(match)}</Text>

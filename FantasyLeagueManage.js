@@ -6,6 +6,8 @@ import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
 export default function FantasyLeagueManage({request}){
  const [list,setList]=useState(null),[current,setCurrent]=useState(null),[history,setHistory]=useState(null);
  const [name,setName]=useState(''),[limit,setLimit]=useState('');
+ const [copyOpen,setCopyOpen]=useState(false),[copyName,setCopyName]=useState(''),[copyNickname,setCopyNickname]=useState('');
+ const requestId=useRef(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const lock=useRef(false);
  async function run(task){
@@ -16,7 +18,7 @@ export default function FantasyLeagueManage({request}){
  async function load(){await run(async()=>{const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);setNotice('')})}
  async function choose(id){await run(async()=>{
   const result=await request('/admin/leagues/'+encodeURIComponent(id)+'/settings',{cache:'reload'});
-  setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);
+  setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);setCopyOpen(false);setCopyName(result.name+' - copia');setCopyNickname('Club');requestId.current=null;
  })}
  async function save(){if(!current||lock.current)return;await run(async()=>{
   const next=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/settings',{
@@ -26,6 +28,16 @@ export default function FantasyLeagueManage({request}){
   setNotice('Nombre y límite guardados. Las plantillas y los saldos no se han modificado.');setHistory(null);
   const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);
  })}
+ async function duplicate(){
+  if(!current||lock.current||copyName.trim().length<3||copyName.trim().length>60||copyNickname.trim().length<2||copyNickname.trim().length>32)return;
+  if(!requestId.current)requestId.current='copy-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);
+  await run(async()=>{
+   const created=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/duplicate',{method:'POST',body:JSON.stringify({name:copyName.trim(),nickname:copyNickname.trim(),requestId:requestId.current})});
+   setNotice('Liga nueva creada: '+created.name+'. Se copiaron las reglas, no los jugadores ni saldos.');
+   setCopyOpen(false);requestId.current=null;
+   const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);
+  });
+ }
  async function loadHistory(){
   if(!current)return;
   await run(async()=>{const result=await request('/admin/leagues/history?league='+encodeURIComponent(current.id),{cache:'reload'});setHistory(result.events||[])});
@@ -46,6 +58,15 @@ export default function FantasyLeagueManage({request}){
    {current.mode==='classic'&&<Text style={{...text,color:theme.muted}}>Liga clásica: límite fijo; puedes cambiar el nombre.</Text>}
    <Button disabled={busy||!valid} onPress={save}>{busy?'Guardando…':'Guardar cambios de liga'}</Button>
    <Button secondary disabled={busy} onPress={loadHistory}>Ver historial de cambios</Button>
+   <Button secondary disabled={busy} onPress={()=>setCopyOpen(old=>!old)}>{copyOpen?'Cancelar duplicación':'Duplicar configuración en otra liga'}</Button>
+   {copyOpen&&<View style={{gap:9,padding:12,borderRadius:9,borderWidth:1,borderColor:theme.border}}>
+    <Text style={text}>Se creará una liga nueva con las mismas reglas, sin copiar fichajes, jugadores, dinero ni participantes anteriores.</Text>
+    <Text style={text}>Nombre de la nueva liga</Text>
+    <TextInput accessibilityLabel="Nombre de la liga duplicada" value={copyName} maxLength={60} editable={!busy} onChangeText={setCopyName} style={{color:theme.text,padding:10,borderWidth:1,borderRadius:8,borderColor:theme.border}}/>
+    <Text style={text}>Tu nombre en la nueva liga</Text>
+    <TextInput accessibilityLabel="Participante creador de la liga duplicada" value={copyNickname} maxLength={32} editable={!busy} onChangeText={setCopyNickname} style={{color:theme.text,padding:10,borderWidth:1,borderRadius:8,borderColor:theme.border}}/>
+    <Button disabled={busy||copyName.trim().length<3||copyNickname.trim().length<2} onPress={duplicate}>Crear liga copiando únicamente las reglas</Button>
+   </View>}
    {history?.length===0&&<Text style={{...text,color:theme.muted}}>Todavía no hay cambios registrados en esta liga.</Text>}
    {history?.map((event,index)=><View key={index} style={{gap:3,borderTopWidth:1,borderColor:theme.border,paddingTop:8}}>
     <Text style={text}>{new Date(event.createdAt).toLocaleString('es-ES')} · {event.actor}</Text>

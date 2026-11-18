@@ -91,7 +91,7 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
   {!!exchanges.length&&<View style={panel}><Text style={{...title,fontSize:19}}>Intercambios</Text>
    {exchanges.map(e=><View key={e.id} style={{gap:7,borderTopWidth:1,borderColor:theme.border,paddingTop:10}}>
     <Text style={{...text,fontWeight:'800'}}>{e.incoming?'Propuesta de '+e.proposer:'Propuesta para '+e.receiver}</Text>
-    <Text style={text}>Jugador ofrecido: {e.proposerPlayerId} · Solicitado: {e.receiverPlayerId}</Text>
+    <Text style={text}>Ofrecido: {e.proposerPlayerName} · Solicitado: {e.receiverPlayerName}</Text>
     <Text style={{...text,color:theme.muted}}>Estado: {({pending:'Pendiente',accepted:'Aceptado',rejected:'Rechazado',cancelled:'Cancelado',expired:'Caducado'})[e.status]||e.status}</Text>
     {e.status==='pending'&&(e.incoming?<View style={{gap:7}}><Button disabled={busy} onPress={()=>decideExchange(e,'accept')}>Aceptar intercambio</Button><Button secondary disabled={busy} onPress={()=>decideExchange(e,'reject')}>Rechazar</Button></View>:<Button secondary disabled={busy} onPress={()=>decideExchange(e,'cancel')}>Cancelar propuesta</Button>)}
    </View>)}

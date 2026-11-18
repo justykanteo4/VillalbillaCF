@@ -1,13 +1,11 @@
 {
-  "id": "2026.11.17.traspasos",
-  "date": "2026-11-17",
-  "title": "Fantasy: traspasos manuales",
+  "id": "2026.11.18.fantasy-intercambios",
+  "date": "2026-11-18",
+  "title": "Fantasy: intercambios entre equipos",
   "changes": [
-    "Los administradores pueden asignar a un jugador libre o de un rival a otro equipo desde Ajustes de Fantasy.",
-    "En cada partido ganado se pueden elegir tres o más MVP entre los convocados, incluidos los suplentes.",
-    "Las tareas pendientes y el cierre de jornada reconocen cualquier selección válida de al menos tres MVP.",
-    "La plantilla inicial se presenta a pantalla completa: toca cada sobre para descubrir al jugador y pulsa Siguiente para continuar, sin avance automático.",
-    "Cada fichaje confirmado, tanto en el mercado como por una oferta a un rival, se revela con el mismo sobre y su foto, puntos, valor e importe pagado.",
-    "El sobre y el estadio están incluidos en la app. Las presentaciones respetan el movimiento reducido y se coordinan con las ofertas y premios para evitar pantallas superpuestas."
+    "Rivales permite proponer intercambios de un jugador por otro sin pagar dinero.",
+    "El otro entrenador puede aceptar o rechazar la propuesta y quien la envió puede cancelarla.",
+    "Las propuestas caducan a los siete días y el servidor comprueba que los jugadores siguen disponibles.",
+    "Los intercambios aceptados conservan las jornadas cerradas y actualizan los borradores de alineación."
   ]
 }

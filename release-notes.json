@@ -1,11 +1,11 @@
 {
-  "id": "2026.11.18.fantasy-intercambios",
+  "id": "2026.11.18.fantasy-temporadas-estadisticas-temas",
   "date": "2026-11-18",
-  "title": "Fantasy: intercambios entre equipos",
+  "title": "Fantasy: temporadas, estadísticas y apariencia",
   "changes": [
-    "Rivales permite proponer intercambios de un jugador por otro sin pagar dinero.",
-    "El otro entrenador puede aceptar o rechazar la propuesta y quien la envió puede cancelarla.",
-    "Las propuestas caducan a los siete días y el servidor comprueba que los jugadores siguen disponibles.",
-    "Los intercambios aceptados conservan las jornadas cerradas y actualizan los borradores de alineación."
+    "Consultar la clasificación histórica de cada temporada deportiva en Jornadas.",
+    "Ver evolución, media de puntos, mejor y peor jornada en la tabla.",
+    "Elegir en Ajustes el modo claro, oscuro o automático de Villalbilla Fantasy.",
+    "Conservar las operaciones de intercambio entre entrenadores."
   ]
 }

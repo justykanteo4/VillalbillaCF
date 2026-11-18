@@ -54,3 +54,42 @@ test('las operaciones económicas nunca se sirven de la caché y la invalidan',a
  await c('coach','/leagues/league1/bid',{method:'POST'},async()=>({accepted:true}));
  assert.equal((await read()).balance,102);
 });
+
+test('Rivales vuelve a consultar en primer plano aunque la copia sea reciente',async()=>{
+ let clock=500000,calls=0;
+ const rows=new Map();
+ const cache=createFantasyCache({
+  now:()=>clock,
+  read:async key=>rows.get(key),
+  save:async(key,data,savedAt)=>rows.set(key,{data,savedAt}),
+  maxAgeForPath:fantasyRefreshAge
+ });
+ const path='/leagues/liga1/rivals';
+ const get=options=>cache('user',path,options,async()=>({ownerVersion:++calls}));
+ assert.equal((await get({})).ownerVersion,1);
+ clock+=30000;
+ assert.equal((await get({})).ownerVersion,1,'La copia reciente se reutiliza en navegación habitual');
+ assert.equal((await get({cache:'reload'})).ownerVersion,2,'La reactivación fuerza consulta de dueños actuales');
+ assert.equal((await get({})).ownerVersion,2);
+});
+test('Rivales evita que una respuesta anterior sobrescriba una actualización explícita',async()=>{
+ let clock=700000,finish;
+ const rows=new Map();
+ const cache=createFantasyCache({
+  now:()=>clock,
+  read:async key=>rows.get(key),
+  save:async(key,data,savedAt)=>rows.set(key,{data,savedAt}),
+  maxAgeForPath:fantasyRefreshAge
+ });
+ const path='/leagues/liga1/rivals';
+ let count=0;
+ const fetcher=()=>++count===1?new Promise(resolve=>{finish=resolve}):Promise.resolve({owner:'nuevo'});
+ const initial=cache('user',path,{},fetcher);
+ await new Promise(resolve=>setImmediate(resolve));
+ // The cache deduplicates the same in-flight read; the UI sequence guard ignores older responses.
+ assert.equal(count,1);
+ finish({owner:'original'});
+ assert.equal((await initial).owner,'original');
+ clock+=30000;
+ assert.equal((await cache('user',path,{cache:'reload'},fetcher)).owner,'nuevo');
+});

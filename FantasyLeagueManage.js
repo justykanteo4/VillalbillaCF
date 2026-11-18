@@ -142,8 +142,10 @@ export default function FantasyLeagueManage({request}){
    {history?.length===0&&<Text style={{...text,color:theme.muted}}>Todavía no hay cambios registrados en esta liga.</Text>}
    {history?.map((event,index)=><View key={index} style={{gap:3,borderTopWidth:1,borderColor:theme.border,paddingTop:8}}>
     <Text style={text}>{new Date(event.createdAt).toLocaleString('es-ES')} · {event.actor}</Text>
-    <Text style={{...text,color:theme.muted}}>{event.before.name} → {event.after.name}</Text>
-    <Text style={{...text,color:theme.muted}}>Plazas: {event.before.maxMembers} → {event.after.maxMembers}</Text>
+    {event.kind==='lifecycle'?<Text style={{...text,color:theme.muted}}>Estado: {event.before.state} → {event.after.state}</Text>:<>
+     <Text style={{...text,color:theme.muted}}>{event.before.name} → {event.after.name}</Text>
+     <Text style={{...text,color:theme.muted}}>Plazas: {event.before.maxMembers} → {event.after.maxMembers}</Text>
+    </>}
    </View>)}
   </View>}
   {!!notice&&<Text accessibilityRole="alert" style={{...text,color:theme.accent}}>{notice}</Text>}

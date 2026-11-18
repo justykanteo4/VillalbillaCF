@@ -515,3 +515,28 @@ test('Club controls Fantasy market dates; closed windows reject all new acquisit
  assert.equal(sql.prepare('SELECT revision FROM fantasy_market_windows WHERE league_id=?').get(league.id).revision,2);
  assert.equal((await handleFantasy(request('/leagues/'+league.id),e,ownerClock)).status,200);
 });
+
+test('Club configures the number of automatic market players per league',async t=>{
+ const {env:e,sql}=env(t);
+ const source=await fixtureLeague(e,'owner-uid',classic('market-size-2026'));
+ const id=source.league.id,path='/admin/leagues/'+id+'/market-slots';
+ const denied={authorize:async()=> 'not-club',adminAuthorize:async()=>{throw Object.assign(Error('Forbidden'),{status:403})}};
+ assert.equal((await handleFantasy(request(path),e,denied)).status,403);
+ const first=await handleFantasy(request(path),e,owner);
+ assert.equal(first.status,200);
+ assert.equal((await first.json()).slots,16);
+ for(const slots of [15,25,16.5,'19',null]){
+  assert.equal((await handleFantasy(request(path,{slots,revision:0}),e,owner)).status,400);
+ }
+ const changed=await handleFantasy(request(path,{slots:20,revision:0}),e,owner);
+ assert.equal(changed.status,200,await changed.clone().text());
+ assert.equal((await changed.json()).revision,1);
+ assert.equal(sql.prepare('SELECT slots FROM fantasy_market_slot_settings WHERE league_id=?').get(id).slots,20);
+ assert.equal((await handleFantasy(request(path,{slots:24,revision:0}),e,owner)).status,409);
+ const listing=await handleFantasy(request('/leagues/'+id+'/market'),e,owner);
+ assert.equal(listing.status,200,await listing.clone().text());
+ assert.equal((await listing.json()).marketLimit,20);
+ assert.equal((await handleFantasy(request(path,{slots:24,revision:1}),e,owner)).status,200);
+ assert.equal((await handleFantasy(request(path,{slots:16,revision:2}),e,owner)).status,200);
+ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_leagues WHERE id=?').get(id).n,1);
+});

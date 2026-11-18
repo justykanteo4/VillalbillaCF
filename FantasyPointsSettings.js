@@ -3,7 +3,7 @@ import {View,Text,TextInput,Pressable} from 'react-native';
 import {ruleFields} from './fantasy-leagues.cjs';
 import {Button,ErrorText,text,panel,theme} from './FantasyUI';
 
-const editable=ruleFields.filter(r=>!['captain','idealXI'].includes(r.key));
+const editable=ruleFields.filter(r=>r.key!=='idealXI');
 export default function FantasyPointsSettings({request}){
  const [values,setValues]=useState(null),[original,setOriginal]=useState(null),[revision,setRevision]=useState(0),[history,setHistory]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const lock=useRef(false),active=useRef(true);
@@ -24,7 +24,7 @@ export default function FantasyPointsSettings({request}){
   finally{lock.current=false;if(active.current)setBusy(false)}
  }
  const parsed=values&&Object.fromEntries(editable.map(r=>[r.key,Number(values[r.key])]));
- const valid=!!values&&editable.every(r=>/^-?\d+$/.test(values[r.key]?.trim()||'')&&Number.isInteger(parsed[r.key])&&parsed[r.key]>=-20&&parsed[r.key]<=20);
+ const valid=!!values&&editable.every(r=>/^-?\d+$/.test(values[r.key]?.trim()||'')&&Number.isInteger(parsed[r.key])&&(r.key==='captain'?parsed[r.key]>=1&&parsed[r.key]<=5:parsed[r.key]>=-20&&parsed[r.key]<=20));
  const changed=valid&&editable.some(r=>parsed[r.key]!==original?.[r.key]);
  async function save(){
   if(lock.current||!valid||!changed)return;
@@ -41,7 +41,7 @@ export default function FantasyPointsSettings({request}){
    <Text style={{...text,flex:1,fontWeight:'700'}}>{r.label}</Text>
    <TextInput accessibilityLabel={'Puntos por '+r.label} keyboardType="numbers-and-punctuation" editable={!busy&&!!values} value={values?.[r.key]??''} onChangeText={v=>{setValues(old=>({...old,[r.key]:v}));setNotice('')}} style={{width:72,padding:10,color:theme.text,backgroundColor:theme.header,borderRadius:9,borderWidth:1,borderColor:theme.border,textAlign:'center',fontWeight:'800'}}/>
   </View>)}
-  <Text style={{...text,fontSize:12,color:theme.muted}}>Valores enteros de −20 a +20. El capitán sigue multiplicando ×2. El once ideal premia en dinero.</Text>
+  <Text style={{...text,fontSize:12,color:theme.muted}}>Valores enteros de −20 a +20. Capitán: multiplicador configurable de ×1 a ×5. El once ideal premia en dinero.</Text>
   <Button onPress={save} disabled={busy||!changed}>{busy?'Guardando…':'Guardar puntuaciones'}</Button>
   <Button secondary disabled={busy} onPress={load}>Restaurar valores actuales</Button>
   <Button secondary disabled={busy} onPress={loadHistory}>Ver historial de puntuaciones</Button>

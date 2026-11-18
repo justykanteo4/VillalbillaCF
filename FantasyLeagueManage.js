@@ -4,7 +4,7 @@ import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
 
 // Only administrators can open this UI; the server independently verifies the role.
 export default function FantasyLeagueManage({request}){
- const [list,setList]=useState(null),[current,setCurrent]=useState(null);
+ const [list,setList]=useState(null),[current,setCurrent]=useState(null),[history,setHistory]=useState(null);
  const [name,setName]=useState(''),[limit,setLimit]=useState('');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const lock=useRef(false);
@@ -16,16 +16,20 @@ export default function FantasyLeagueManage({request}){
  async function load(){await run(async()=>{const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);setNotice('')})}
  async function choose(id){await run(async()=>{
   const result=await request('/admin/leagues/'+encodeURIComponent(id)+'/settings',{cache:'reload'});
-  setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');
+  setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);
  })}
  async function save(){if(!current||lock.current)return;await run(async()=>{
   const next=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/settings',{
    method:'POST',body:JSON.stringify({name:name.trim(),maxMembers:Number(limit),expectedName:current.name,expectedMaxMembers:current.maxMembers})
   });
   setCurrent(next);setName(next.name);setLimit(String(next.maxMembers));
-  setNotice('Nombre y límite guardados. Las plantillas y los saldos no se han modificado.');
+  setNotice('Nombre y límite guardados. Las plantillas y los saldos no se han modificado.');setHistory(null);
   const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);
  })}
+ async function loadHistory(){
+  if(!current)return;
+  await run(async()=>{const result=await request('/admin/leagues/history?league='+encodeURIComponent(current.id),{cache:'reload'});setHistory(result.events||[])});
+ }
  const valid=!!current&&name.trim().length>=3&&name.trim().length<=60&&Number.isInteger(Number(limit))&&Number(limit)>=Math.max(2,current.memberCount)&&Number(limit)<=15&&(current.mode!=='classic'||Number(limit)===current.maxMembers)&&(name.trim()!==current.name||Number(limit)!==current.maxMembers);
  return <View style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:20}}>Club · Nombre y participantes</Text>
@@ -41,6 +45,13 @@ export default function FantasyLeagueManage({request}){
    <Text style={{...text,color:theme.muted}}>Inscritos actualmente: {current.memberCount}. Nunca se expulsará a nadie por cambiar el límite.</Text>
    {current.mode==='classic'&&<Text style={{...text,color:theme.muted}}>Liga clásica: límite fijo; puedes cambiar el nombre.</Text>}
    <Button disabled={busy||!valid} onPress={save}>{busy?'Guardando…':'Guardar cambios de liga'}</Button>
+   <Button secondary disabled={busy} onPress={loadHistory}>Ver historial de cambios</Button>
+   {history?.length===0&&<Text style={{...text,color:theme.muted}}>Todavía no hay cambios registrados en esta liga.</Text>}
+   {history?.map((event,index)=><View key={index} style={{gap:3,borderTopWidth:1,borderColor:theme.border,paddingTop:8}}>
+    <Text style={text}>{new Date(event.createdAt).toLocaleString('es-ES')} · {event.actor}</Text>
+    <Text style={{...text,color:theme.muted}}>{event.before.name} → {event.after.name}</Text>
+    <Text style={{...text,color:theme.muted}}>Plazas: {event.before.maxMembers} → {event.after.maxMembers}</Text>
+   </View>)}
   </View>}
   {!!notice&&<Text accessibilityRole="alert" style={{...text,color:theme.accent}}>{notice}</Text>}
   <ErrorText>{error}</ErrorText>

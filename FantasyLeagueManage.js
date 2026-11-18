@@ -4,7 +4,7 @@ import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
 
 // Only administrators can open this UI; the server independently verifies the role.
 export default function FantasyLeagueManage({request}){
- const [list,setList]=useState(null),[current,setCurrent]=useState(null),[history,setHistory]=useState(null),[inscriptions,setInscriptions]=useState(null),[visibility,setVisibility]=useState(null);
+ const [list,setList]=useState(null),[current,setCurrent]=useState(null),[history,setHistory]=useState(null),[inscriptions,setInscriptions]=useState(null),[visibility,setVisibility]=useState(null),[lineupLock,setLineupLock]=useState(null);
  const [name,setName]=useState(''),[limit,setLimit]=useState('');
  const [copyOpen,setCopyOpen]=useState(false),[copyName,setCopyName]=useState(''),[copyNickname,setCopyNickname]=useState('');
  const requestId=useRef(null);
@@ -17,12 +17,13 @@ export default function FantasyLeagueManage({request}){
  }
  async function load(){await run(async()=>{const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);setNotice('')})}
  async function choose(id){await run(async()=>{
-  const [result,enrollment,appearance]=await Promise.all([
+  const [result,enrollment,appearance,lineup]=await Promise.all([
    request('/admin/leagues/'+encodeURIComponent(id)+'/settings',{cache:'reload'}),
    request('/admin/leagues/'+encodeURIComponent(id)+'/inscriptions',{cache:'reload'}),
-   request('/admin/leagues/'+encodeURIComponent(id)+'/visibility',{cache:'reload'})
+   request('/admin/leagues/'+encodeURIComponent(id)+'/visibility',{cache:'reload'}),
+   request('/admin/leagues/'+encodeURIComponent(id)+'/lineup-lock',{cache:'reload'})
   ]);
-  setInscriptions(enrollment);setVisibility(appearance);setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);setCopyOpen(false);setCopyName(result.name+' - copia');setCopyNickname('Club');requestId.current=null;
+  setInscriptions(enrollment);setVisibility(appearance);setLineupLock(lineup);setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);setCopyOpen(false);setCopyName(result.name+' - copia');setCopyNickname('Club');requestId.current=null;
  })}
  async function save(){if(!current||lock.current)return;await run(async()=>{
   const next=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/settings',{
@@ -32,6 +33,15 @@ export default function FantasyLeagueManage({request}){
   setNotice('Nombre y límite guardados. Las plantillas y los saldos no se han modificado.');setHistory(null);
   const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);
  })}
+ async function changeLineupLock(locked){
+  if(!current||!lineupLock||lock.current)return;
+  await run(async()=>{
+   const result=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/lineup-lock',{
+    method:'POST',body:JSON.stringify({locked,expectedLocked:lineupLock.locked})
+   });
+   setLineupLock(result);setNotice(locked?'Alineaciones bloqueadas. Se mantienen las ya guardadas.':'Alineaciones desbloqueadas hasta su plazo habitual.');
+  });
+ }
  async function changeVisibility(isPublic){
   if(!current||!visibility||lock.current)return;
   await run(async()=>{
@@ -81,6 +91,11 @@ export default function FantasyLeagueManage({request}){
    <Text style={{...text,color:theme.muted}}>Inscritos actualmente: {current.memberCount}. Nunca se expulsará a nadie por cambiar el límite.</Text>
    {current.mode==='classic'&&<Text style={{...text,color:theme.muted}}>Liga clásica: límite fijo; puedes cambiar el nombre.</Text>}
    <Button disabled={busy||!valid} onPress={save}>{busy?'Guardando…':'Guardar cambios de liga'}</Button>
+   {lineupLock&&<View style={{gap:8,padding:10,borderRadius:10,borderWidth:1,borderColor:theme.border}}>
+    <Text style={{...text,fontWeight:'800'}}>Alineaciones · {lineupLock.locked?'Bloqueadas':'Permitidas'}</Text>
+    <Text style={{...text,color:theme.muted}}>El bloqueo impide cambiar el once en esta liga. No borra alineaciones guardadas ni amplía los plazos normales.</Text>
+    <Button secondary disabled={busy} onPress={()=>changeLineupLock(!lineupLock.locked)}>{lineupLock.locked?'Desbloquear alineaciones':'Bloquear alineaciones'}</Button>
+   </View>}
    {visibility?.editable&&<View style={{gap:8,padding:10,borderRadius:10,borderWidth:1,borderColor:theme.border}}>
     <Text style={{...text,fontWeight:'800'}}>Privacidad · {visibility.public?'Pública para compañeros':'Privada por invitación'}</Text>
     <Text style={{...text,color:theme.muted}}>Pública: únicamente visible a los compañeros verificados del equipo. Privada: no aparece entre las ligas disponibles y se requiere un código.</Text>

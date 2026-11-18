@@ -14,6 +14,7 @@ on:
       - 'fantasy-refresh-policy.test.cjs'
       - 'fantasy-service.mjs'
       - 'fantasy-service.test.mjs'
+      - 'fantasy-economy.test.mjs'
       - 'settings-upgrade-catalog.test.cjs'
       - 'FantasySettings.js'
       - 'FantasyLeagueManage.js'

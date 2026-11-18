@@ -12,7 +12,7 @@ import {marketRoute} from './fantasy-market.mjs';
 const schemas=['fantasy-schema.sql','fantasy-club-schema.sql','fantasy-actas-schema.sql',
  'fantasy-access-schema.sql','social-schema.sql','fantasy-game-schema.sql',
  'fantasy-rewards-schema.sql','fantasy-auction-schema.sql','fantasy-sales-schema.sql',
- 'fantasy-resale-schema.sql','fantasy-clause-schema.sql','fantasy-manager-listings-schema.sql','fantasy-league-lifecycle-schema.sql','fantasy-player-blocks-schema.sql','fantasy-market-window-schema.sql'];
+ 'fantasy-resale-schema.sql','fantasy-clause-schema.sql','fantasy-manager-listings-schema.sql','fantasy-league-lifecycle-schema.sql','fantasy-player-blocks-schema.sql','fantasy-market-window-schema.sql','fantasy-market-slot-schema.sql'];
 const start=Date.parse('2026-10-01T12:00:00Z'),week=7*86400000;
 const schedule=Array.from({length:7},(_,i)=>({id:'m'+i,teamId:'team',week:i,startsAt:start+i*week}));
 const at=start+4*week+3*86400000;

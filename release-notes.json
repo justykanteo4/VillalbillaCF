@@ -1,11 +1,11 @@
 {
-  "id": "2026.11.18.fantasy-funciones-completas",
+  "id": "2026.11.18.fantasy-integracion-temporadas",
   "date": "2026-11-18",
   "title": "Fantasy: préstamos, intercambios, temporadas y apariencia",
   "changes": [
-    "Rivales admite intercambios entre entrenadores y préstamos de 1 a 4 semanas con devolución automática.",
-    "Las reglas de préstamos protegen plantillas, plazas de devolución y resultados de jornadas cerradas.",
-    "La clasificación incorpora estadísticas avanzadas y las jornadas se agrupan por temporadas.",
-    "Se puede elegir modo claro, oscuro o automático en Ajustes de apariencia de Fantasy."
+    "Rivales incorpora intercambios y préstamos de 1 a 4 semanas con devolución programada.",
+    "Las clasificaciones muestran estadísticas avanzadas y se agrupan por temporada deportiva.",
+    "El Club puede archivar las clasificaciones y jornadas de una temporada antes de reiniciar una liga; los archivos son permanentes.",
+    "En Ajustes puedes elegir tema claro, oscuro o automático para Fantasy."
   ]
 }

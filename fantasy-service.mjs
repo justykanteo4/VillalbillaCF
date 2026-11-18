@@ -192,17 +192,17 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   if(request.method==='GET'){
    const teamId=url.searchParams.get('team'),matchId=url.searchParams.get('match');
    if(!teamId&&!matchId)return reply({matches:schedule.matches.filter(m=>m.closed).map(m=>({teamId:m.teamId,matchId:m.id,round:m.round,startsAt:m.startsAt,players:m.players.length})).sort((a,b)=>b.startsAt-a.startsAt).slice(0,150)});
-   if(!/^\\d{1,20}$/.test(teamId||'')||!/^\\d{1,20}$/.test(matchId||''))throw fail('Partido no válido.');
+   if(!/^\d{1,20}$/.test(teamId||'')||!/^\d{1,20}$/.test(matchId||''))throw fail('Partido no válido.');
    const match=schedule.matches.find(m=>m.teamId===teamId&&m.id===matchId&&m.closed);
    if(!match)throw fail('Acta cerrada no encontrada.',404);
    const previous=await db.prepare('SELECT player_id,stats_json,revision FROM fantasy_stat_corrections WHERE team_id=? AND match_id=?').bind(teamId,matchId).all();
    const revisions=new Map(previous.results.map(r=>[r.player_id,r.revision]));
    const history=await db.prepare('SELECT player_id,previous_json,stats_json,revision,actor_uid,updated_at FROM fantasy_stat_correction_history WHERE team_id=? AND match_id=? ORDER BY updated_at DESC LIMIT 30').bind(teamId,matchId).all();
-   return reply({match:{teamId,matchId,round:match.round,players:match.players.filter(p=>/^\\d{1,20}$/.test(String(p.id))).map(p=>({id:p.id,name:p.name||'',played:p.played,partial:p.partial,stats:{goals:p.goals??0,assists:p.assists??0,yellow:p.yellow??0,red:p.red??0,ownGoals:p.ownGoals??0},revision:revisions.get(p.id)||0}))},history:history.results});
+   return reply({match:{teamId,matchId,round:match.round,players:match.players.filter(p=>/^\d{1,20}$/.test(String(p.id))).map(p=>({id:p.id,name:p.name||'',played:p.played,partial:p.partial,stats:{goals:p.goals??0,assists:p.assists??0,yellow:p.yellow??0,red:p.red??0,ownGoals:p.ownGoals??0},revision:revisions.get(p.id)||0}))},history:history.results});
   }
   if(request.method!=='POST')throw fail('Método no permitido.',405);
   const value=await body(request),teamId=String(value?.teamId||''),matchId=String(value?.matchId||''),playerId=String(value?.playerId||'');
-  if(!/^\\d{1,20}$/.test(teamId)||!/^\\d{1,20}$/.test(matchId)||!/^\\d{1,20}$/.test(playerId))throw fail('Identificador no válido.');
+  if(!/^\d{1,20}$/.test(teamId)||!/^\d{1,20}$/.test(matchId)||!/^\d{1,20}$/.test(playerId))throw fail('Identificador no válido.');
   const match=schedule.matches.find(m=>m.teamId===teamId&&m.id===matchId&&m.closed);
   if(!match||!match.players.some(p=>String(p.id)===playerId))throw fail('El jugador no pertenece a ese acta cerrada.',404);
   if(!Number.isSafeInteger(value.revision)||value.revision<0)throw fail('Actualiza las estadísticas antes de guardarlas.');

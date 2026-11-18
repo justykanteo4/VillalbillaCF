@@ -10,21 +10,24 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
  const [data,setData]=useState(null),[selected,setSelected]=useState(null),[expanded,setExpanded]=useState(null);
  const [operation,setOperation]=useState(null),[amount,setAmount]=useState(''),[quote,setQuote]=useState(null);
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
- const alive=useRef(true),locked=useRef(false),requestId=useRef(null);
+ const alive=useRef(true),locked=useRef(false),requestId=useRef(null),sequence=useRef(0);
  async function refresh(force=false){
+  const generation=++sequence.current;
   try{
-   setError('');
-   const apply=value=>{if(alive.current)setData(value)};
+   if(alive.current)setError('');
+   const apply=value=>{if(alive.current&&generation===sequence.current)setData(value)};
    const next=await request('/leagues/'+leagueId+'/rivals',{...(force?{cache:'reload'}:{}),onCached:apply});
    apply(next);
-  }catch(e){if(alive.current)setError(e.message||'No se pudieron consultar las plantillas.')}
-  finally{if(alive.current)setLoading(false)}
+  }catch(e){if(alive.current&&generation===sequence.current)setError(e.message||'No se pudieron consultar las plantillas.')}
+  finally{if(alive.current&&generation===sequence.current)setLoading(false)}
  }
  useEffect(()=>{
   alive.current=true;setData(null);setSelected(null);setExpanded(null);setLoading(true);refresh();
-  const timer=setInterval(()=>refresh(),300000);
-  const listener=AppState.addEventListener('change',state=>{if(state==='active')refresh()});
-  return()=>{alive.current=false;clearInterval(timer);listener.remove()};
+  // A timer with the usual 15-minute cache TTL cannot actually refresh rival ownership every five minutes.
+  // A foreground refresh bypasses the TTL; the last saved snapshot is still available offline.
+  const timer=setInterval(()=>{if(AppState.currentState==='active')void refresh(true)},300000);
+  const listener=AppState.addEventListener('change',state=>{if(state==='active')void refresh(true)});
+  return()=>{alive.current=false;sequence.current++;clearInterval(timer);listener.remove()};
  },[leagueId]);
  function openOffer(player){
   setError('');setNotice('');setSelected(player);setOperation('offer');setQuote(null);setAmount(String(Number(player.price||1).toFixed(2)));

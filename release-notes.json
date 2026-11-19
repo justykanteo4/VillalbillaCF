@@ -1,10 +1,13 @@
 {
-  "id": "2026.11.19.escudos-club-resultados",
+  "id": "2026.11.19.escudos-club-clasificaciones",
   "date": "2026-11-19",
-  "title": "Escudos oficiales RFFM en Resultados, Próximos partidos y resúmenes",
+  "title": "Escudos oficiales RFFM en Clasificaciones, Resultados y Próximos partidos",
   "changes": [
     "Los partidos de las secciones de entrenadores, jugadores e hinchas ahora muestran los escudos de local y visitante; no solo el calendario de Fantasy.",
     "Los próximos rivales y resúmenes de encuentros también muestran los escudos federativos.",
-    "Se admiten las imágenes .jfif de algunos clubes, y se recuperan automáticamente los escudos de partidos antiguos guardados en caché."
+    "Se admiten las imágenes .jfif de algunos clubes, y se recuperan automáticamente los escudos de partidos antiguos guardados en caché.",
+    "La clasificación oficial del Club muestra el escudo de cada equipo junto a su nombre.",
+    "Los resultados conservan los escudos oficiales al combinar datos nuevos con copias antiguas.",
+    "La aplicación recupera los escudos ausentes del calendario local al abrir la sección."
   ]
 }

@@ -67,8 +67,8 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
   try{
    const result=await request('/leagues/'+leagueId+'/loans/'+loan.id+'/'+decision,{method:'POST',body:'{}'});
    if(result?.saved!==true)throw Error('No se confirmó la cesión.');
-   if(alive.current){setNotice(decision==='accept'?'Préstamo aceptado. El jugador se devolverá automáticamente al terminar.':decision==='reject'?'Préstamo rechazado.':'Propuesta cancelada.');await refresh(true);await onUpdated()}
-  }catch(e){if(alive.current)setError(e.message||'No se pudo actualizar el préstamo.')}
+   if(alive.current){setNotice(decision==='accept'?'Cesión aceptada. El jugador se devolverá automáticamente al terminar.':decision==='reject'?'Cesión rechazada.':'Propuesta cancelada.');await refresh(true);await onUpdated()}
+  }catch(e){if(alive.current)setError(e.message||'No se pudo actualizar la cesión.')}
   finally{locked.current=false;if(alive.current)setBusy(false)}
  }
  function openOffer(player){
@@ -97,27 +97,27 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
     :{ownershipId:selected.ownershipId,expectedCents:quote.amountCents,requestId:requestId.current};
    const result=await request('/leagues/'+leagueId+'/'+(operation==='loan'?'loans':operation==='exchange'?'exchanges':operation==='offer'?'offers':'clause'),{method:'POST',body:JSON.stringify(payload)});
    if(operation==='offer'&&result?.saved!==true)throw Error('No se confirmó el envío de la oferta.');
-   if(alive.current){setOperation(null);setSelected(null);setQuote(null);setNotice(operation==='loan'?'Préstamo ofrecido. El rival deberá aceptarlo.':operation==='exchange'?'Intercambio propuesto. El rival deberá aceptarlo.':operation==='offer'?'Oferta enviada. Puedes consultarla en Mercado → Mis operaciones.':'Cláusula pagada. El jugador ya pertenece a tu plantilla.');await refresh(true);await onUpdated()}
+   if(alive.current){setOperation(null);setSelected(null);setQuote(null);setNotice(operation==='loan'?'Cesión ofrecida. El rival deberá aceptarlo.':operation==='exchange'?'Intercambio propuesto. El rival deberá aceptarlo.':operation==='offer'?'Oferta enviada. Puedes consultarla en Mercado → Mis operaciones.':'Cláusula pagada. El jugador ya pertenece a tu plantilla.');await refresh(true);await onUpdated()}
   }catch(e){if(alive.current)setError(e.message||'No se pudo completar la operación.')}
   finally{locked.current=false;if(alive.current)setBusy(false)}
  }
  const offerValue=Number(amount.replace(',','.')),offerValid=amount.trim()!==''&&Number.isFinite(offerValue)&&offerValue>=1&&offerValue<=1000&&Math.abs(offerValue*100-Math.round(offerValue*100))<1e-6;
  return <View style={{gap:14}}>
   <Text accessibilityRole="header" style={{...title,fontSize:25}}>Rivales</Text>
-  <Text style={{...text,color:theme.muted}}>Consulta las plantillas, haz ofertas, intercambia futbolistas y propón préstamos temporales.</Text>
+  <Text style={{...text,color:theme.muted}}>Consulta las plantillas, haz ofertas, intercambia futbolistas y propón cesiones temporales.</Text>
   <ErrorText>{error}</ErrorText>
   {!!notice&&<Text accessibilityRole="alert" style={{...text,color:theme.accent}}>{notice}</Text>}
   {loading&&!data&&<Text style={text}>Cargando las plantillas…</Text>}
   {data?.offline&&<Text style={{...text,color:theme.accent}}>Mostrando la última copia guardada. Para fichar necesitas conexión.</Text>}
   {data?.rivals?.length===0&&<Text style={text}>Todavía no hay otros participantes en esta liga.</Text>}
   {!!loans.length&&<View style={panel}>
-   <Text style={{...title,fontSize:19}}>Préstamos</Text>
+   <Text style={{...title,fontSize:19}}>Cesiones</Text>
    {loans.map(l=><View key={l.id} style={{gap:7,borderTopWidth:1,borderColor:theme.border,paddingTop:10}}>
     <Text style={{...text,fontWeight:'800'}}>{l.playerName} · {l.durationWeeks} {l.durationWeeks===1?'semana':'semanas'}</Text>
     <Text style={text}>{l.lender} → {l.borrower}</Text>
-    <Text style={{...text,color:theme.muted}}>Estado: {({pending:'Pendiente',active:'En préstamo',returned:'Devuelto',rejected:'Rechazado',cancelled:'Cancelado',expired:'Caducado'})[l.status]||l.status}</Text>
+    <Text style={{...text,color:theme.muted}}>Estado: {({pending:'Pendiente',active:'Cedido',returned:'Devuelto',rejected:'Rechazado',cancelled:'Cancelado',expired:'Caducado'})[l.status]||l.status}</Text>
     {l.status==='active'&&<Text style={text}>Devolución prevista: {new Date(l.endsAt).toLocaleDateString('es-ES')}</Text>}
-    {l.status==='pending'&&(l.incoming?<View style={{gap:7}}><Button disabled={busy} onPress={()=>decideLoan(l,'accept')}>Aceptar préstamo</Button><Button secondary disabled={busy} onPress={()=>decideLoan(l,'reject')}>Rechazar</Button></View>:<Button secondary disabled={busy} onPress={()=>decideLoan(l,'cancel')}>Cancelar propuesta</Button>)}
+    {l.status==='pending'&&(l.incoming?<View style={{gap:7}}><Button disabled={busy} onPress={()=>decideLoan(l,'accept')}>Aceptar cesión</Button><Button secondary disabled={busy} onPress={()=>decideLoan(l,'reject')}>Rechazar</Button></View>:<Button secondary disabled={busy} onPress={()=>decideLoan(l,'cancel')}>Cancelar propuesta</Button>)}
    </View>)}
   </View>}
   {!!exchanges.length&&<View style={panel}><Text style={{...title,fontSize:19}}>Intercambios</Text>
@@ -137,7 +137,7 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
     <Text style={{...title,color:theme.accent}}>{expanded===rival.id?'−':'+'}</Text>
    </Pressable>
    {expanded===rival.id&&<View style={{gap:8}}>
-    <Button secondary disabled={busy} onPress={()=>openLoan(rival)}>Ofrecer un jugador en préstamo</Button>
+    <Button secondary disabled={busy} onPress={()=>openLoan(rival)}>Ofrecer una cesión</Button>
     {!rival.players.length&&<Text style={text}>Este rival todavía no tiene jugadores.</Text>}
     {rival.players.map(player=><View key={player.ownershipId} style={{gap:9,borderTopWidth:1,borderColor:theme.border,paddingTop:12}}>
      <View style={{flexDirection:'row',alignItems:'center',gap:10}}>
@@ -164,13 +164,13 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
    <View style={{flex:1,justifyContent:'center',padding:16,backgroundColor:'#000b'}}>
     <View accessibilityViewIsModal style={{...panel,maxHeight:'90%'}}>
      <ScrollView contentContainerStyle={{gap:12}}>
-      <Text style={title}>{operation==='loan'?'Ofrecer préstamo':operation==='exchange'?'Proponer intercambio':operation==='offer'?'Hacer oferta':'Pagar cláusula'}</Text>
+      <Text style={title}>{operation==='loan'?'Ofrecer cesión':operation==='exchange'?'Proponer intercambio':operation==='offer'?'Hacer oferta':'Pagar cláusula'}</Text>
       <Text style={{...text,fontWeight:'800'}}>{selected?.name}</Text>
       {operation==='loan'?<>
-       <Text style={text}>Elige un jugador de tu plantilla para prestarlo al rival durante 1 a 4 semanas. El equipo receptor debe aceptarlo. Se reservará tu plaza para recuperarlo automáticamente al finalizar.</Text>
-       <Text style={{...text,fontWeight:'800'}}>Jugador a prestar</Text>
+       <Text style={text}>Elige un jugador de tu plantilla para cederlo al rival durante 1 a 4 semanas. El equipo receptor debe aceptarlo. Se reservará tu plaza para recuperarlo automáticamente al finalizar.</Text>
+       <Text style={{...text,fontWeight:'800'}}>Jugador a ceder</Text>
        {myPlayers.map(p=><Button key={p.ownershipId} secondary disabled={busy} onPress={()=>setLoanMine(p)}>{loanMine?.ownershipId===p.ownershipId?'● ':''}{p.name}</Button>)}
-       <Text style={{...text,fontWeight:'800'}}>Duración del préstamo</Text>
+       <Text style={{...text,fontWeight:'800'}}>Duración de la cesión</Text>
        <View style={{flexDirection:'row',gap:6}}>{[1,2,3,4].map(n=><View key={n} style={{flex:1}}><Button secondary disabled={busy} onPress={()=>setLoanWeeks(n)}>{loanWeeks===n?'● ':''}{n} {n===1?'sem.':'sem.'}</Button></View>)}</View>
        {!myPlayers.length&&<Text style={text}>No hay jugadores disponibles. Actualiza tu plantilla.</Text>}
       </>:operation==='exchange'?<>
@@ -190,7 +190,7 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
       </>}
       <ErrorText>{error}</ErrorText>
      </ScrollView>
-     <Button disabled={busy||operation==='loan'&&!loanMine||operation==='exchange'&&!exchangeMine||operation==='offer'&&!offerValid||operation==='clause'&&(!quote?.enabled||quote?.protectedRoundsRemaining>0)} onPress={execute}>{busy?'Procesando…':operation==='loan'?'Ofrecer préstamo':operation==='exchange'?'Enviar propuesta de intercambio':operation==='offer'?'Enviar oferta':'Confirmar pago de cláusula'}</Button>
+     <Button disabled={busy||operation==='loan'&&!loanMine||operation==='exchange'&&!exchangeMine||operation==='offer'&&!offerValid||operation==='clause'&&(!quote?.enabled||quote?.protectedRoundsRemaining>0)} onPress={execute}>{busy?'Procesando…':operation==='loan'?'Ofrecer cesión':operation==='exchange'?'Enviar propuesta de intercambio':operation==='offer'?'Enviar oferta':'Confirmar pago de cláusula'}</Button>
      <Button secondary disabled={busy} onPress={()=>{setOperation(null);setSelected(null);setError('')}}>Cancelar</Button>
     </View>
    </View>

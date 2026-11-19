@@ -15,9 +15,9 @@ function normalError(e){
  const errors={FANTASY_LOAN_CHANGED:'La plantilla ha cambiado. Actualiza y vuelve a intentarlo.',
   FANTASY_LOAN_MANAGER:'El otro equipo no tiene una plantilla activa.',
   FANTASY_LOAN_LISTED:'El jugador está anunciado en el mercado.',
-  FANTASY_LOAN_RESERVED_SLOT:'Debes reservar una plaza para devolver jugadores prestados.',
-  FANTASY_LOAN_PLAYER_LOCKED:'Un jugador prestado no se puede vender ni traspasar.',
-  FANTASY_LOAN_BORROWER_MIN:'No puedes vender jugadores porque debes conservar una plantilla válida al devolver los préstamos.',
+  FANTASY_LOAN_RESERVED_SLOT:'Debes reservar una plaza para devolver jugadores cedidos.',
+  FANTASY_LOAN_PLAYER_LOCKED:'Un jugador cedido no se puede vender ni traspasar.',
+  FANTASY_LOAN_BORROWER_MIN:'No puedes vender jugadores porque debes conservar una plantilla válida al devolver las cesiones.',
   FANTASY_ROSTER_MIN:'Tu plantilla necesita un mínimo de 12 jugadores.',
   FANTASY_ROSTER_MAX:'No quedan plazas disponibles en la plantilla.',
   FANTASY_LEAGUE_INACTIVE:'La liga está pausada o archivada.'};
@@ -55,7 +55,7 @@ export async function loanRoute({db,league,uid,method,action='',readBody,now,can
   if(!action){
    if(!id(value.ownershipId)||!id(value.borrowerUid)||!key(value.requestId)||!Number.isInteger(value.weeks))throw fail('Selecciona jugador, equipo y duración.');
    const old=await db.prepare('SELECT * FROM fantasy_player_loans WHERE league_id=? AND lender_uid=? AND request_id=?').bind(league.id,uid,value.requestId).first();
-   if(old){if(old.ownership_id!==value.ownershipId||old.borrower_uid!==value.borrowerUid||old.duration_weeks!==value.weeks)throw fail('Esta solicitud ya corresponde a otro préstamo.',409);return {saved:true,id:old.id}}
+   if(old){if(old.ownership_id!==value.ownershipId||old.borrower_uid!==value.borrowerUid||old.duration_weeks!==value.weeks)throw fail('Esta solicitud ya corresponde a otra cesión.',409);return {saved:true,id:old.id}}
    const [owned,borrower,counts]=await Promise.all([
     db.prepare('SELECT * FROM fantasy_roster WHERE league_id=? AND uid=? AND id=?').bind(league.id,uid,value.ownershipId).first(),
     db.prepare('SELECT 1 FROM fantasy_managers WHERE league_id=? AND uid=?').bind(league.id,value.borrowerUid).first(),
@@ -76,7 +76,7 @@ export async function loanRoute({db,league,uid,method,action='',readBody,now,can
   const match=action.match(/^([A-Za-z0-9-]{1,80})\/(accept|reject|cancel)$/);
   if(!match)throw fail('Operación no disponible.',404);
   const loan=await db.prepare('SELECT * FROM fantasy_player_loans WHERE league_id=? AND id=?').bind(league.id,match[1]).first();
-  if(!loan||(match[2]==='cancel'?loan.lender_uid:loan.borrower_uid)!==uid)throw fail('Préstamo no encontrado.',404);
+  if(!loan||(match[2]==='cancel'?loan.lender_uid:loan.borrower_uid)!==uid)throw fail('Cesión no encontrada.',404);
   const status={accept:'active',reject:'rejected',cancel:'cancelled'}[match[2]];
   if(loan.status===status)return {saved:true};
   if(loan.status!=='pending'||loan.created_at+PROPOSAL_TTL<=now)throw fail('La propuesta no está pendiente o ha caducado.',409);
@@ -86,10 +86,10 @@ export async function loanRoute({db,league,uid,method,action='',readBody,now,can
      SET status='active',starts_at=?,ends_at=?
      WHERE id=? AND league_id=? AND borrower_uid=? AND status='pending' AND created_at>?`)
     .bind(now,now+loan.duration_weeks*DURATION,loan.id,league.id,uid,now-PROPOSAL_TTL).run();
-   if(!done.meta?.changes)throw fail('Préstamo ya cambiado. Actualiza.',409);
+   if(!done.meta?.changes)throw fail('Cesión ya modificada. Actualiza.',409);
   }else{
    const done=await db.prepare("UPDATE fantasy_player_loans SET status=? WHERE id=? AND league_id=? AND status='pending' AND created_at>?").bind(status,loan.id,league.id,now-PROPOSAL_TTL).run();
-   if(!done.meta?.changes)throw fail('Préstamo ya cambiado. Actualiza.',409);
+   if(!done.meta?.changes)throw fail('Cesión ya modificada. Actualiza.',409);
   }
   return {saved:true};
  }catch(e){throw normalError(e)}

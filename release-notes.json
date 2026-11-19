@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.19.fantasy-porteria-cero-defensas",
+  "id": "2026.11.19.fantasy-cesiones-textos",
   "date": "2026-11-19",
-  "title": "Fantasy: portería a cero también para defensas",
+  "title": "Fantasy: préstamos pasan a llamarse cesiones",
   "changes": [
-    "Los defensas que hayan jugado un partido sin goles encajados suman el mismo bonus de portería a cero que el portero (+1 por defecto).",
-    "El bonus se aplica a la ficha del jugador, al once alineado, a los puntos de la liga y al once ideal semanal.",
-    "Se respetan las posiciones manuales guardadas por el Club, el multiplicador del capitán y la puntuación configurable de portería a cero."
+    "En Rivales, «Ofrecer un jugador en préstamo» pasa a «Ofrecer una cesión».",
+    "Los títulos, estados, botones y avisos de la función utilizan «cesión» de forma coherente.",
+    "Es un cambio de textos: se mantienen las mismas reglas, duraciones y devoluciones automáticas."
   ]
 }

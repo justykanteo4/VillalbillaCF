@@ -2,7 +2,8 @@ import React from 'react';
 import {Image,Pressable,StyleSheet} from 'react-native';
 
 const banner=require('./assets/news-fantasy-banner.png');
-const asset=Image.resolveAssetSource(banner);
+// En react-native-web Image.resolveAssetSource no existe.
+const asset=typeof Image.resolveAssetSource==='function'?Image.resolveAssetSource(banner):banner;
 const bannerRatio=asset?.width&&asset?.height?asset.width/asset.height:3;
 
 // El banner se adapta a la anchura disponible, sin provocar desplazamiento horizontal.

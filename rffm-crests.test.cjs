@@ -38,3 +38,7 @@ test('acepta rutas reales RFFM /pnfg/pimg/Clubes, incluidos nombres con espacios
  assert.equal(crestFromFixture(m,'home'),'https://appweb.rffm.es/pnfg/pimg/Clubes/00100_0011715402_logo_M__xico_FC_rN.png');
  assert.equal(crestFromFixture(m,'away'),'https://appweb.rffm.es/pnfg/pimg/Clubes/00100_0000042740_ESCUDO%20BARAJAS.jpg');
 });
+
+test('acepta el escudo .jfif publicado por la RFFM en el calendario de Daganzo',()=>{
+ assert.equal(safeCrestUrl('https://appweb.rffm.es/pnfg/pimg/Clubes/00100_0011030121_daganzo.jfif'),'https://appweb.rffm.es/pnfg/pimg/Clubes/00100_0011030121_daganzo.jfif');
+});

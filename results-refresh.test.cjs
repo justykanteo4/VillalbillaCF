@@ -6,3 +6,15 @@ test('fast teams update before a slow team finishes and one failure cannot block
 test('manual refresh bypasses the service cache and cancellation stops later teams',async()=>{const controller=new AbortController(),paths=[];await refreshResults([team('a',[])],{force:true,signal:controller.signal,loadTeam:async(path,options)=>{paths.push(path);assert.equal(options.cache,'reload');return team('a',[])},onTeam:()=>{}});assert(paths[0].includes('refresh=1'));controller.abort();await refreshResults([team('b',[])],{signal:controller.signal,loadTeam:()=>assert.fail('No calls after leaving'),onTeam:()=>{}})});
 test('team calendar fills Aficionado zero-zero from the closed acta and forces a new source check manually',async()=>{const news=require('./server/news.cjs'),matches=require('./server/match.cjs'),teams=require('./teams.json'),team=teams.find(t=>t.id==='680163'),oldFetch=global.fetch,oldMatch=matches.matchFixtureDetails;const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});let forced=false;global.fetch=async()=>({ok:true,text:async()=>'<script id="__NEXT_DATA__">'+JSON.stringify({props:{pageProps:{query:{grupo:team.group,temporada:'22'},calendar:{rounds:[{codjornada:'9',equipos:[{codacta:'777888999',fecha:today.split('-').reverse().join('-'),codigo_equipo_local:'rival',codigo_equipo_visitante:team.id,equipo_local:'Rival',equipo_visitante:team.name,goles_casa:'',goles_visitante:''}]}]}}}})+'</script>'});matches.matchFixtureDetails=async(id,f,participant,options)=>{forced=options.refresh;return {id:f.id,homeId:f.homeId,awayId:f.awayId,closed:true,homeScore:'0',awayScore:'0',updatedAt:new Date().toISOString()}};try{const value=await news.teamCalendar(team.id,true,{refresh:true,db:{}});assert.equal(value.error,false);assert.equal(value.fixtures[0].homeScore,0);assert.equal(value.fixtures[0].awayScore,0);assert.equal(value.fixtures[0].scoreConfirmed,true);assert.equal(forced,true)}finally{global.fetch=oldFetch;matches.matchFixtureDetails=oldMatch}});
 test('a stale offline callback is cleared once the same team is successfully refreshed',async()=>{const updates=[];const result=await refreshResults([team('a',[])],{loadTeam:async(path,options)=>{options.onUpdate({...team('a',[]),offline:true,error:true});return team('a',[match(0,0)])},onTeam:t=>updates.push(t)});assert.equal(result.failed,false);assert.equal(updates.at(-1).offline,false);assert.equal(updates.at(-1).error,false)});
+
+test('calendarios antiguos sin escudos se recargan enteros; con escudos solo consultan jornada actual',async()=>{
+ const calls=[];
+ const a=team('a',[match(1,0)]);
+ const b=team('b',[match(0,0,{homeCrest:'https://appweb.rffm.es/a.png',awayCrest:'https://appweb.rffm.es/b.png'})]);
+ await refreshResults([a,b],{loadTeam:async(path,options)=>{calls.push({path,cache:options.cache});return {fixtures:[]}},onTeam:()=>{}});
+ assert.equal(calls.length,2);
+ assert.match(calls[0].path,/team=a/);
+ assert.doesNotMatch(calls[0].path,/current=1/);
+ assert.equal(calls[0].cache,'reload');
+ assert.match(calls[1].path,/team=b&current=1/);
+});

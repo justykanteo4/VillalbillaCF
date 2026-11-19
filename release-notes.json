@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.19.rffm-escudos-reparados",
+  "id": "2026.11.19.escudos-club-resultados",
   "date": "2026-11-19",
-  "title": "Corrección: escudos oficiales de equipos RFFM",
+  "title": "Escudos oficiales RFFM en Resultados, Próximos partidos y resúmenes",
   "changes": [
-    "Corregida la descarga de escudos federativos desde appweb.rffm.es/pnfg/pimg/Clubes, verificada con imagen PNG real.",
-    "Fantasy actualiza el calendario de la categoría al abrir los partidos y sustituye las copias antiguas sin imágenes.",
-    "El calendario del Club vuelve a consultar automáticamente la RFFM cuando el historial guardado carece de escudos."
+    "Los partidos de las secciones de entrenadores, jugadores e hinchas ahora muestran los escudos de local y visitante; no solo el calendario de Fantasy.",
+    "Los próximos rivales y resúmenes de encuentros también muestran los escudos federativos.",
+    "Se admiten las imágenes .jfif de algunos clubes, y se recuperan automáticamente los escudos de partidos antiguos guardados en caché."
   ]
 }

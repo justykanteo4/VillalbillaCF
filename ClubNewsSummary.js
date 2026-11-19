@@ -55,10 +55,10 @@ export default function ClubNewsSummary({teams}){
 const s=StyleSheet.create({
  heading:{fontSize:16,fontWeight:'900',color:'#fff'},title:{fontSize:14,fontWeight:'800',color:'#fff'},
  header:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:6,flexWrap:'wrap'},
- card:{padding:11,borderRadius:12,backgroundColor:'#151f2d',borderWidth:1,borderColor:'#2d3e52',gap:5},
+ card:{padding:11,borderRadius:12,backgroundColor:'#173d75',borderWidth:1,borderColor:'#4b9bda',gap:5},
  muted:{fontSize:11,lineHeight:16,color:'#aab8cb'},warning:{fontSize:11,lineHeight:16,color:'#ffc1c9'},
- metrics:{flexDirection:'row',gap:5},metric:{flex:1,minWidth:0,paddingVertical:7,paddingHorizontal:2,borderRadius:8,backgroundColor:'#0b121d',gap:2,alignItems:'center'},
+ metrics:{flexDirection:'row',gap:5},metric:{flex:1,minWidth:0,paddingVertical:7,paddingHorizontal:2,borderRadius:8,backgroundColor:'#225496',gap:2,alignItems:'center'},
  value:{fontSize:22,lineHeight:26,fontWeight:'900'},label:{fontSize:10,lineHeight:13,color:'#dce6f2',textAlign:'center'},
- detailLink:{fontSize:11,lineHeight:18,color:'#91adff'},
+ detailLink:{fontSize:11,lineHeight:18,color:'#7bdcff'},
  balance:{flexDirection:'row',justifyContent:'space-around',gap:10,paddingVertical:6},balanceValue:{fontSize:14,fontWeight:'800',color:'#91adff'},
 });

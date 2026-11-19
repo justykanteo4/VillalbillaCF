@@ -82,3 +82,17 @@ test('traspaso administrativo mueve un jugador rival y asigna uno libre sin alte
  const remaining=data.players.find(p=>p.id!==free.id&&!p.ownership);
  assert.equal((await f.call('owner',path,{playerId:remaining.id,targetId:'second',ownershipId:null})).status,409);
 });
+
+test('la ficha y las estadísticas incluyen la portería a cero para defensas que jugaron',()=>{
+ const match={id:'m-clean',teamId:'team',week:1,startsAt:1,homeScore:2,awayScore:0,
+  players:[{id:'d',played:1,win:true,draw:false,cleanSheet:false},{id:'g',played:1,win:true,draw:false,cleanSheet:true},{id:'m',played:1,win:true,draw:false,cleanSheet:false},{id:'b',played:0,win:true,draw:false,cleanSheet:false}]};
+ const roster=[{id:'d',position:'Defensa'},{id:'g',position:'Portero'},{id:'m',position:'Mediocentro'},{id:'b',position:'Defensa'}];
+ const calculated=playerTotals(roster,{matches:[match]},rules.classicSettings.points,[]);
+ const byId=new Map(calculated.map(p=>[p.id,p]));
+ assert.equal(byId.get('d').fantasyPoints,rules.classicSettings.points.win+rules.classicSettings.points.cleanSheet);
+ assert.equal(byId.get('d').stats.cleanSheets,1);
+ assert.equal(byId.get('g').stats.cleanSheets,1);
+ assert.equal(byId.get('m').stats.cleanSheets,0);
+ assert.equal(byId.get('b').fantasyPoints,0);
+ assert.equal(byId.get('b').stats.cleanSheets,0);
+});

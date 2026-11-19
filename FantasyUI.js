@@ -23,7 +23,7 @@ const rules = [
   ]],
   ['Puntos de los jugadores', [
     'Victoria +6 · Empate +5 · Derrota +4 · Gol +1.',
-    'Portero con el partido completo y sin goles encajados +1.',
+    'Portería a cero: +1 al portero que juega el partido completo y a cada defensa que haya jugado.',
     'Gol en propia puerta −1 · Amarilla −1 · Doble amarilla −3 en total · Roja directa −4.',
   ]],
   ['MVP, once ideal y capitán', [
@@ -58,7 +58,7 @@ export function FantasyRules({request}){
    if(!points)return [heading,items];
    if(heading==='Puntos de los jugadores')return [heading,[
     'Victoria '+points.win+' · Empate '+points.draw+' · Derrota '+points.loss+' · Gol '+points.goal+'.',
-    'Portero sin goles encajados '+points.cleanSheet+'.',
+    'Portería a cero: portero con partido completo y defensas que hayan jugado '+points.cleanSheet+'.',
     'Gol en propia puerta '+points.ownGoal+' · Amarilla '+points.yellow+' · Doble amarilla '+points.secondYellow+' · Roja '+points.red+'.'
    ]];
    if(heading==='MVP, once ideal y capitán')return [heading,items.map(item=>item.replace('Cada MVP suma 1 punto.','Cada MVP suma '+points.mvp+' puntos.'))];

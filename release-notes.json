@@ -1,12 +1,13 @@
 {
-  "id": "2026.11.19.carta-noticias-segundo-bloque",
+  "id": "2026.11.19.noticias-diseno-azul-claro",
   "date": "2026-11-19",
-  "title": "Noticias · tu carta personalizada bajo VillalbillaFantasy",
+  "title": "Noticias · diseño rojo y azul claro",
   "changes": [
-    "La sección Noticias muestra VillalbillaFantasy como primer bloque destacado.",
-    "Inmediatamente debajo aparece Crear mi carta con el escudo original de Villalbilla C.F.",
-    "El editor se abre dentro de Noticias y permite fotografía local, nombre, dorsal, posición y valoraciones estilo videojuego.",
-    "Los aficionados pueden crear una carta de fantasía local; una cuenta de jugador aprobada aprovecha sus datos disponibles sin cambiar las estadísticas oficiales.",
-    "La carta sigue disponible también en la sección privada de Jugadores. El modo KIDS continúa eliminado."
+    "Nuevo estilo visual de Noticias inspirado en la vista previa aprobada: fondo oscuro, azul más claro y detalles rojos.",
+    "VillalbillaFantasy aparece como primer bloque destacado con acceso directo.",
+    "Crear mi carta personalizada aparece como segundo bloque con editor y escudo original del Villalbilla C.F.",
+    "Debajo se muestran tarjetas del último resultado y la próxima jornada cuando hay datos federativos disponibles.",
+    "Cabecera de Noticias con el escudo original, mejoras de legibilidad y controles de la app intactos.",
+    "No se recupera el antiguo modo KIDS ni se modifican las estadísticas oficiales."
   ]
 }

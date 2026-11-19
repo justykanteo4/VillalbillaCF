@@ -1,13 +1,13 @@
 {
-  "id": "2026.11.19.kids-games-photo-local",
+  "id": "2026.11.19.kids-medallas-progreso",
   "date": "2026-11-19",
-  "title": "Villalbilla KIDS · juegos, carta privada y controles del Club",
+  "title": "Villalbilla KIDS · medallas y progreso personal",
   "changes": [
-    "Nuevos juegos educativos de regates y táctica, con cuatro niveles cada uno y estrellas locales.",
-    "Penaltis, quiz futbolero y adivina el escudo permanecen disponibles en la zona KIDS.",
-    "Carta estilo videojuego personalizable: apodo, dorsal, posición y foto privada opcional guardada solo en el dispositivo.",
-    "La elección de foto requiere confirmación de un adulto y puede eliminarse; no se envía a servidores ni se publica.",
-    "El Club puede activar o desactivar KIDS para todos los usuarios y abrir la vista previa desde Administración.",
-    "Compartir fotografías o cartas de menores sigue señalizado como En construcción hasta disponer de autorización verificable y controles de privacidad."
+    "Nueva sección Mis medallas con cinco recompensas que se desbloquean jugando y aprendiendo.",
+    "Puntuación personal local y restauración de estrellas sin perder progreso al iniciar la aplicación.",
+    "Regates y táctica, penaltis, preguntas y juego de escudos disponibles en el menú infantil.",
+    "Carta estilo videojuego con apodo, posición y dorsal, y fotografía privada opcional en el dispositivo.",
+    "Activación y desactivación global de KIDS desde Administración, con acceso a vista previa.",
+    "Compartir fotos y cartas infantiles permanece En construcción hasta disponer de permisos y privacidad adecuados."
   ]
 }

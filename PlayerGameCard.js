@@ -64,14 +64,13 @@ export default function PlayerGameCard({account,player,team}){
  };
  const finishSegmentation=async event=>{
   if(!segmentation)return;
-  const job=segmentation;
   setSegmentation(null);
   try{
    const response=JSON.parse(event.nativeEvent.data);
    if(!response.png||!/^[A-Za-z0-9+/=]+$/.test(response.png))throw Error(response.error||'Recorte no disponible');
    const base=FileSystem.documentDirectory;
    if(!base)throw Error('Almacenamiento no disponible');
-   const target=base+'player-card-'+encodeURIComponent(String(account?.id||'local'))+'-'+playerId+'.png';
+   const target=base+'player-card-'+encodeURIComponent(String(account?.id||'local'))+'-'+playerId+'-'+Date.now()+'.png';
    await FileSystem.writeAsStringAsync(target,response.png,{encoding:FileSystem.EncodingType.Base64});
    setPhoto(target);setSaved(false);
    await persist(target);

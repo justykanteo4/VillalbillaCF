@@ -18,8 +18,8 @@ jobs:
         with:
           node-version: '24'
       - run: npm install --no-save --ignore-scripts playwright@1.56.1
-      - run: npx playwright install chromium --with-deps
-      - run: node scripts/smoke-web.cjs
+      - run: which google-chrome || which chromium || which chromium-browser
+      - run: CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)" node scripts/smoke-web.cjs
       - if: always()
         uses: actions/upload-artifact@v4
         with:

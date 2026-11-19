@@ -1,13 +1,12 @@
 {
-  "id": "2026.11.19.noticias-diseno-azul-claro",
+  "id": "2026.11.19.noticias-banners-rojo-azul",
   "date": "2026-11-19",
-  "title": "Noticias · diseño rojo y azul claro",
+  "title": "Noticias · banners Fantasy y Carta estilo videojuego",
   "changes": [
-    "Nuevo estilo visual de Noticias inspirado en la vista previa aprobada: fondo oscuro, azul más claro y detalles rojos.",
-    "VillalbillaFantasy aparece como primer bloque destacado con acceso directo.",
-    "Crear mi carta personalizada aparece como segundo bloque con editor y escudo original del Villalbilla C.F.",
-    "Debajo se muestran tarjetas del último resultado y la próxima jornada cuando hay datos federativos disponibles.",
-    "Cabecera de Noticias con el escudo original, mejoras de legibilidad y controles de la app intactos.",
-    "No se recupera el antiguo modo KIDS ni se modifican las estadísticas oficiales."
+    "Solo los dos banners destacados en Noticias cambian al estilo de la imagen de referencia.",
+    "VillalbillaFantasy muestra fondo diagonal rojo y azul, destellos, copa y balón.",
+    "Crea tu carta personalizada muestra un marco de carta holográfico, estrellas y el escudo original del club.",
+    "Se mantienen los botones funcionales y el resto de Noticias sin modificaciones.",
+    "El azul eléctrico usado es algo más claro que en la imagen de referencia y KIDS sigue retirado."
   ]
 }

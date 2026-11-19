@@ -1,3 +1,4 @@
+import {roundPlayerBreakdown} from './fantasy-round-player-breakdown.mjs';
 import {listSeasonArchives,archiveFantasySeason} from './fantasy-seasons.mjs';
 import {loanRoute} from './fantasy-loans.mjs';
 import {exchangeRoute} from './fantasy-exchanges.mjs';
@@ -708,6 +709,13 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   const data=await detail(db,seasonPublicMatch[1],uid,currentTime,await allowedTeams());
   await ensureManager(db,data.league,uid);
   return reply(await listSeasonArchives(db,data.league.id));
+ }
+ const breakdownMatch=path.match(/^\/api\/fantasy\/leagues\/([A-Za-z0-9-]{1,80})\/rounds\/([0-9]{1,8})\/participants\/([A-Za-z0-9_-]{1,128})$/);
+ if(breakdownMatch){
+  if(request.method!=='GET')throw fail('Método no permitido.',405);
+  const data=await detail(db,breakdownMatch[1],uid,currentTime,await allowedTeams());
+  await ensureManager(db,data.league,uid);
+  return reply(await roundPlayerBreakdown(db,data.league,breakdownMatch[3],Number(breakdownMatch[2]),currentTime));
  }
  const game=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(squad|coaches|coach|presentation|search|favourites|alerts|lineup|table|transactions)$/);if(game){const data=await detail(db,game[1],uid,currentTime,await allowedTeams());return reply(await gameRoute({db,league:data.league,uid,now:currentTime,action:game[2],getNow:clock,targetNext:url.searchParams.get('next')==='1',method:request.method,readBody:()=>body(request),players:['table','alerts','presentation','coaches'].includes(game[2])?[]:await prices(db,data.league.pool,data.league.settings.points)}))}
  const clause=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(clause(?:\/boost)?)$/);

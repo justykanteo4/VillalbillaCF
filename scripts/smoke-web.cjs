@@ -1,7 +1,7 @@
 const {chromium}=require('playwright');
 (async()=>{
  const url=process.env.SMOKE_URL||'https://villalbilla-cf.albaresfernandez.workers.dev/';
- const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_BIN||undefined,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:390,height:844}});
  const errors=[],responses=[];
  page.on('pageerror',e=>errors.push('EXCEPTION '+String(e.stack||e.message).slice(0,1000)));

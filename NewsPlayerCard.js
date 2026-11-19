@@ -5,7 +5,8 @@ import teams from './teams.json';
 import seed from './players-seed.json';
 
 const banner=require('./assets/news-player-card-banner.png');
-const asset=Image.resolveAssetSource(banner);
+// En react-native-web Image.resolveAssetSource no existe.
+const asset=typeof Image.resolveAssetSource==='function'?Image.resolveAssetSource(banner):banner;
 const bannerRatio=asset?.width&&asset?.height?asset.width/asset.height:3;
 
 export default function NewsPlayerCard({account}){

@@ -6,6 +6,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 import PlayerPortrait from './PlayerPortrait';
 import CardPngDownload from './CardPngDownload';
+import CardTemplatePreview from './CardTemplatePreview';
 import WebView from 'react-native-webview';
 import {Asset} from 'expo-asset';
 import {getPlayerPhoto} from './player-photos';
@@ -85,64 +86,12 @@ export default function PlayerGameCard({account,player,team}){
    <Text style={{color:'#fff',fontSize:23,fontWeight:'900'}}>🎮 MI CARTA DE JUGADOR</Text>
    <Text style={{color:'#bacde7',textAlign:'center'}}>Carta personalizada · edición privada en tu dispositivo</Text>
   </View>
-  <Pressable accessibilityRole="button" accessibilityLabel={showBack?'Mostrar cara delantera de mi carta':'Girar mi carta'} onPress={()=>setShowBack(v=>!v)} style={cardStyle.frame}>
-   <View style={cardStyle.card}>
-    <View style={cardStyle.top}>
-     <View style={cardStyle.ratingPanel}>
-      <Text style={cardStyle.laurels}>❧</Text>
-      <Text style={cardStyle.overall}>{avg}</Text>
-      <Text style={cardStyle.role}>{role}</Text>
-      <Text style={cardStyle.striker}>⚽</Text>
-     </View>
-     <View style={cardStyle.crestPanel}>
-      <Image source={require('./assets/escudo-transparente.png')} accessibilityLabel="Escudo original Villalbilla C.F." style={cardStyle.crest} resizeMode="contain"/>
-      <Text style={cardStyle.clubName}>VILLALBILLA C.F.</Text>
-     </View>
-    </View>
-    {showBack?
-     <View style={cardStyle.backPanel}>
-      <Image source={require('./assets/escudo-transparente.png')} accessibilityLabel="Escudo original Villalbilla C.F." style={{width:110,height:140}} resizeMode="contain"/>
-      <Text style={cardStyle.backName}>VILLALBILLA C.F.</Text>
-      <Text style={{color:'#fff',fontWeight:'900'}}>TEMPORADA 2026/27</Text>
-      <Text style={{color:'#9deaff'}}>Toca para volver a la carta</Text>
-     </View>:
-     <View style={cardStyle.portraitArea}>
-      <View style={cardStyle.portraitGlow}/>
-      {photo?<Image source={{uri:photo}} style={cardStyle.portrait} resizeMode="contain"/>:
-       <PlayerPortrait playerId={playerId} name={fullName} teamId={teamId} size={154}/>}
-     </View>}
-    <View style={cardStyle.nameBar}>
-     <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={cardStyle.playerName}>{name}</Text>
-     <View style={cardStyle.numberBox}><Text style={cardStyle.numberText}>{number}</Text></View>
-    </View>
-    <View style={cardStyle.ratingsGrid}>
-     <View style={cardStyle.ratingColumn}>
-      {['velocidad','regate','tiro'].map((key,index)=><View key={key} style={cardStyle.statLine}>
-       <Text style={cardStyle.statIcon}>{['⚡','⚽','◎'][index]}</Text>
-       <Text style={cardStyle.statText}>{['VELOCIDAD','REGATE','TIRO'][index]}</Text>
-       <Text style={cardStyle.statNumber}>{ratings[key]}</Text>
-      </View>)}
-     </View>
-     <View style={cardStyle.ratingColumn}>
-      {['pase','defensa','fisico'].map((key,index)=><View key={key} style={cardStyle.statLine}>
-       <Text style={cardStyle.statIcon}>{['⚽','⬡','💪'][index]}</Text>
-       <Text style={cardStyle.statText}>{['PASE','DEFENSA','FÍSICO'][index]}</Text>
-       <Text style={cardStyle.statNumber}>{ratings[key]}</Text>
-      </View>)}
-     </View>
-    </View>
-    <View style={cardStyle.matchRow}>
-     {[['⚽','PARTIDOS',player?.played],['⚽','GOLES',player?.goals],['🏆','ASISTENCIAS',player?.assists]].map(([symbol,key,value])=><View key={key} style={cardStyle.matchBox}>
-      <Text style={{fontSize:20}}>{symbol}</Text>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={cardStyle.matchLabel}>{key}</Text>
-      <Text style={cardStyle.matchNumber}>{Number.isFinite(Number(value))&&value!=null?value:'—'}</Text>
-     </View>)}
-    </View>
-    <View style={cardStyle.bottomPlate}>
-     <Text numberOfLines={1} adjustsFontSizeToFit style={cardStyle.category}>{String(team?.category||'VILLALBILLA C.F.').toUpperCase()}</Text>
-     <Text style={cardStyle.season}>TEMPORADA 2026/27</Text>
-    </View>
-   </View>
+  <Pressable accessibilityRole="button" accessibilityLabel={showBack?'Mostrar cara delantera de mi carta':'Girar mi carta'} onPress={()=>setShowBack(v=>!v)} style={{alignSelf:'center',width:'100%',maxWidth:380}}>
+   {showBack?<View style={{width:'100%',aspectRatio:800/1450,borderRadius:20,borderWidth:4,borderColor:'#39c9ff',backgroundColor:'#091a43',alignItems:'center',justifyContent:'center',gap:24,padding:25}}>
+    <Image source={require('./assets/escudo-transparente.png')} style={{width:170,height:225}} resizeMode="contain"/>
+    <Text style={{fontSize:26,fontWeight:'900',color:'#fff',textAlign:'center'}}>VILLALBILLA C.F.</Text>
+    <Text style={{fontSize:17,fontWeight:'800',color:'#ffde55'}}>TEMPORADA 2026/27</Text>
+   </View>:<CardTemplatePreview name={name} number={number} role={role} avg={avg} category={team?.category||'VILLALBILLA C.F.'} ratings={ratings} photo={photo} played={player?.played} goals={player?.goals} assists={player?.assists}/>}
   </Pressable>
   <Text style={{color:'#9ddfff',fontSize:11,textAlign:'center'}}>↻ Toca la carta para girarla · Valoraciones no oficiales</Text>
   <CardPngDownload name={name} number={number} role={role} avg={avg} category={team?.category||'VILLALBILLA C.F.'} ratings={ratings} photo={photo} played={player?.played} goals={player?.goals} assists={player?.assists}/>

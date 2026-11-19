@@ -29,7 +29,7 @@ export default function KidsHub({onOpenPublic,onExit}){
  {screen==='inicio'&&<><Text style={s.title}>¡Tu club, tu aventura!</Text><Text style={s.note}>Juegos sencillos y acceso a las secciones públicas de Hinchas. No se muestran herramientas de entrenador.</Text><View style={s.grid}>
  <Tile icon="🥅" title="Penaltis" subtitle="¡Juega!" onPress={()=>{setGoal(null);setScreen('penaltis')}}/>
  <Tile icon="🧠" title="Quiz futbolero" subtitle="¡Juega!" onPress={()=>{setQIndex(0);setAnswer(null);setScreen('quiz')}}/>
- <Tile icon="🃏" title="Mi carta" subtitle="En construcción" onPress={()=>setScreen('carta')}/>
+ <Tile icon="🃏" title="Mi carta" subtitle="Personalízala" onPress={()=>setScreen('carta')}/>
  <Tile icon="🛡️" title="Adivina el escudo" subtitle="¡Juega!" onPress={()=>setScreen('escudos')}/>
  <Tile icon="⚡" title="Regates" subtitle="4 niveles" onPress={()=>setScreen('regates')}/>
  <Tile icon="🧩" title="Táctica" subtitle="4 retos" onPress={()=>setScreen('tactica')}/>

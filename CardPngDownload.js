@@ -8,7 +8,6 @@ import {cardSvg} from './card-export-svg.cjs';
 
 const buttonStyle={backgroundColor:'#1475ba',padding:14,borderRadius:12,alignItems:'center'};
 const textStyle={color:'#fff',fontWeight:'900',fontSize:15};
-const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 function decodeMessage(value){
  const parsed=JSON.parse(value);
  if(parsed?.error)throw Error(parsed.error);
@@ -58,7 +57,7 @@ export default function CardPngDownload({name,number,role,avg,category,ratings,p
   setWorking(true);setMessage('');
   try{
    const [crest,photoBase64]=await Promise.all([pngDataForAsset(require('./assets/escudo-transparente.png')),photoData(photo)]);
-   const svg=cardSvg({name,number,position:role,average:avg,category,ratings,played,goals,assists,crest,photo:photoBase64});
+   const svg=cardSvg({name,number,position:role,average:avg,category,ratings,played,goals,assists,crest,photo:photoBase64,photoMime:/\.png(?:$|\?)/i.test(photo||'')?'png':'jpeg'});
    setHtml(page(svg));
   }catch(e){setWorking(false);setMessage('No se pudo preparar la descarga. '+String(e.message||''))}
  };

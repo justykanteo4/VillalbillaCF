@@ -101,6 +101,7 @@ jobs:
           node official-cache.test.mjs
           node offline-policy-cache.test.cjs
           pnpm run check:fantasy-clauses
+          node --test club-kids-settings.test.mjs
           node --test admin-match-tasks.test.mjs
           pnpm run check:release
       - name: Export all three app bundles

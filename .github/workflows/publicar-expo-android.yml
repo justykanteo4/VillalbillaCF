@@ -1,5 +1,5 @@
 name: Publicar actualización Android en Expo
-# Reintento solicitado: comprobar recuperación de variables de Expo y despliegue Android
+# Nueva ejecución solicitada: publicación Android en canal production
 run-name: Publicación Android · ${{ github.event_name == 'push' && 'automática' || 'manual' }}
 
 on:

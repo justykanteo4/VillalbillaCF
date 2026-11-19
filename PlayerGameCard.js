@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 import PlayerPortrait from './PlayerPortrait';
+import CardPngDownload from './CardPngDownload';
 
 const FIELDS=[['velocidad','VEL'],['tiro','TIR'],['pase','PAS'],['regate','REG'],['defensa','DEF'],['fisico','FIS']];
 const DEFAULTS={velocidad:70,tiro:70,pase:70,regate:70,defensa:70,fisico:70};
@@ -109,6 +110,7 @@ export default function PlayerGameCard({account,player,team}){
    </View>
   </Pressable>
   <Text style={{color:'#9ddfff',fontSize:11,textAlign:'center'}}>↻ Toca la carta para girarla · Valoraciones no oficiales</Text>
+  <CardPngDownload name={name} number={number} role={role} avg={avg} category={team?.category||'VILLALBILLA C.F.'} ratings={ratings} photo={photo} played={player?.played} goals={player?.goals} assists={player?.assists}/>
   <Pressable accessibilityRole="button" onPress={()=>setEditing(v=>!v)} style={btn}><Text style={btnText}>{editing?'Cerrar personalización':'✏️ Personalizar mi carta'}</Text></Pressable>
   {editing&&<View style={{...panel,gap:13}}>
    <Text style={{color:'#fff',fontWeight:'900',fontSize:17}}>Personalización</Text>

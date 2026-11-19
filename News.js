@@ -89,6 +89,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
 
   return <View style={{gap:18}}>
     {mode==='results'?<><Text style={s.title}>Resultados</Text>{target?<NotificationMatch account={account} onEdited={editedResult} target={target} onClose={()=>setTarget(null)}/>:results}</>:<>
+      <View style={{gap:5,paddingVertical:5}}><Text style={{color:'#fff',fontSize:30,fontWeight:'900'}}>Noticias</Text><View style={{height:3,width:105,borderRadius:3,backgroundColor:'#42c7ff'}}/></View>
       {onOpenFantasy&&<FantasyNewsAccess onPress={onOpenFantasy}/>}
       <NewsPlayerCard account={account}/>
       <ClubNewsSummary teams={news.teams}/>

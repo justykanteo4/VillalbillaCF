@@ -1,4 +1,5 @@
 name: Publicar actualización Android en Expo
+# Reintento de publicación con variables recuperadas desde Expo
 run-name: Publicación Android · ${{ github.event_name == 'push' && 'automática' || 'manual' }}
 
 on:

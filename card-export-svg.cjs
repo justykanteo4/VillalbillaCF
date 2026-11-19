@@ -1,7 +1,7 @@
 const safe=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]));
 const score=value=>Math.max(1,Math.min(99,Math.round(Number(value)||1)));
 const metric=value=>value==null||!Number.isFinite(Number(value))?'—':String(value);
-const imageTag=(data,x,y,width,height)=>data?`<image href="data:image/png;base64,${data}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet"/>`:'';
+const imageTag=(data,x,y,width,height,mime='png')=>data?`<image href="data:image/${mime};base64,${data}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet"/>`:'';
 function cardSvg({name='JUGADOR',number='10',position='JUG',average=70,category='VILLALBILLA C.F.',ratings={},played,goals,assists,crest='',photo=''}) {
  const row=(x,y,title,value)=>`<rect x="${x}" y="${y}" width="343" height="75" rx="13" fill="#103e75" stroke="#24b8ff" stroke-width="3"/><text x="${x+16}" y="${y+49}" fill="#fff" font-size="28" font-weight="900">${safe(title)}</text><text x="${x+323}" y="${y+52}" text-anchor="end" fill="#ffdc4c" font-size="49" font-weight="900">${score(value)}</text>`;
  const tile=(x,title,value)=>`<rect x="${x}" y="1135" width="236" height="138" rx="15" fill="#480c2e" stroke="#f84b69" stroke-width="4"/><text x="${x+118}" y="1182" text-anchor="middle" fill="white" font-size="25" font-weight="900">${safe(title)}</text><text x="${x+118}" y="1251" text-anchor="middle" fill="#ffdc4c" font-size="62" font-weight="900">${safe(metric(value))}</text>`;
@@ -17,7 +17,7 @@ function cardSvg({name='JUGADOR',number='10',position='JUG',average=70,category=
  ${imageTag(crest,520,110,190,220)}
  <text x="608" y="361" fill="white" text-anchor="middle" font-size="33" font-weight="900">VILLALBILLA C.F.</text>
  <rect x="178" y="390" width="445" height="329" rx="30" fill="#134b8b" opacity=".66"/>
- ${photo?imageTag(photo,179,399,443,310):`<text x="400" y="555" text-anchor="middle" font-size="92" fill="#b2dff6">⚽</text>`}
+ ${photo?imageTag(photo,179,399,443,310,'jpeg'):`<text x="400" y="555" text-anchor="middle" font-size="92" fill="#b2dff6">⚽</text>`}
  <path d="M75 716 Q400 655 725 716 V825 H75Z" fill="url(#band)" stroke="#efab63" stroke-width="8"/>
  <text x="365" y="791" text-anchor="middle" fill="white" font-size="65" font-weight="900" textLength="530" lengthAdjust="spacingAndGlyphs">${safe(String(name).toUpperCase().slice(0,22))}</text>
  <rect x="629" y="716" width="103" height="107" rx="15" fill="#ba092b" stroke="#ffc478" stroke-width="6"/>

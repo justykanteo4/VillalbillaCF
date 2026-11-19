@@ -1,6 +1,9 @@
 name: Publicar actualización Android en Expo
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       message:
@@ -23,7 +26,7 @@ jobs:
       CI: "1"
       EXPO_NO_TELEMETRY: "1"
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      UPDATE_MESSAGE: ${{ inputs.message }}
+      UPDATE_MESSAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.message || format('Actualización automática VillalbillaCF {0}', github.sha) }}
       EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
       EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
       EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}

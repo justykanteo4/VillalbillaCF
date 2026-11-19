@@ -7,7 +7,7 @@
  console.log('HTML_BYTES',html.length,'NEXT_DATA',!!next);
  if(next){const p=JSON.parse(next[1]).props?.pageProps||{},m=p.calendar?.rounds?.flatMap(x=>x.equipos||[]).find(x=>x.codigo_equipo_local&&x.codigo_equipo_visitante);
   console.log('MATCH_KEYS',m?Object.keys(m).join(', '):'no-match');console.log('MATCH_EXAMPLE',m?JSON.stringify(m).slice(0,1800):'none');if(m?.escudo_equipo_local){
- const u=new URL(m.escudo_equipo_local,'https://www.rffm.es');
+ const u=new URL(m.escudo_equipo_local,'https://appweb.rffm.es');
  try{
   const probe=await fetch(u,{method:'HEAD',signal:AbortSignal.timeout(10000)});
   console.log('REAL_CREST_HTTP',probe.status,'TYPE',probe.headers.get('content-type'),'URL',u.href);

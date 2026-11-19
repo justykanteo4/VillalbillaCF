@@ -22,7 +22,7 @@ export default function CardTemplatePreview({name,number,role,avg,category,ratin
     const [crest,person]=await Promise.all([fileBase64(asset.localUri),fileBase64(photo)]);
     if(!active)return;
     const svg=cardSvg({name,number,position:role,average:avg,category,ratings,played,goals,assists,crest,photo:person,photoMime:/\.png(?:$|\?)/i.test(photo||'')?'png':'jpeg'});
-    setHtml('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"></head><body style="margin:0;background:transparent;overflow:hidden">'+svg+'</body></html>');
+    setHtml('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"></head><body style="margin:0;background:transparent;overflow:hidden">'+svg.replace('<svg ','<svg style="width:100%;height:100%;display:block" ')+'</body></html>');
    }catch{if(active)setHtml(null)}
   })();
   return()=>{active=false};

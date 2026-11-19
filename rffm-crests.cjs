@@ -14,7 +14,7 @@ function safeCrestUrl(value){
  if(u.protocol!=='https:'||u.username||u.password)return null;
  const host=u.hostname.toLowerCase();
  if(!(host==='rffm.es'||host.endsWith('.rffm.es')||host==='rffm-cms.s3.eu-west-1.amazonaws.com'||host.endsWith('.cloudfront.net')))return null;
- if(!/\.(?:png|jpe?g|webp|gif|svg)(?:$|[?#])|\/_next\/image\?|\/media\/|\/images\/|\/escudos\/|\/logos\//i.test(u.pathname+u.search))return null;
+ if(!/\.(?:png|jpe?g|webp|gif|svg)(?:$|[?#])|\/_next\/image\?|\/media\/|\/images\/|\/escudos\/|\/logos\/|\/pnfg\/pimg\/Clubes\//i.test(u.pathname+u.search))return null;
  return u.href;
 }
 function crestFromFixture(fixture,side){

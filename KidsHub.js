@@ -22,9 +22,10 @@ function Tile({icon,title,subtitle,onPress}){return <Pressable accessibilityRole
 function Button({children,onPress,secondary=false}){return <Pressable accessibilityRole="button" onPress={onPress} style={[s.button,secondary&&s.secondary]}><Text style={s.buttonText}>{children}</Text></Pressable>}
 export default function KidsHub({onOpenPublic,onExit}){
  const [screen,setScreen]=useState('inicio'),[goal,setGoal]=useState(null),[points,setPoints]=useState(0),[qIndex,setQIndex]=useState(0),[answer,setAnswer]=useState(null);
- useEffect(()=>{let active=true;AsyncStorage.getItem('villalbilla.kids-stars.v1').then(value=>{if(active&&value!==null)setPoints(sanitizeStars(value))}).catch(()=>{});return()=>{active=false}},[]);
+ const [starsLoaded,setStarsLoaded]=useState(false);
+ useEffect(()=>{let active=true;AsyncStorage.getItem('villalbilla.kids-stars.v1').then(value=>{if(active&&value!==null)setPoints(sanitizeStars(value))}).catch(()=>{}).finally(()=>{if(active)setStarsLoaded(true)});return()=>{active=false}},[]);
  const award=n=>setPoints(p=>sanitizeStars(p+n));
- useEffect(()=>{AsyncStorage.setItem('villalbilla.kids-stars.v1',String(sanitizeStars(points))).catch(()=>{})},[points]);
+ useEffect(()=>{if(starsLoaded)AsyncStorage.setItem('villalbilla.kids-stars.v1',String(sanitizeStars(points))).catch(()=>{})},[points,starsLoaded]);
  const nextQuestion=()=>{setAnswer(null);setQIndex(i=>(i+1)%QUESTIONS.length)};
  const attempt=direction=>{if(goal!==null)return;const keeper=['Izquierda','Centro','Derecha'][Math.floor(Math.random()*3)];setGoal({direction,keeper,scored:direction!==keeper});if(direction!==keeper)award(1)};
  const selectAnswer=i=>{if(answer!==null)return;setAnswer(i);if(i===QUESTIONS[qIndex].correct)award(1)};

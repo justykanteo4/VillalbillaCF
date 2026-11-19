@@ -6,6 +6,10 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 import PlayerPortrait from './PlayerPortrait';
 import CardPngDownload from './CardPngDownload';
+import WebView from 'react-native-webview';
+import {Asset} from 'expo-asset';
+import {getPlayerPhoto} from './player-photos';
+import {backgroundRemovalHtml} from './photo-background-removal.cjs';
 
 const FIELDS=[['velocidad','VEL'],['tiro','TIR'],['pase','PAS'],['regate','REG'],['defensa','DEF'],['fisico','FIS']];
 const DEFAULTS={velocidad:70,tiro:70,pase:70,regate:70,defensa:70,fisico:70};
@@ -20,7 +24,7 @@ export default function PlayerGameCard({account,player,team}){
  const storageKey='villalbilla.player-game-card.v1.'+String(account?.id||'')+'.'+teamId+'.'+playerId;
  const [nickname,setNickname]=useState(''),[dorsal,setDorsal]=useState(''),[position,setPosition]=useState(''),[ratings,setRatings]=useState(DEFAULTS);
  const [photo,setPhoto]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[saved,setSaved]=useState(false),[editing,setEditing]=useState(false);
- const [showBack,setShowBack]=useState(false),[hydrated,setHydrated]=useState(false);
+ const [showBack,setShowBack]=useState(false),[hydrated,setHydrated]=useState(false),[segmentation,setSegmentation]=useState(null);
  const mounted=useRef(true);
  useEffect(()=>{mounted.current=true;setHydrated(false);setSaved(false);setPhoto(null);setNickname('');setDorsal('');setPosition('');setRatings(DEFAULTS);AsyncStorage.getItem(storageKey).then(raw=>{if(!mounted.current||!raw)return;const v=JSON.parse(raw);if(typeof v.nickname==='string')setNickname(v.nickname.slice(0,22));if(typeof v.dorsal==='string')setDorsal(v.dorsal);if(typeof v.position==='string')setPosition(v.position);if(v.ratings&&typeof v.ratings==='object')setRatings(Object.fromEntries(FIELDS.map(([key])=>[key,clamp(v.ratings[key]??70)])));if(typeof v.photo==='string'&&v.photo.startsWith(FileSystem.documentDirectory||'unavailable:'))FileSystem.getInfoAsync(v.photo).then(info=>{if(mounted.current&&info.exists)setPhoto(v.photo)}).catch(()=>{});}).catch(()=>{}).finally(()=>{if(mounted.current)setHydrated(true)});return()=>{mounted.current=false}},[storageKey]);
  const fullName=String(player?.alias||player?.name||account?.claim?.name||'Jugador').trim();
@@ -29,19 +33,51 @@ export default function PlayerGameCard({account,player,team}){
  const role=(position||player?.position||'JUG').toUpperCase().slice(0,3);
  const avg=Math.round(FIELDS.reduce((sum,[key])=>sum+clamp(ratings[key]),0)/FIELDS.length);
  const persist=async(newPhoto=photo)=>{await AsyncStorage.setItem(storageKey,JSON.stringify({nickname:nickname.slice(0,22),dorsal:dorsal.slice(0,2),position,ratings,photo:newPhoto}));if(mounted.current)setSaved(true)};
- const choosePhoto=async()=>{
-  if(busy||!hydrated)return;setBusy(true);setError('');
+ const processPhoto=async uri=>{
+  if(busy||!hydrated)return;
+  setBusy(true);setError('');
   try{
-   const selected=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:true,aspect:[3,4],quality:.8});
+   const resized=await ImageManipulator.manipulateAsync(uri,[{resize:{width:500}}],{compress:.8,format:ImageManipulator.SaveFormat.JPEG});
+   const encoded=await FileSystem.readAsStringAsync(resized.uri,{encoding:FileSystem.EncodingType.Base64});
+   setSegmentation({html:backgroundRemovalHtml(encoded),source:resized.uri});
+  }catch{setBusy(false);setError('No se pudo preparar la fotografía para quitar el fondo.')}
+ };
+ const choosePhoto=async()=>{
+  if(busy||!hydrated)return;
+  try{
+   const selected=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:false,quality:.9});
    if(selected.canceled)return;
-   const uri=selected.assets?.[0]?.uri;if(!uri)throw Error('Sin imagen');
-   const resized=await ImageManipulator.manipulateAsync(uri,[{resize:{width:500}}],{compress:.72,format:ImageManipulator.SaveFormat.JPEG});
-   const base=FileSystem.documentDirectory;if(!base)throw Error('Almacenamiento no disponible');
-   const target=base+'player-card-'+encodeURIComponent(account.id)+'-'+playerId+'.jpg';
-   await FileSystem.copyAsync({from:resized.uri,to:target});
+   const uri=selected.assets?.[0]?.uri;
+   if(!uri)throw Error('Sin fotografía');
+   await processPhoto(uri);
+  }catch{setBusy(false);setError('No se pudo abrir la fotografía.')}
+ };
+ const chooseProfilePhoto=async()=>{
+  if(busy||!hydrated)return;
+  try{
+   const source=getPlayerPhoto(playerId);
+   if(!source){setError('Este jugador no tiene fotografía oficial disponible.');return}
+   const asset=Asset.fromModule(source);await asset.downloadAsync();
+   if(!asset.localUri)throw Error('Foto no disponible');
+   await processPhoto(asset.localUri);
+  }catch{setBusy(false);setError('No se pudo obtener la foto de la ficha.')}
+ };
+ const finishSegmentation=async event=>{
+  if(!segmentation)return;
+  const job=segmentation;
+  setSegmentation(null);
+  try{
+   const response=JSON.parse(event.nativeEvent.data);
+   if(!response.png||!/^[A-Za-z0-9+/=]+$/.test(response.png))throw Error(response.error||'Recorte no disponible');
+   const base=FileSystem.documentDirectory;
+   if(!base)throw Error('Almacenamiento no disponible');
+   const target=base+'player-card-'+encodeURIComponent(String(account?.id||'local'))+'-'+playerId+'.png';
+   await FileSystem.writeAsStringAsync(target,response.png,{encoding:FileSystem.EncodingType.Base64});
    setPhoto(target);setSaved(false);
    await persist(target);
-  }catch{setError('No se pudo guardar la fotografía en este dispositivo.')}finally{if(mounted.current)setBusy(false)}
+  }catch(e){
+   setError('No se pudo quitar el fondo automáticamente. Comprueba Internet y vuelve a elegir la foto. '+String(e.message||''));
+  }finally{if(mounted.current)setBusy(false)}
  };
  const deletePhoto=async()=>{if(!photo)return;const old=photo;try{setPhoto(null);await persist(null);await FileSystem.deleteAsync(old,{idempotent:true})}catch{setError('No se pudo eliminar la foto local.')}};
  const changeRating=(key,delta)=>{setRatings(old=>({...old,[key]:clamp(old[key]+delta)}));setSaved(false)};
@@ -124,11 +160,14 @@ export default function PlayerGameCard({account,player,team}){
    {FIELDS.map(([key,abbr])=><View key={key} style={{flexDirection:'row',alignItems:'center',gap:13}}><Text style={{...label,flex:1}}>{abbr}</Text><Pressable accessibilityRole="button" accessibilityLabel={'Restar '+abbr} onPress={()=>changeRating(key,-1)} style={{...btn,padding:10}}><Text style={btnText}>−</Text></Pressable><Text style={{color:'#fff',fontSize:18,fontWeight:'900',minWidth:30,textAlign:'center'}}>{ratings[key]}</Text><Pressable accessibilityRole="button" accessibilityLabel={'Sumar '+abbr} onPress={()=>changeRating(key,1)} style={{...btn,padding:10}}><Text style={btnText}>+</Text></Pressable></View>)}
    <Text style={label}>Fotografía opcional (solo en este dispositivo)</Text>
    <Pressable accessibilityRole="button" disabled={busy||!hydrated} onPress={choosePhoto} style={btn}><Text style={btnText}>{busy?'Preparando fotografía…':'📷 Elegir fotografía'}</Text></Pressable>
+   <Pressable accessibilityRole="button" disabled={busy||!hydrated||!getPlayerPhoto(playerId)} onPress={chooseProfilePhoto} style={{...btn,backgroundColor:'#254e82',opacity:!getPlayerPhoto(playerId)?.5:1}}><Text style={btnText}>🪪 Usar foto de mi ficha y quitar fondo</Text></Pressable>
+   <Text style={{color:'#b7ddfa',fontSize:12}}>El recorte es automático y se procesa en tu dispositivo. La primera vez requiere Internet para descargar el modelo gratuito.</Text>
    {photo&&<Pressable accessibilityRole="button" onPress={deletePhoto} style={{...btn,backgroundColor:'#354c69'}}><Text style={btnText}>Eliminar foto privada</Text></Pressable>}
    <Pressable accessibilityRole="button" disabled={!hydrated||busy} onPress={()=>persist().catch(()=>setError('No se pudo guardar la personalización.'))} style={btn}><Text style={btnText}>💾 Guardar carta</Text></Pressable>
    {!!saved&&<Text style={{color:'#98ebb9'}}>✓ Carta guardada en este dispositivo</Text>}
    {!!error&&<Text accessibilityRole="alert" style={{color:'#ffb9c3'}}>{error}</Text>}
   </View>}
+  {!!segmentation&&<View style={{height:2,width:2,opacity:.01,overflow:'hidden',position:'absolute'}} pointerEvents="none"><WebView key={segmentation.source} originWhitelist={['*']} source={{html:segmentation.html,baseUrl:'https://cdn.jsdelivr.net/'}} javaScriptEnabled onMessage={finishSegmentation} onError={()=>{setSegmentation(null);setBusy(false);setError('Error al cargar el modelo de recorte.')}} style={{height:2,width:2}}/></View>}
   <Text style={{color:'#a3b9d2',fontSize:12,lineHeight:18,textAlign:'center'}}>La personalización no cambia las estadísticas oficiales ni publica fotografías. Las imágenes de menores deben utilizarse únicamente con autorización adecuada.</Text>
  </View>;
 }

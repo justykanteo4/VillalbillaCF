@@ -1,11 +1,12 @@
 {
-  "id": "2026.11.19.ajuste-jugadores-sin-modo-infantil",
+  "id": "2026.11.19.carta-noticias-segundo-bloque",
   "date": "2026-11-19",
-  "title": "Villalbilla C.F. · navegación normal y cartas de jugadores",
+  "title": "Noticias · tu carta personalizada bajo VillalbillaFantasy",
   "changes": [
-    "La cabecera y la navegación recuperan exclusivamente las secciones habituales del club.",
-    "Los ajustes del club conservan únicamente las herramientas de administración en uso.",
-    "Jugadores incorpora Mi carta personalizada con el escudo original del Villalbilla C.F.",
-    "Hinchas, entrenadores y VillalbillaFantasy mantienen sus funciones habituales."
+    "La sección Noticias muestra VillalbillaFantasy como primer bloque destacado.",
+    "Inmediatamente debajo aparece Crear mi carta con el escudo original de Villalbilla C.F.",
+    "El editor se abre dentro de Noticias y permite fotografía local, nombre, dorsal, posición y valoraciones estilo videojuego.",
+    "Los aficionados pueden crear una carta de fantasía local; una cuenta de jugador aprobada aprovecha sus datos disponibles sin cambiar las estadísticas oficiales.",
+    "La carta sigue disponible también en la sección privada de Jugadores. El modo KIDS continúa eliminado."
   ]
 }

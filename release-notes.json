@@ -1,14 +1,13 @@
 {
-  "id": "2026.11.19.kids-admin-card-customization",
+  "id": "2026.11.19.kids-games-photo-local",
   "date": "2026-11-19",
-  "title": "Villalbilla KIDS: juegos y control del Club",
+  "title": "Villalbilla KIDS · juegos, carta privada y controles del Club",
   "changes": [
-    "KIDS dispone de minijuegos de penaltis, quiz y adivinar escudos oficiales RFFM.",
-    "Nueva carta de demostración tipo videojuego. Foto personal y publicación de menores permanecen en construcción.",
-    "Las estrellas ganadas se guardan únicamente en el dispositivo sin clasificaciones públicas.",
-    "Los administradores pueden habilitar y deshabilitar KIDS para toda la APK y ver la zona en vista previa.",
-    "El estado compartido se guarda en la base de datos y se verifica al volver a la app; los permisos privados de entrenador permanecen intactos.",
-    "Las funciones sin autorización o sin completar se identifican como En construcción.",
-    "La carta permite elegir apodo, posición y dorsal, guardados solo en el dispositivo, sin subir datos de menores."
+    "Nuevos juegos educativos de regates y táctica, con cuatro niveles cada uno y estrellas locales.",
+    "Penaltis, quiz futbolero y adivina el escudo permanecen disponibles en la zona KIDS.",
+    "Carta estilo videojuego personalizable: apodo, dorsal, posición y foto privada opcional guardada solo en el dispositivo.",
+    "La elección de foto requiere confirmación de un adulto y puede eliminarse; no se envía a servidores ni se publica.",
+    "El Club puede activar o desactivar KIDS para todos los usuarios y abrir la vista previa desde Administración.",
+    "Compartir fotografías o cartas de menores sigue señalizado como En construcción hasta disponer de autorización verificable y controles de privacidad."
   ]
 }

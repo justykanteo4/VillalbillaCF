@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.19.fantasy-cesiones-textos",
+  "id": "2026.11.19.fantasy-desglose-jornadas",
   "date": "2026-11-19",
-  "title": "Fantasy: préstamos pasan a llamarse cesiones",
+  "title": "Fantasy: detalle de puntos por jugador en Jornadas",
   "changes": [
-    "En Rivales, «Ofrecer un jugador en préstamo» pasa a «Ofrecer una cesión».",
-    "Los títulos, estados, botones y avisos de la función utilizan «cesión» de forma coherente.",
-    "Es un cambio de textos: se mantienen las mismas reglas, duraciones y devoluciones automáticas."
+    "Pulsa el nombre de cualquier participante de la clasificación de una jornada para ver los puntos aportados por cada futbolista.",
+    "Se distinguen capitanes, posiciones y partidos jugados, con el total de la jornada y los puntos de entrenador cuando correspondan.",
+    "Los datos proceden de las actas confirmadas y siguen la misma puntuación de la clasificación, sin modificar jornadas ni plantillas."
   ]
 }

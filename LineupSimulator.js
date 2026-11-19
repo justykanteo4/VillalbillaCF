@@ -20,7 +20,7 @@ const ELEVEN={
   '4-2-3-1':[[50,90],[13,75],[38,75],[62,75],[87,75],[37,58],[63,58],[18,41],[50,39],[82,41],[50,22]],
 };
 const SEVEN={'2-3-1':[[50,90],[31,73],[69,73],[17,51],[50,55],[83,51],[50,27]],'3-2-1':[[50,90],[18,73],[50,76],[82,73],[35,52],[65,52],[50,27]]};
-const colors={panel:'#151f2d',dark:'#0b121d',line:'#e2f0df',text:'#edf3fa',muted:'#aab8cb',blue:'#91adff',red:'#c52321',border:'#34475e'};
+const colors={panel:'#000',dark:'#000',line:'#e2f0df',text:'#edf3fa',muted:'#aab8cb',blue:'#91adff',red:'#c52321',border:'#34475e'};
 const defaultFormation=id=>String(teams.find(team=>team.id===id)?.gameType)==='2'?'2-3-1':'4-3-3';
 const formationMap=isSeven=>isSeven?SEVEN:ELEVEN;
 const pointOf=point=>Array.isArray(point)?{x:point[0],y:point[1]}:point;
@@ -165,7 +165,7 @@ export default function LineupSimulator({teamId,players=[],lineups=[],onChange,s
 }
 
 const styles=StyleSheet.create({
-  root:{gap:13,padding:16,borderRadius:20,borderWidth:1,borderColor:'#2c3e54',backgroundColor:colors.panel},
+  root:{gap:13,paddingVertical:16,paddingHorizontal:8,borderRadius:0,borderTopWidth:1,borderBottomWidth:1,borderColor:'#303030',backgroundColor:colors.panel,width:'100%'},
   modeRow:{flexDirection:'row',padding:4,borderRadius:12,backgroundColor:colors.dark,gap:5},
   modeButton:{flex:1,paddingVertical:10,alignItems:'center',borderRadius:9},
   modeButtonActive:{backgroundColor:'#263a66'},
@@ -176,8 +176,8 @@ const styles=StyleSheet.create({
   planBar:{flexDirection:'row',gap:8},
   planSelect:{flex:1,justifyContent:'center',minHeight:42,paddingHorizontal:12,borderRadius:10,backgroundColor:'#101c2b',borderWidth:1,borderColor:colors.border},
   planSelectText:{color:colors.text,fontWeight:'700'},
-  planList:{gap:6,padding:8,borderRadius:12,backgroundColor:colors.dark},
-  planOption:{padding:10,borderRadius:8,backgroundColor:'#192a40'},
+  planList:{gap:6,padding:8,borderRadius:0,backgroundColor:colors.dark},
+  planOption:{padding:10,borderRadius:8,backgroundColor:'#202020'},
   planOptionActive:{backgroundColor:'#263a66'},
   planOptionText:{color:colors.text},
   action:{paddingHorizontal:12,paddingVertical:11,borderRadius:10,backgroundColor:'#1b2e69',alignItems:'center',justifyContent:'center'},

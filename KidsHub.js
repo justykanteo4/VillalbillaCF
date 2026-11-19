@@ -1,4 +1,7 @@
-import React,{useState} from 'react';
+import React,{useState,useEffect} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import KidsCrestGame from './KidsCrestGame';
+import KidsPlayerCard from './KidsPlayerCard';
 import {View,Text,Pressable,StyleSheet,Image} from 'react-native';
 
 const QUESTIONS=[
@@ -15,20 +18,24 @@ function Tile({icon,title,subtitle,onPress}){return <Pressable accessibilityRole
 function Button({children,onPress,secondary=false}){return <Pressable accessibilityRole="button" onPress={onPress} style={[s.button,secondary&&s.secondary]}><Text style={s.buttonText}>{children}</Text></Pressable>}
 export default function KidsHub({onOpenPublic,onExit}){
  const [screen,setScreen]=useState('inicio'),[goal,setGoal]=useState(null),[points,setPoints]=useState(0),[qIndex,setQIndex]=useState(0),[answer,setAnswer]=useState(null);
+ useEffect(()=>{let active=true;AsyncStorage.getItem('villalbilla.kids-stars.v1').then(value=>{if(active&&value!==null)setPoints(Math.max(0,Math.min(9999,Number(value)||0)))}).catch(()=>{});return()=>{active=false}},[]);
+ const award=n=>setPoints(p=>{const next=p+n;AsyncStorage.setItem('villalbilla.kids-stars.v1',String(next)).catch(()=>{});return next});
  const nextQuestion=()=>{setAnswer(null);setQIndex(i=>(i+1)%QUESTIONS.length)};
- const attempt=direction=>{if(goal!==null)return;const keeper=['Izquierda','Centro','Derecha'][Math.floor(Math.random()*3)];setGoal({direction,keeper,scored:direction!==keeper});if(direction!==keeper)setPoints(p=>p+1)};
- const selectAnswer=i=>{if(answer!==null)return;setAnswer(i);if(i===QUESTIONS[qIndex].correct)setPoints(p=>p+1)};
+ const attempt=direction=>{if(goal!==null)return;const keeper=['Izquierda','Centro','Derecha'][Math.floor(Math.random()*3)];setGoal({direction,keeper,scored:direction!==keeper});if(direction!==keeper)award(1)};
+ const selectAnswer=i=>{if(answer!==null)return;setAnswer(i);if(i===QUESTIONS[qIndex].correct)award(1)};
  return <View style={s.main}><View style={s.hero}><Image source={require('./assets/escudo-transparente.png')} style={{width:44,height:61}} resizeMode="contain"/><View style={{flex:1}}><Text style={s.kicker}>VILLALBILLA C.F.</Text><Text style={s.heading}>KIDS 🎮</Text><Text style={s.note}>Modo infantil · En construcción 🚧</Text></View><Text style={s.stars}>⭐ {points}</Text></View>
  {screen!=='inicio'&&<Button secondary onPress={()=>setScreen('inicio')}>← Volver a KIDS</Button>}
  {screen==='inicio'&&<><Text style={s.title}>¡Tu club, tu aventura!</Text><Text style={s.note}>Juegos sencillos y acceso a las secciones públicas de Hinchas. No se muestran herramientas de entrenador.</Text><View style={s.grid}>
  <Tile icon="🥅" title="Penaltis" subtitle="¡Juega!" onPress={()=>{setGoal(null);setScreen('penaltis')}}/>
  <Tile icon="🧠" title="Quiz futbolero" subtitle="¡Juega!" onPress={()=>{setQIndex(0);setAnswer(null);setScreen('quiz')}}/>
  <Tile icon="🃏" title="Mi carta" subtitle="En construcción" onPress={()=>setScreen('carta')}/>
- <Tile icon="🛡️" title="Adivina el escudo" subtitle="En construcción" onPress={()=>setScreen('escudos')}/>
+ <Tile icon="🛡️" title="Adivina el escudo" subtitle="¡Juega!" onPress={()=>setScreen('escudos')}/>
  </View><Text style={s.title}>La afición del Villalbilla</Text><View style={s.grid}>{menu.map(([title,icon])=><Tile key={title} title={title} icon={icon} onPress={()=>onOpenPublic(title)}/>)}</View><Button secondary onPress={onExit}>Salir del modo KIDS</Button></>}
  {screen==='penaltis'&&<View style={s.panel}><Text style={s.big}>🥅 ⚽</Text><Text style={s.title}>¡Lanza el penalti!</Text><Text style={s.note}>Elige por dónde quieres tirar. El portero se moverá para intentar pararlo.</Text>{goal?<><Text style={s.result}>{goal.scored?'¡GOOOL! 🎉':'¡Paradón! 🧤'}</Text><Text style={s.note}>El portero eligió: {goal.keeper}</Text><Button onPress={()=>setGoal(null)}>Otro penalti</Button></>:<View style={s.directions}>{['Izquierda','Centro','Derecha'].map(d=><Pressable key={d} accessibilityRole="button" onPress={()=>attempt(d)} style={s.direction}><Text style={s.buttonText}>{d}</Text></Pressable>)}</View>}</View>}
  {screen==='quiz'&&<View style={s.panel}><Text style={s.kicker}>PREGUNTA {qIndex+1} DE {QUESTIONS.length}</Text><Text style={s.title}>{QUESTIONS[qIndex].q}</Text>{QUESTIONS[qIndex].options.map((option,i)=><Button key={option} secondary onPress={()=>selectAnswer(i)}>{option}{answer===i?' ✓':''}</Button>)}{answer!==null&&<><Text style={s.result}>{answer===QUESTIONS[qIndex].correct?'¡Correcto! 🌟':'¡Buen intento! 💪'}</Text><Text style={s.note}>Respuesta: {QUESTIONS[qIndex].options[QUESTIONS[qIndex].correct]}</Text><Button onPress={nextQuestion}>Siguiente pregunta</Button></>}</View>}
- {['carta','escudos'].includes(screen)&&<View style={s.panel}><Text style={s.big}>{screen==='carta'?'🃏':'🛡️'}</Text><Text style={s.title}>{screen==='carta'?'Mi carta de jugador':'Adivina el escudo'}</Text><Text style={s.construction}>🚧 EN CONSTRUCCIÓN</Text><Text style={s.note}>{screen==='carta'?'La carta estilo videojuego tendrá foto, dorsal y posición. Las fotos de menores solo se utilizarán con autorización adecuada.':'Este juego utilizará los escudos oficiales que estén disponibles y verificados.'}</Text></View>}
+ {screen==='escudos'&&<KidsCrestGame onPoints={award}/>}
+ {screen==='carta'&&<View style={s.panel}><KidsPlayerCard/></View>}
+ 
  <Text style={s.foot}>Zona KIDS en desarrollo · Juegos sin premios de dinero ni rankings infantiles públicos.</Text></View>
 }
 const s=StyleSheet.create({

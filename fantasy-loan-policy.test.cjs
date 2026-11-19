@@ -50,7 +50,7 @@ test('el préstamo requiere aceptación y devuelve automáticamente al propietar
  const offer=await f.call('a','','POST',f.proposal);
  assert.equal((await f.call('a','','POST',f.proposal)).id,offer.id);
  assert.equal(f.owner('a0'),'a');
- await assert.rejects(f.call('a',offer.id+'/accept','POST'),/no encontrado/i);
+ await assert.rejects(f.call('a',offer.id+'/accept','POST'),/cesión no encontrada/i);
  await f.call('b',offer.id+'/accept','POST',{},1100);
  assert.equal(f.owner('a0'),'b');
  assert.equal(f.count('a'),13);

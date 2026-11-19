@@ -1,6 +1,6 @@
-name: Publicar actualización Android en Expo
-# Nueva ejecución solicitada: publicación Android en canal production
-run-name: Publicación Android · ${{ github.event_name == 'push' && 'automática' || 'manual' }}
+name: Publicar VillalbillaCF en Android, iOS y web
+# Publicación automática multiplataforma en producción; iOS requiere una app nativa instalada compatible.
+run-name: Publicación Android + iOS + web · ${{ github.event_name == 'push' && 'automática' || 'manual' }}
 
 on:
   push:
@@ -11,17 +11,17 @@ on:
       message:
         description: Descripción de los cambios
         required: false
-        default: Correcciones de banners en Noticias
+        default: Actualización VillalbillaCF Android, iOS y web
 
 permissions:
   contents: read
 
 concurrency:
-  group: villalbilla-expo-production-android
+  group: villalbilla-expo-production-multiplataforma
   cancel-in-progress: false
 
 jobs:
-  publish:
+  publish-mobile:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -81,3 +81,76 @@ jobs:
               --message "$UPDATE_MESSAGE ($runtime)"
             echo "::endgroup::"
           done
+
+      - name: Exportar y publicar iOS 0.1.12 y 0.1.13
+        shell: bash
+        run: |
+          set -euo pipefail
+          for runtime in 0.1.12 0.1.13; do
+            echo "::group::Publicación Expo iOS runtime $runtime"
+            export VILLALBILLA_UPDATE_RUNTIME="$runtime"
+            pnpm exec expo export --platform ios --output-dir work/ota-export-ios
+            pnpm dlx eas-cli@25.3.0 update \
+              --channel production \
+              --platform ios \
+              --environment production \
+              --input-dir work/ota-export-ios \
+              --skip-bundler \
+              --non-interactive \
+              --message "$UPDATE_MESSAGE (iOS $runtime)"
+            echo "::endgroup::"
+          done
+
+  publish-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: "1"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Obtener código actualizado
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Activar pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 --activate
+
+      - name: Verificar credenciales de publicación web
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in EXPO_TOKEN CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Falta $name en Secrets and variables > Actions."
+              exit 1
+            fi
+          done
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Recuperar configuración pública desde Expo
+        run: pnpm dlx eas-cli@25.3.0 env:pull --environment production --path .env.local --non-interactive
+
+      - name: Comprobar configuración de la aplicación
+        run: node --env-file=.env.local scripts/check-update-config.cjs
+
+      - name: Ejecutar pruebas
+        run: pnpm test
+
+      - name: Preparar y validar datos públicos
+        run: |
+          pnpm run prepare:release-data
+          pnpm run check:release
+
+      - name: Exportar web y publicar Cloudflare Worker
+        run: pnpm run deploy:cloudflare

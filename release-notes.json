@@ -1,11 +1,12 @@
 {
-  "id": "2026.11.19.noticias-sin-actualidad",
+  "id": "2026.11.19.banners-originales-imagenes",
   "date": "2026-11-19",
-  "title": "Noticias · retirada de Actualidad del club",
+  "title": "Noticias · banners con imágenes originales",
   "changes": [
-    "Se elimina por completo el apartado Actualidad del club y sus tarjetas de último resultado y próxima jornada.",
-    "Permanecen VillalbillaFantasy y Crea tu carta personalizada con sus fondos rojos y azules.",
-    "Se conserva el Resumen del club y el resto del contenido de Noticias.",
-    "Los resultados y el calendario se siguen consultando en sus secciones habituales."
+    "Los dos bloques principales de Noticias usan exactamente las dos imágenes PNG proporcionadas para Fantasy y Crea tu carta personalizada.",
+    "Las imágenes se incorporan al paquete de la aplicación y se muestran completas, sin textos, iconos o efectos añadidos encima.",
+    "Pulsar Fantasy abre la liga y pulsar Crea tu carta abre el editor personalizado.",
+    "Se retiran los fondos y dibujos anteriores para evitar diferencias con las referencias.",
+    "El resto de Noticias permanece sin cambios y el modo KIDS continúa eliminado."
   ]
 }

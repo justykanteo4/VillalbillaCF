@@ -1,6 +1,7 @@
 import React,{useState} from 'react';
 import {View,Text,Pressable,Image} from 'react-native';
 import PlayerGameCard from './PlayerGameCard';
+import NewsFeatureBackdrop from './NewsFeatureBackdrop';
 import teams from './teams.json';
 import seed from './players-seed.json';
 
@@ -13,20 +14,19 @@ export default function NewsPlayerCard({account}){
  // La versión pública crea únicamente una carta local. No accede a datos privados ni suplanta identidades.
  const cardAccount=approved?account:{id:'public-local-card',claim:{teamId:'',playerId:'',name:'Mi jugador'}};
  return <View style={{gap:12}}>
-  <Pressable accessibilityRole="button" accessibilityState={{expanded:open}} accessibilityLabel="Crear mi carta personalizada de Villalbilla C.F." onPress={()=>setOpen(v=>!v)} style={{borderRadius:20,borderWidth:1.5,borderColor:'#68cfff',backgroundColor:'#1858a6',overflow:'hidden',shadowColor:'#268dff',shadowOpacity:.28,shadowRadius:9,elevation:3}}>
-   <View style={{height:6,flexDirection:'row'}}><View style={{flex:1,backgroundColor:'#35c1ff'}}/><View style={{flex:1,backgroundColor:'#d81b3f'}}/></View>
-   <View style={{flexDirection:'row',alignItems:'center',padding:15,gap:14}}>
-    <View style={{width:103,height:119,backgroundColor:'#19417f',borderWidth:3,borderColor:'#f5d172',borderRadius:20,alignItems:'center',justifyContent:'space-around',paddingVertical:8,shadowColor:'#61d8ff',shadowOpacity:.6,shadowRadius:10}}>
-     <Text style={{fontSize:18,fontWeight:'900',color:'#ffde78'}}>90</Text>
-     <Image source={require('./assets/escudo-transparente.png')} accessibilityLabel="Escudo original de Villalbilla C.F." style={{width:44,height:57}} resizeMode="contain"/>
-     <Text style={{color:'#fff',fontSize:10,fontWeight:'900'}}>TU CARTA ⭐</Text>
+  <Pressable accessibilityRole="button" accessibilityState={{expanded:open}} accessibilityLabel="Crear mi carta personalizada de Villalbilla C.F." onPress={()=>setOpen(v=>!v)} style={{borderRadius:19,borderWidth:1.5,borderColor:'#e45d9a',backgroundColor:'#112957',overflow:'hidden',shadowColor:'#ff4190',shadowOpacity:.35,shadowRadius:13,elevation:5}}>
+   <NewsFeatureBackdrop variant="card"/>
+   <View style={{flexDirection:'row',alignItems:'center',gap:12,paddingVertical:16,paddingHorizontal:14,minHeight:163}}>
+    <View style={{width:105,height:133,borderRadius:14,borderWidth:3,borderColor:'#55ceff',backgroundColor:'#102657',transform:[{rotate:'-7deg'}],alignItems:'center',justifyContent:'space-around',padding:6,shadowColor:'#3dd5ff',shadowOpacity:1,shadowRadius:12,elevation:9}}>
+      <View style={{alignSelf:'stretch',flexDirection:'row',justifyContent:'space-between'}}><Text style={{color:'#ffe175',fontWeight:'900',fontSize:23}}>90</Text><Image source={require('./assets/escudo-transparente.png')} accessibilityLabel="Escudo original de Villalbilla C.F." style={{width:33,height:42}} resizeMode="contain"/></View>
+      <Text style={{fontSize:43}}>👤</Text>
+      <Text style={{color:'#ffda75',fontSize:17,letterSpacing:1}}>★★★★★</Text>
     </View>
-    <View style={{flex:1,gap:7}}>
-     <Text style={{color:'#ffe18a',fontSize:11,fontWeight:'900',letterSpacing:.4}}>PERSONALIZA TU JUGADOR</Text>
-     <Text style={{color:'#fff',fontSize:21,lineHeight:25,fontWeight:'900'}}>Crea tu carta personalizada</Text>
-     <Text style={{color:'#d9efff',fontSize:13,lineHeight:19}}>Diseña tu carta con foto, dorsal, posición y valoraciones.</Text>
-     <Text style={{color:'#9ef1ff',fontSize:14,fontWeight:'900'}}>{open?'Cerrar carta  ⌃':'Crear mi carta  ❯'}</Text>
+    <View style={{flex:1,gap:13}}>
+     <Text style={{color:'#fff',fontSize:21,lineHeight:25,fontWeight:'900',textShadowColor:'#0c2344',textShadowRadius:7}}>Crea tu carta personalizada</Text>
+     <Text style={{color:'#fff',fontSize:13,lineHeight:19,textShadowColor:'#0c2344',textShadowRadius:6}}>Diseña tu propia carta de jugador con tu foto, posición y estadísticas.</Text>
     </View>
+    <Text style={{color:'#fff',fontSize:27,fontWeight:'900'}}>❯</Text>
    </View>
   </Pressable>
   {open&&<View style={{padding:13,borderRadius:16,backgroundColor:'#123566',borderWidth:1,borderColor:'#58b5ee',gap:12}}>

@@ -1,11 +1,13 @@
 {
-  "id": "2026.11.19.retirada-kids",
+  "id": "2026.11.19.player-card-videogame",
   "date": "2026-11-19",
-  "title": "Villalbilla C.F. · retirada del modo KIDS",
+  "title": "Jugadores · crea tu carta personalizada Villalbilla C.F.",
   "changes": [
-    "Se ha eliminado el modo infantil KIDS de la cabecera, la navegación pública y los ajustes de administración.",
-    "Se han retirado los minijuegos, la carta infantil y sus pantallas y controles del servidor.",
-    "Las secciones originales de Hinchas, Entrenadores y VillalbillaFantasy continúan sin cambios.",
-    "Esta actualización reemplaza las versiones de prueba de KIDS."
+    "Nueva sección Mi carta exclusiva del área de Jugadores, con acceso desde el inicio del jugador.",
+    "Carta estilo videojuego con el escudo original del Villalbilla C.F. integrado en la APK.",
+    "Foto del jugador o imagen privada opcional, nombre, dorsal, posición y seis valoraciones editables.",
+    "Partidos, goles y asistencias mostrados cuando están disponibles en los datos actuales.",
+    "Personalización guardada localmente, con opción de eliminar fotografía; no publica datos ni modifica estadísticas oficiales.",
+    "Se mantienen eliminados todos los componentes del antiguo modo KIDS."
   ]
 }

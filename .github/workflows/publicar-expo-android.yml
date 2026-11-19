@@ -62,16 +62,22 @@ jobs:
       - name: Ejecutar pruebas
         run: pnpm test
 
-      - name: Exportar actualización Android
-        run: pnpm run export:android-update
-
-      - name: Publicar en Expo production
-        run: >-
-          pnpm dlx eas-cli@25.3.0 update
-          --channel production
-          --platform android
-          --environment production
-          --input-dir work/ota-export
-          --skip-bundler
-          --non-interactive
-          --message "$UPDATE_MESSAGE"
+      - name: Exportar y publicar Android 0.1.12 y 0.1.13
+        shell: bash
+        run: |
+          set -euo pipefail
+          for runtime in 0.1.12 0.1.13; do
+            echo "::group::Publicación Expo Android runtime $runtime"
+            export VILLALBILLA_UPDATE_RUNTIME="$runtime"
+            # Expo reconoce el runtime específico en app.config.js.
+            pnpm run export:android-update
+            pnpm dlx eas-cli@25.3.0 update \
+              --channel production \
+              --platform android \
+              --environment production \
+              --input-dir work/ota-export \
+              --skip-bundler \
+              --non-interactive \
+              --message "$UPDATE_MESSAGE ($runtime)"
+            echo "::endgroup::"
+          done

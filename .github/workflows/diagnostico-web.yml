@@ -1,0 +1,28 @@
+name: Diagnosticar arranque web
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/smoke-web.cjs'
+      - '.github/workflows/diagnostico-web.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --ignore-scripts playwright@1.56.1
+      - run: npx playwright install chromium --with-deps
+      - run: node scripts/smoke-web.cjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-pantalla-blanca
+          path: web-smoke.png
+          if-no-files-found: ignore

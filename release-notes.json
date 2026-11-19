@@ -1,11 +1,10 @@
 {
-  "id": "2026.11.18.fantasy-integracion-temporadas",
-  "date": "2026-11-18",
-  "title": "Fantasy: préstamos, intercambios, temporadas y apariencia",
+  "id": "2026.11.19.fantasy-porteria-cero-defensas",
+  "date": "2026-11-19",
+  "title": "Fantasy: portería a cero también para defensas",
   "changes": [
-    "Rivales incorpora intercambios y préstamos de 1 a 4 semanas con devolución programada.",
-    "Las clasificaciones muestran estadísticas avanzadas y se agrupan por temporada deportiva.",
-    "El Club puede archivar las clasificaciones y jornadas de una temporada antes de reiniciar una liga; los archivos son permanentes.",
-    "En Ajustes puedes elegir tema claro, oscuro o automático para Fantasy."
+    "Los defensas que hayan jugado un partido sin goles encajados suman el mismo bonus de portería a cero que el portero (+1 por defecto).",
+    "El bonus se aplica a la ficha del jugador, al once alineado, a los puntos de la liga y al once ideal semanal.",
+    "Se respetan las posiciones manuales guardadas por el Club, el multiplicador del capitán y la puntuación configurable de portería a cero."
   ]
 }

@@ -1,12 +1,13 @@
 {
-  "id": "2026.11.19.kids-en-construccion",
+  "id": "2026.11.19.kids-admin-control-games",
   "date": "2026-11-19",
-  "title": "Villalbilla KIDS · versión inicial en construcción",
+  "title": "Villalbilla KIDS: juegos y control del Club",
   "changes": [
-    "Botón KIDS en la cabecera de la sección pública para alternar entre Hinchas y la experiencia infantil.",
-    "Zona KIDS con diseño de videojuego, acceso a los contenidos públicos del club y preferencia guardada en el dispositivo.",
-    "Minijuegos iniciales de penaltis y preguntas de fútbol, con estrellas locales no competitivas.",
-    "Carta personalizada con foto y juego de escudos identificados como EN CONSTRUCCIÓN hasta completar permisos y funcionalidades.",
-    "Los permisos y herramientas privadas de entrenadores y administradores no cambian."
+    "KIDS dispone de minijuegos de penaltis, quiz y adivinar escudos oficiales RFFM.",
+    "Nueva carta de demostración tipo videojuego. Foto personal y publicación de menores permanecen en construcción.",
+    "Las estrellas ganadas se guardan únicamente en el dispositivo sin clasificaciones públicas.",
+    "Los administradores pueden habilitar y deshabilitar KIDS para toda la APK y ver la zona en vista previa.",
+    "El estado compartido se guarda en la base de datos y se verifica al volver a la app; los permisos privados de entrenador permanecen intactos.",
+    "Las funciones sin autorización o sin completar se identifican como En construcción."
   ]
 }

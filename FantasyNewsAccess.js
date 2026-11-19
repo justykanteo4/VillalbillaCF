@@ -2,6 +2,8 @@ import React from 'react';
 import {Image,Pressable,StyleSheet} from 'react-native';
 
 const banner=require('./assets/news-fantasy-banner.png');
+const asset=Image.resolveAssetSource(banner);
+const bannerRatio=asset?.width&&asset?.height?asset.width/asset.height:3;
 
 // El banner se adapta a la anchura disponible, sin provocar desplazamiento horizontal.
 export default function FantasyNewsAccess({onPress}){
@@ -20,6 +22,6 @@ export default function FantasyNewsAccess({onPress}){
  </Pressable>;
 }
 const styles=StyleSheet.create({
- banner:{width:'100%',aspectRatio:2.5,borderRadius:16,overflow:'hidden',backgroundColor:'#0b1429',margin:0,padding:0},
+ banner:{width:'100%',aspectRatio:bannerRatio,borderRadius:20,overflow:'hidden',backgroundColor:'#0b1429',margin:0,padding:0},
  image:{width:'100%',height:'100%'}
 });

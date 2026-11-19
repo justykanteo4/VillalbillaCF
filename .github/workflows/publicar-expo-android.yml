@@ -158,10 +158,10 @@ jobs:
       - name: Instalar navegador de prueba
         run: |
           npm install --no-save --ignore-scripts playwright@1.56.1
-          npx playwright install chromium --with-deps
+          which google-chrome || which chromium || which chromium-browser
 
       - name: Verificar arranque real de web
-        run: node scripts/smoke-web.cjs
+        run: CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)" node scripts/smoke-web.cjs
 
       - name: Guardar captura y diagnóstico web
         if: always()

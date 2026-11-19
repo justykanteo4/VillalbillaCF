@@ -2,7 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {View,Text,Pressable,TextInput} from 'react-native';
 import theme from './fantasy-theme.cjs';
 export {theme};
-export const text={color:theme.text,lineHeight:22},panel={padding:17,gap:13,borderRadius:24,backgroundColor:theme.panel,borderWidth:1.3,borderColor:theme.border},title={...text,fontSize:22,fontWeight:'900'},input={padding:13,borderRadius:15,borderWidth:1,borderColor:theme.border,color:theme.text,backgroundColor:theme.header};
+export const text={color:theme.text,lineHeight:22},panel={padding:16,gap:12,borderRadius:16,backgroundColor:theme.panel,borderWidth:1,borderColor:theme.border},title={...text,fontSize:22,fontWeight:'900'},input={padding:12,borderRadius:10,borderWidth:1,borderColor:theme.border,color:theme.text,backgroundColor:theme.header};
 export function applyFantasyPalette(palette){
  Object.assign(theme,palette);
  Object.assign(text,{color:theme.text});
@@ -11,7 +11,7 @@ export function applyFantasyPalette(palette){
  Object.assign(input,{borderColor:theme.border,color:theme.text,backgroundColor:theme.header});
 }
 export const money=cents=>(cents/100).toLocaleString('es-ES',{maximumFractionDigits:2})+' M';
-export function Button({children,onPress,disabled=false,secondary=false}){return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={{padding:14,borderRadius:18,backgroundColor:secondary?theme.header:theme.button,opacity:disabled?0.45:1,borderWidth:secondary?1.2:1.3,borderColor:secondary?theme.border:theme.button,shadowColor:theme.accent,shadowOpacity:disabled?0:0.16,shadowRadius:7,elevation:disabled?0:2}}><Text style={{...text,textAlign:'center',fontWeight:'800',color:secondary?theme.text:theme.buttonText}}>{children}</Text></Pressable>}
+export function Button({children,onPress,disabled=false,secondary=false}){return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={{padding:12,borderRadius:10,backgroundColor:secondary?theme.header:theme.button,opacity:disabled?0.45:1,borderWidth:secondary?1:0,borderColor:theme.border}}><Text style={{...text,textAlign:'center',fontWeight:'800',color:secondary?theme.text:theme.buttonText}}>{children}</Text></Pressable>}
 export function ErrorText({children}){return children?<Text accessibilityRole="alert" style={{...text,color:theme.negative}}>{children}</Text>:null}
 export function Field({label,value,onChange,number=false}){return <View style={{gap:5}}><Text style={text}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChange} keyboardType={number?'decimal-pad':'default'} placeholderTextColor={theme.muted} style={input}/></View>}
 const rules = [

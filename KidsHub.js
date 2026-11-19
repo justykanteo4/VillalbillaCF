@@ -2,6 +2,7 @@ import React,{useState,useEffect} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import KidsCrestGame from './KidsCrestGame';
 import KidsPlayerCard from './KidsPlayerCard';
+import KidsFootballChallenges from './KidsFootballChallenges';
 import {View,Text,Pressable,StyleSheet,Image} from 'react-native';
 
 const QUESTIONS=[
@@ -30,10 +31,14 @@ export default function KidsHub({onOpenPublic,onExit}){
  <Tile icon="🧠" title="Quiz futbolero" subtitle="¡Juega!" onPress={()=>{setQIndex(0);setAnswer(null);setScreen('quiz')}}/>
  <Tile icon="🃏" title="Mi carta" subtitle="En construcción" onPress={()=>setScreen('carta')}/>
  <Tile icon="🛡️" title="Adivina el escudo" subtitle="¡Juega!" onPress={()=>setScreen('escudos')}/>
+ <Tile icon="⚡" title="Regates" subtitle="4 niveles" onPress={()=>setScreen('regates')}/>
+ <Tile icon="🧩" title="Táctica" subtitle="4 retos" onPress={()=>setScreen('tactica')}/>
  </View><Text style={s.title}>La afición del Villalbilla</Text><View style={s.grid}>{menu.map(([title,icon])=><Tile key={title} title={title} icon={icon} onPress={()=>onOpenPublic(title)}/>)}</View><Button secondary onPress={onExit}>Salir del modo KIDS</Button></>}
  {screen==='penaltis'&&<View style={s.panel}><Text style={s.big}>🥅 ⚽</Text><Text style={s.title}>¡Lanza el penalti!</Text><Text style={s.note}>Elige por dónde quieres tirar. El portero se moverá para intentar pararlo.</Text>{goal?<><Text style={s.result}>{goal.scored?'¡GOOOL! 🎉':'¡Paradón! 🧤'}</Text><Text style={s.note}>El portero eligió: {goal.keeper}</Text><Button onPress={()=>setGoal(null)}>Otro penalti</Button></>:<View style={s.directions}>{['Izquierda','Centro','Derecha'].map(d=><Pressable key={d} accessibilityRole="button" onPress={()=>attempt(d)} style={s.direction}><Text style={s.buttonText}>{d}</Text></Pressable>)}</View>}</View>}
  {screen==='quiz'&&<View style={s.panel}><Text style={s.kicker}>PREGUNTA {qIndex+1} DE {QUESTIONS.length}</Text><Text style={s.title}>{QUESTIONS[qIndex].q}</Text>{QUESTIONS[qIndex].options.map((option,i)=><Button key={option} secondary onPress={()=>selectAnswer(i)}>{option}{answer===i?' ✓':''}</Button>)}{answer!==null&&<><Text style={s.result}>{answer===QUESTIONS[qIndex].correct?'¡Correcto! 🌟':'¡Buen intento! 💪'}</Text><Text style={s.note}>Respuesta: {QUESTIONS[qIndex].options[QUESTIONS[qIndex].correct]}</Text><Button onPress={nextQuestion}>Siguiente pregunta</Button></>}</View>}
  {screen==='escudos'&&<KidsCrestGame onPoints={award}/>}
+ {screen==='regates'&&<KidsFootballChallenges mode="regates" onPoints={award}/>}
+ {screen==='tactica'&&<KidsFootballChallenges mode="tactica" onPoints={award}/>}
  {screen==='carta'&&<View style={s.panel}><KidsPlayerCard/></View>}
  
  <Text style={s.foot}>Zona KIDS en desarrollo · Juegos sin premios de dinero ni rankings infantiles públicos.</Text></View>

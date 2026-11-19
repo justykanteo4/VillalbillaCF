@@ -10,7 +10,7 @@ function safeCrestUrl(value){
   value=value.url||value.src||value.path||value.image||value.imagen||value.escudo||value.logo||value.secure_url;
  }
  if(typeof value!=='string'||!value.trim()||value.length>1600)return null;
- let u;try{u=new URL(value.trim(),'https://www.rffm.es')}catch{return null}
+ let u;try{const raw=value.trim();u=new URL(raw,/^\/pnfg\/pimg\/Clubes\//i.test(raw)?'https://appweb.rffm.es':'https://www.rffm.es')}catch{return null}
  if(u.protocol!=='https:'||u.username||u.password)return null;
  const host=u.hostname.toLowerCase();
  if(!(host==='rffm.es'||host.endsWith('.rffm.es')||host==='rffm-cms.s3.eu-west-1.amazonaws.com'||host.endsWith('.cloudfront.net')))return null;

@@ -101,8 +101,6 @@ jobs:
           node official-cache.test.mjs
           node offline-policy-cache.test.cjs
           pnpm run check:fantasy-clauses
-          node --test club-kids-settings.test.mjs
-          node --test kids-medals.test.cjs
           node --test admin-match-tasks.test.mjs
           pnpm run check:release
       - name: Export all three app bundles
@@ -282,13 +280,6 @@ jobs:
           for name in fantasy_clause_boosts fantasy_clause_boost_events fantasy_clause_purchases fantasy_manager_listings fantasy_clause_boost_guard fantasy_clause_boost_apply fantasy_clause_purchase_guard fantasy_clause_offer_proof fantasy_manager_listing_guard fantasy_manager_offer_proof fantasy_sale_manager_listing_guard fantasy_team_photos fantasy_league_creation_settings fantasy_point_settings fantasy_stat_corrections fantasy_stat_correction_history fantasy_league_admin_events fantasy_point_history fantasy_league_lifecycle fantasy_player_blocks fantasy_market_windows fantasy_market_slot_settings fantasy_team_photo_privacy fantasy_special_rounds; do
             grep -q "\"$name\"" /tmp/schema.json || { echo "::error::Missing D1 schema: $name. Deployment blocked."; exit 1; }
           done
-      - name: Prepare KIDS global control (after verified D1 backup)
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s /tmp/fantasy-backup-before-photos.sql
-          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file club-kids-settings-schema.sql
-          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT id,enabled,revision FROM club_kids_settings WHERE id=1;"
       - name: Deploy Cloudflare Worker + web
         run: pnpm exec expo export --platform web && pnpm exec wrangler deploy --keep-vars
 

@@ -28,25 +28,37 @@ async function photoData(uri){
   return await FileSystem.readAsStringAsync(uri,{encoding:FileSystem.EncodingType.Base64});
  }catch{return ''}
 }
-function page(svg){
- const serialized=JSON.stringify(svg);
+function page(svg,crest,photo,photoMime){
+ const serialized=JSON.stringify({svg,crest,photo,photoMime});
  return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0;background:#090e27"><canvas id="card" width="800" height="1450"></canvas><script>
  (async function(){
-  try {
-   const svg=${serialized};
-   const img=new Image();
-   img.onload=function(){
-    try {
-     const canvas=document.getElementById('card');
-     const ctx=canvas.getContext('2d');
-     ctx.drawImage(img,0,0,800,1450);
-     const png=canvas.toDataURL('image/png').split(',')[1];
-     window.ReactNativeWebView.postMessage(JSON.stringify({png}));
-    }catch(e){window.ReactNativeWebView.postMessage(JSON.stringify({error:String(e)}))}
+  try{
+   const data=${serialized};
+   const load=uri=>new Promise((resolve,reject)=>{
+    const image=new Image();
+    image.onload=()=>resolve(image);
+    image.onerror=()=>reject(new Error('No se pudo cargar una imagen'));
+    image.src=uri;
+   });
+   const canvas=document.getElementById('card');
+   const ctx=canvas.getContext('2d');
+   const base=await load('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(data.svg));
+   ctx.drawImage(base,0,0,800,1450);
+   const drawContained=(image,x,y,w,h)=>{
+    const ratio=Math.min(w/image.naturalWidth,h/image.naturalHeight);
+    const width=image.naturalWidth*ratio,height=image.naturalHeight*ratio;
+    ctx.drawImage(image,x+(w-width)/2,y+(h-height)/2,width,height);
    };
-   img.onerror=function(){window.ReactNativeWebView.postMessage(JSON.stringify({error:'No se pudo dibujar la carta'}))};
-   img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
-  }catch(e){window.ReactNativeWebView.postMessage(JSON.stringify({error:String(e)}))}
+   if(data.photo){
+    const person=await load('data:image/'+data.photoMime+';base64,'+data.photo);
+    drawContained(person,179,399,443,310);
+   }
+   if(data.crest){
+    const shield=await load('data:image/png;base64,'+data.crest);
+    drawContained(shield,520,110,190,220);
+   }
+   window.ReactNativeWebView.postMessage(JSON.stringify({png:canvas.toDataURL('image/png').split(',')[1]}));
+  }catch(error){window.ReactNativeWebView.postMessage(JSON.stringify({error:String(error)}))}
  })();
  </script></body></html>`;
 }
@@ -57,8 +69,9 @@ export default function CardPngDownload({name,number,role,avg,category,ratings,p
   setWorking(true);setMessage('');
   try{
    const [crest,photoBase64]=await Promise.all([pngDataForAsset(require('./assets/escudo-transparente.png')),photoData(photo)]);
-   const svg=cardSvg({name,number,position:role,average:avg,category,ratings,played,goals,assists,crest,photo:photoBase64,photoMime:/\.png(?:$|\?)/i.test(photo||'')?'png':'jpeg'});
-   setHtml(page(svg));
+   const photoMime=/\.png(?:$|\?)/i.test(photo||'')?'png':'jpeg';
+   const svg=cardSvg({name,number,position:role,average:avg,category,ratings,played,goals,assists,showPhotoPlaceholder:!photoBase64});
+   setHtml(page(svg,crest,photoBase64,photoMime));
   }catch(e){setWorking(false);setMessage('No se pudo preparar la descarga. '+String(e.message||''))}
  };
  const onMessage=async event=>{

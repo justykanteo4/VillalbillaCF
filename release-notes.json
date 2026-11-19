@@ -1,10 +1,10 @@
 {
-  "id": "2026.11.19.rffm-escudos-rivales",
+  "id": "2026.11.19.rffm-escudos-reparados",
   "date": "2026-11-19",
-  "title": "Escudos oficiales de rivales de la RFFM",
+  "title": "Corrección: escudos oficiales de equipos RFFM",
   "changes": [
-    "Los calendarios muestran el escudo oficial cuando la RFFM publica la URL en los datos del encuentro.",
-    "Fantasy incorpora una sección plegable en Jornadas para consultar los partidos oficiales de su categoría con escudos.",
-    "Las imágenes se consultan bajo demanda, usan la caché del dispositivo y muestran un símbolo genérico si no hay escudo."
+    "Corregida la descarga de escudos federativos desde appweb.rffm.es/pnfg/pimg/Clubes, verificada con imagen PNG real.",
+    "Fantasy actualiza el calendario de la categoría al abrir los partidos y sustituye las copias antiguas sin imágenes.",
+    "El calendario del Club vuelve a consultar automáticamente la RFFM cuando el historial guardado carece de escudos."
   ]
 }

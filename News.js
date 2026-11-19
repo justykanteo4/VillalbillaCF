@@ -4,6 +4,7 @@ import {publishAdminTaskNews,subscribeAdminTaskNews} from './AdminPendingTasks';
 import AdminMatchMvp from './AdminMatchMvp';
 import AdminResultEditor from './AdminResultEditor';
 import FantasyNewsAccess from './FantasyNewsAccess';
+import NewsPlayerCard from './NewsPlayerCard';
 import {useBackAction} from './useBackNavigation';
 import React,{useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,StyleSheet,AppState,Linking} from 'react-native';
@@ -88,8 +89,9 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
 
   return <View style={{gap:18}}>
     {mode==='results'?<><Text style={s.title}>Resultados</Text>{target?<NotificationMatch account={account} onEdited={editedResult} target={target} onClose={()=>setTarget(null)}/>:results}</>:<>
-      <ClubNewsSummary teams={news.teams}/>
       {onOpenFantasy&&<FantasyNewsAccess onPress={onOpenFantasy}/>}
+      <NewsPlayerCard account={account}/>
+      <ClubNewsSummary teams={news.teams}/>
       {instagram}
       {!!error&&<Text style={s.warning}>{error}</Text>}
       <FavoritePlayers favoritePlayerIds={favoritePlayerIds}/>

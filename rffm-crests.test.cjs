@@ -35,6 +35,6 @@ test('no inventa escudos cuando la federación no facilita la imagen',()=>{
 
 test('acepta rutas reales RFFM /pnfg/pimg/Clubes, incluidos nombres con espacios',()=>{
  const m={escudo_equipo_local:'/pnfg/pimg/Clubes/00100_0011715402_logo_M__xico_FC_rN.png',escudo_equipo_visitante:'/pnfg/pimg/Clubes/00100_0000042740_ESCUDO BARAJAS.jpg'};
- assert.equal(crestFromFixture(m,'home'),'https://www.rffm.es/pnfg/pimg/Clubes/00100_0011715402_logo_M__xico_FC_rN.png');
- assert.equal(crestFromFixture(m,'away'),'https://www.rffm.es/pnfg/pimg/Clubes/00100_0000042740_ESCUDO%20BARAJAS.jpg');
+ assert.equal(crestFromFixture(m,'home'),'https://appweb.rffm.es/pnfg/pimg/Clubes/00100_0011715402_logo_M__xico_FC_rN.png');
+ assert.equal(crestFromFixture(m,'away'),'https://appweb.rffm.es/pnfg/pimg/Clubes/00100_0000042740_ESCUDO%20BARAJAS.jpg');
 });

@@ -1,12 +1,11 @@
 {
-  "id": "2026.11.19.noticias-banners-rojo-azul",
+  "id": "2026.11.19.noticias-sin-actualidad",
   "date": "2026-11-19",
-  "title": "Noticias · banners Fantasy y Carta estilo videojuego",
+  "title": "Noticias · retirada de Actualidad del club",
   "changes": [
-    "Solo los dos banners destacados en Noticias cambian al estilo de la imagen de referencia.",
-    "VillalbillaFantasy muestra fondo diagonal rojo y azul, destellos, copa y balón.",
-    "Crea tu carta personalizada muestra un marco de carta holográfico, estrellas y el escudo original del club.",
-    "Se mantienen los botones funcionales y el resto de Noticias sin modificaciones.",
-    "El azul eléctrico usado es algo más claro que en la imagen de referencia y KIDS sigue retirado."
+    "Se elimina por completo el apartado Actualidad del club y sus tarjetas de último resultado y próxima jornada.",
+    "Permanecen VillalbillaFantasy y Crea tu carta personalizada con sus fondos rojos y azules.",
+    "Se conserva el Resumen del club y el resto del contenido de Noticias.",
+    "Los resultados y el calendario se siguen consultando en sus secciones habituales."
   ]
 }

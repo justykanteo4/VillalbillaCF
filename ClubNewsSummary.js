@@ -43,7 +43,7 @@ export default function ClubNewsSummary({teams}){
 const s=StyleSheet.create({
  heading:{fontSize:16,fontWeight:'900',color:'#fff'},title:{fontSize:14,fontWeight:'800',color:'#fff'},
  header:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:6,flexWrap:'wrap'},
- card:{padding:11,borderRadius:12,backgroundColor:'#173d75',borderWidth:1,borderColor:'#4b9bda',gap:5},
+ card:{paddingHorizontal:8,paddingVertical:10,borderRadius:0,backgroundColor:'#0b121d',borderWidth:0,gap:8},
  muted:{fontSize:11,lineHeight:16,color:'#aab8cb'},
  metrics:{flexDirection:'row',gap:5},metric:{flex:1,minWidth:0,paddingVertical:7,paddingHorizontal:2,borderRadius:8,backgroundColor:'#225496',gap:2,alignItems:'center'},
  value:{fontSize:22,lineHeight:26,fontWeight:'900'},label:{fontSize:10,lineHeight:13,color:'#dce6f2',textAlign:'center'},

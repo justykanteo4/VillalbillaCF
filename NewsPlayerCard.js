@@ -1,8 +1,10 @@
 import React,{useState} from 'react';
-import {View,Text,Pressable,Image} from 'react-native';
+import {View,Text,Pressable,Image,StyleSheet} from 'react-native';
 import PlayerGameCard from './PlayerGameCard';
 import teams from './teams.json';
 import seed from './players-seed.json';
+
+const banner=require('./assets/news-player-card-banner.png');
 
 export default function NewsPlayerCard({account}){
  const [open,setOpen]=useState(false);
@@ -12,24 +14,31 @@ export default function NewsPlayerCard({account}){
  const player=team?.id&&current?.playerId?seed.teams.find(t=>String(t.id)===String(team.id))?.players?.find(p=>String(p.id)===String(current.playerId)):null;
  // La versión pública crea únicamente una carta local. No accede a datos privados ni suplanta identidades.
  const cardAccount=approved?account:{id:'public-local-card',claim:{teamId:'',playerId:'',name:'Mi jugador'}};
- return <View style={{gap:12}}>
+ return <View style={styles.wrapper}>
   <Pressable
    accessibilityRole="button"
    accessibilityState={{expanded:open}}
    accessibilityLabel="Crear mi carta personalizada de Villalbilla C.F."
    onPress={()=>setOpen(v=>!v)}
-   style={{width:'100%',borderRadius:18,overflow:'hidden'}}
+   style={styles.banner}
   >
    <Image
-    source={require('./assets/news-player-card-banner.png')}
-    accessibilityLabel="Banner Crea tu carta personalizada con fondo azul celeste"
-    resizeMode="contain"
-    style={{width:'100%',aspectRatio:3}}
+    source={banner}
+    accessibilityLabel="Banner Crea tu carta personalizada"
+    resizeMode="cover"
+    style={styles.image}
    />
   </Pressable>
-  {open&&<View style={{padding:13,borderRadius:16,backgroundColor:'#123566',borderWidth:1,borderColor:'#58b5ee',gap:12}}>
+  {open&&<View style={styles.editor}>
    <Text style={{color:'#b4c8e2',fontSize:12}}>Personalización privada. La foto y los ajustes se guardan solo en este dispositivo. Las valoraciones no son estadísticas oficiales.</Text>
    <PlayerGameCard account={cardAccount} player={player} team={team}/>
   </View>}
  </View>;
 }
+const styles=StyleSheet.create({
+ wrapper:{gap:8,width:'100%',margin:0,padding:0},
+ banner:{width:'100%',aspectRatio:2.5,borderRadius:16,overflow:'hidden',backgroundColor:'#0b1429',borderWidth:0,margin:0,padding:0},
+ // Llenar el rectángulo elimina las franjas blancas que dejaba resizeMode='contain'.
+ image:{width:'100%',height:'100%'},
+ editor:{padding:13,borderRadius:16,backgroundColor:'#123566',borderWidth:1,borderColor:'#58b5ee',gap:12}
+});

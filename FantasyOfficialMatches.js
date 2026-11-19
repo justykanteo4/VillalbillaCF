@@ -11,9 +11,9 @@ export default function FantasyOfficialMatches({teamId}){
  async function toggle(){
   if(opened){setOpened(false);return}
   setOpened(true);
-  if(team||!teamId)return;
+  if(!teamId)return;
   setLoading(true);setError('');
-  try{const value=await loadTeamCalendar(String(teamId));setTeam(value);if(value.error)setError('Se muestra el calendario guardado.')}
+  try{const value=await loadTeamCalendar(String(teamId),{force:true,onUpdate:value=>setTeam(value)});setTeam(value);if(value.error)setError('Se muestra el calendario guardado.')}
   catch{setError('No se han podido cargar los partidos de la Federación.')}
   finally{setLoading(false)}
  }

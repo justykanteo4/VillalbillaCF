@@ -49,28 +49,66 @@ export default function PlayerGameCard({account,player,team}){
    <Text style={{color:'#fff',fontSize:23,fontWeight:'900'}}>🎮 MI CARTA DE JUGADOR</Text>
    <Text style={{color:'#bacde7',textAlign:'center'}}>Carta personalizada · edición privada en tu dispositivo</Text>
   </View>
-  <Pressable accessibilityRole="button" accessibilityLabel={showBack?'Mostrar cara delantera de mi carta':'Girar mi carta'} onPress={()=>setShowBack(v=>!v)} style={{alignSelf:'center',width:'100%',maxWidth:380,padding:5,borderRadius:27,backgroundColor:'#f3c45c',borderWidth:1,borderColor:'#fff0ad',shadowColor:'#44b8ff',shadowOpacity:.65,shadowRadius:18,elevation:8}}>
-   <View style={{borderRadius:23,backgroundColor:'#0d224a',padding:16,borderWidth:3,borderColor:'#2dbefa',gap:12,alignItems:'center'}}>
-    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',width:'100%'}}>
-     <View><Text style={{fontSize:43,fontWeight:'900',color:'#ffdc72'}}>{avg}</Text><Text style={{color:'#fff',fontWeight:'900'}}>{role}</Text></View>
-     <Image source={require('./assets/escudo-transparente.png')} accessibilityLabel="Escudo original Villalbilla C.F." style={{width:72,height:94}} resizeMode="contain"/>
+  <Pressable accessibilityRole="button" accessibilityLabel={showBack?'Mostrar cara delantera de mi carta':'Girar mi carta'} onPress={()=>setShowBack(v=>!v)} style={cardStyle.frame}>
+   <View style={cardStyle.card}>
+    <View style={cardStyle.top}>
+     <View style={cardStyle.ratingPanel}>
+      <Text style={cardStyle.laurels}>❧</Text>
+      <Text style={cardStyle.overall}>{avg}</Text>
+      <Text style={cardStyle.role}>{role}</Text>
+      <Text style={cardStyle.striker}>⚽</Text>
+     </View>
+     <View style={cardStyle.crestPanel}>
+      <Image source={require('./assets/escudo-transparente.png')} accessibilityLabel="Escudo original Villalbilla C.F." style={cardStyle.crest} resizeMode="contain"/>
+      <Text style={cardStyle.clubName}>VILLALBILLA C.F.</Text>
+     </View>
     </View>
-    {showBack?<View style={{minHeight:204,justifyContent:'center',alignItems:'center',gap:12}}><Text style={{fontSize:54}}>🏟️</Text><Text style={{color:'#f8d77d',fontSize:22,fontWeight:'900'}}>VILLALBILLA C.F.</Text><Text style={{color:'#fff',fontSize:15,textAlign:'center'}}>TEMPORADA 2026/27</Text><Text style={{color:'#8de7ff'}}>Toca para volver a la carta</Text></View>:
-     <View style={{width:'100%',alignItems:'center',backgroundColor:'#153f73',paddingVertical:14,borderRadius:17,borderWidth:1,borderColor:'#58bdeb'}}>
-      {photo?<Image source={{uri:photo}} style={{width:150,height:185,borderRadius:14}} resizeMode="cover"/>:<PlayerPortrait playerId={playerId} name={fullName} teamId={teamId} size={154}/>}
+    {showBack?
+     <View style={cardStyle.backPanel}>
+      <Image source={require('./assets/escudo-transparente.png')} accessibilityLabel="Escudo original Villalbilla C.F." style={{width:110,height:140}} resizeMode="contain"/>
+      <Text style={cardStyle.backName}>VILLALBILLA C.F.</Text>
+      <Text style={{color:'#fff',fontWeight:'900'}}>TEMPORADA 2026/27</Text>
+      <Text style={{color:'#9deaff'}}>Toca para volver a la carta</Text>
+     </View>:
+     <View style={cardStyle.portraitArea}>
+      <View style={cardStyle.portraitGlow}/>
+      {photo?<Image source={{uri:photo}} style={cardStyle.portrait} resizeMode="contain"/>:
+       <PlayerPortrait playerId={playerId} name={fullName} teamId={teamId} size={154}/>}
      </View>}
-    <View style={{backgroundColor:'#ac1935',width:'100%',borderRadius:14,padding:11,alignItems:'center'}}>
-     <Text numberOfLines={1} adjustsFontSizeToFit style={{fontWeight:'900',fontSize:26,color:'#fff'}}>{name}</Text>
-     <Text style={{color:'#ffe3a0',fontSize:16,fontWeight:'900'}}>Nº {number} · {team?.category||'VILLALBILLA C.F.'}</Text>
+    <View style={cardStyle.nameBar}>
+     <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={cardStyle.playerName}>{name}</Text>
+     <View style={cardStyle.numberBox}><Text style={cardStyle.numberText}>{number}</Text></View>
     </View>
-    <View style={{width:'100%',flexDirection:'row',flexWrap:'wrap',gap:7}}>
-     {FIELDS.map(([key,abbr])=><View key={key} style={{width:'48%',flexGrow:1,flexDirection:'row',justifyContent:'space-between',backgroundColor:'#173d70',borderRadius:8,padding:9}}><Text style={label}>{abbr}</Text><Text style={{color:'#ffe18a',fontWeight:'900',fontSize:16}}>{ratings[key]}</Text></View>)}
+    <View style={cardStyle.ratingsGrid}>
+     <View style={cardStyle.ratingColumn}>
+      {['velocidad','regate','tiro'].map((key,index)=><View key={key} style={cardStyle.statLine}>
+       <Text style={cardStyle.statIcon}>{['⚡','⚽','◎'][index]}</Text>
+       <Text style={cardStyle.statText}>{['VELOCIDAD','REGATE','TIRO'][index]}</Text>
+       <Text style={cardStyle.statNumber}>{ratings[key]}</Text>
+      </View>)}
+     </View>
+     <View style={cardStyle.ratingColumn}>
+      {['pase','defensa','fisico'].map((key,index)=><View key={key} style={cardStyle.statLine}>
+       <Text style={cardStyle.statIcon}>{['⚽','⬡','💪'][index]}</Text>
+       <Text style={cardStyle.statText}>{['PASE','DEFENSA','FÍSICO'][index]}</Text>
+       <Text style={cardStyle.statNumber}>{ratings[key]}</Text>
+      </View>)}
+     </View>
     </View>
-    <View style={{width:'100%',flexDirection:'row',gap:7}}>{[['PARTIDOS',player?.played],['GOLES',player?.goals],['ASIST.',player?.assists]].map(([key,value])=><View key={key} style={{flex:1,backgroundColor:'#651f47',borderRadius:10,alignItems:'center',padding:9}}><Text style={{color:'#f5da9d',fontWeight:'900',fontSize:10}}>{key}</Text><Text style={{color:'#fff',fontSize:20,fontWeight:'900'}}>{Number.isFinite(Number(value))&&value!=null?value:'—'}</Text></View>)}</View>
-    <Text style={{color:'#9ab6da',fontSize:10,textAlign:'center'}}>Valoraciones de videojuego personalizables · No oficiales</Text>
-    <Text style={{color:'#9ddfff',fontSize:11}}>↻ Toca la carta para girarla</Text>
+    <View style={cardStyle.matchRow}>
+     {[['⚽','PARTIDOS',player?.played],['⚽','GOLES',player?.goals],['🏆','ASISTENCIAS',player?.assists]].map(([symbol,key,value])=><View key={key} style={cardStyle.matchBox}>
+      <Text style={{fontSize:20}}>{symbol}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={cardStyle.matchLabel}>{key}</Text>
+      <Text style={cardStyle.matchNumber}>{Number.isFinite(Number(value))&&value!=null?value:'—'}</Text>
+     </View>)}
+    </View>
+    <View style={cardStyle.bottomPlate}>
+     <Text numberOfLines={1} adjustsFontSizeToFit style={cardStyle.category}>{String(team?.category||'VILLALBILLA C.F.').toUpperCase()}</Text>
+     <Text style={cardStyle.season}>TEMPORADA 2026/27</Text>
+    </View>
    </View>
   </Pressable>
+  <Text style={{color:'#9ddfff',fontSize:11,textAlign:'center'}}>↻ Toca la carta para girarla · Valoraciones no oficiales</Text>
   <Pressable accessibilityRole="button" onPress={()=>setEditing(v=>!v)} style={btn}><Text style={btnText}>{editing?'Cerrar personalización':'✏️ Personalizar mi carta'}</Text></Pressable>
   {editing&&<View style={{...panel,gap:13}}>
    <Text style={{color:'#fff',fontWeight:'900',fontSize:17}}>Personalización</Text>
@@ -92,3 +130,39 @@ export default function PlayerGameCard({account,player,team}){
   <Text style={{color:'#a3b9d2',fontSize:12,lineHeight:18,textAlign:'center'}}>La personalización no cambia las estadísticas oficiales ni publica fotografías. Las imágenes de menores deben utilizarse únicamente con autorización adecuada.</Text>
  </View>;
 }
+
+const cardStyle={
+ frame:{alignSelf:'center',width:'100%',maxWidth:380,padding:4,borderRadius:24,backgroundColor:'#e91b46',borderWidth:2,borderColor:'#39c9ff',shadowColor:'#25baff',shadowOpacity:.7,shadowRadius:16,elevation:9,overflow:'hidden'},
+ card:{width:'100%',borderRadius:19,overflow:'hidden',paddingHorizontal:9,paddingTop:12,paddingBottom:11,backgroundColor:'#081b43',borderWidth:2,borderColor:'#efbe5d'},
+ top:{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',height:105,zIndex:2},
+ ratingPanel:{alignItems:'center',justifyContent:'center',width:94,borderColor:'#fa3b51',borderWidth:2,backgroundColor:'#430a25',borderRadius:12,paddingVertical:1},
+ laurels:{fontSize:16,color:'#ffcf62',height:16},
+ overall:{fontSize:47,color:'#ffdc56',fontWeight:'900',lineHeight:51,textShadowColor:'#b83a0a',textShadowRadius:6},
+ role:{fontSize:23,color:'#fff',fontWeight:'900',lineHeight:25},
+ striker:{fontSize:15},
+ crestPanel:{alignItems:'center',width:120,gap:1},
+ crest:{width:77,height:81},
+ clubName:{fontSize:12,color:'#fff',fontWeight:'900',textAlign:'center'},
+ portraitArea:{height:164,alignItems:'center',justifyContent:'flex-end',marginTop:-27,marginBottom:3,overflow:'hidden',borderBottomColor:'#26caff',borderBottomWidth:2},
+ portraitGlow:{position:'absolute',height:116,width:'90%',bottom:-40,borderRadius:100,backgroundColor:'#145ca2',opacity:.65},
+ portrait:{height:162,width:'90%'},
+ backPanel:{height:164,alignItems:'center',justifyContent:'center',gap:2},
+ backName:{color:'#ffce63',fontSize:20,fontWeight:'900'},
+ nameBar:{flexDirection:'row',alignItems:'center',minHeight:61,marginHorizontal:-6,paddingLeft:13,borderRadius:13,borderWidth:2,borderColor:'#e67d41',backgroundColor:'#75102e'},
+ playerName:{color:'#fff',fontSize:29,fontWeight:'900',textAlign:'center',flex:1,textShadowColor:'#08122d',textShadowRadius:5},
+ numberBox:{minWidth:58,marginRight:2,padding:4,borderRadius:12,borderWidth:2,borderColor:'#ffb46b',backgroundColor:'#ba0d28',alignItems:'center'},
+ numberText:{fontSize:42,lineHeight:47,color:'#fff',fontWeight:'900'},
+ ratingsGrid:{flexDirection:'row',gap:5,marginTop:10},
+ ratingColumn:{flex:1,gap:4},
+ statLine:{minHeight:34,flexDirection:'row',alignItems:'center',paddingHorizontal:4,backgroundColor:'#10477e',borderWidth:1,borderColor:'#259ef7',borderRadius:7,gap:3},
+ statIcon:{fontSize:13,width:17,color:'#fff',textAlign:'center'},
+ statText:{color:'#fff',fontSize:11,fontWeight:'900',flex:1},
+ statNumber:{color:'#ffdc52',fontSize:21,fontWeight:'900'},
+ matchRow:{flexDirection:'row',gap:4,marginTop:10},
+ matchBox:{flex:1,minWidth:0,alignItems:'center',justifyContent:'center',backgroundColor:'#510b2d',borderColor:'#fa416a',borderWidth:1,borderRadius:9,paddingVertical:5},
+ matchLabel:{color:'#fff',fontSize:10,fontWeight:'900'},
+ matchNumber:{color:'#ffde55',fontSize:25,fontWeight:'900'},
+ bottomPlate:{marginTop:9,marginHorizontal:28,alignItems:'center',justifyContent:'center',padding:7,borderWidth:2,borderColor:'#ffc16a',backgroundColor:'#133968',borderRadius:12},
+ category:{fontSize:19,color:'#fff',fontWeight:'900',textAlign:'center'},
+ season:{fontSize:12,color:'#fff',fontWeight:'800',textAlign:'center'}
+};

@@ -3,6 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import KidsCrestGame from './KidsCrestGame';
 import KidsPlayerCard from './KidsPlayerCard';
 import KidsFootballChallenges from './KidsFootballChallenges';
+import KidsMedals from './KidsMedals';
+import medalPolicy from './kids-medals.cjs';
+const {sanitizeStars}=medalPolicy;
 import {View,Text,Pressable,StyleSheet,Image} from 'react-native';
 
 const QUESTIONS=[
@@ -19,8 +22,9 @@ function Tile({icon,title,subtitle,onPress}){return <Pressable accessibilityRole
 function Button({children,onPress,secondary=false}){return <Pressable accessibilityRole="button" onPress={onPress} style={[s.button,secondary&&s.secondary]}><Text style={s.buttonText}>{children}</Text></Pressable>}
 export default function KidsHub({onOpenPublic,onExit}){
  const [screen,setScreen]=useState('inicio'),[goal,setGoal]=useState(null),[points,setPoints]=useState(0),[qIndex,setQIndex]=useState(0),[answer,setAnswer]=useState(null);
- useEffect(()=>{let active=true;AsyncStorage.getItem('villalbilla.kids-stars.v1').then(value=>{if(active&&value!==null)setPoints(Math.max(0,Math.min(9999,Number(value)||0)))}).catch(()=>{});return()=>{active=false}},[]);
- const award=n=>setPoints(p=>{const next=p+n;AsyncStorage.setItem('villalbilla.kids-stars.v1',String(next)).catch(()=>{});return next});
+ useEffect(()=>{let active=true;AsyncStorage.getItem('villalbilla.kids-stars.v1').then(value=>{if(active&&value!==null)setPoints(sanitizeStars(value))}).catch(()=>{});return()=>{active=false}},[]);
+ const award=n=>setPoints(p=>sanitizeStars(p+n));
+ useEffect(()=>{AsyncStorage.setItem('villalbilla.kids-stars.v1',String(sanitizeStars(points))).catch(()=>{})},[points]);
  const nextQuestion=()=>{setAnswer(null);setQIndex(i=>(i+1)%QUESTIONS.length)};
  const attempt=direction=>{if(goal!==null)return;const keeper=['Izquierda','Centro','Derecha'][Math.floor(Math.random()*3)];setGoal({direction,keeper,scored:direction!==keeper});if(direction!==keeper)award(1)};
  const selectAnswer=i=>{if(answer!==null)return;setAnswer(i);if(i===QUESTIONS[qIndex].correct)award(1)};
@@ -29,6 +33,7 @@ export default function KidsHub({onOpenPublic,onExit}){
  {screen==='inicio'&&<><Text style={s.title}>¡Tu club, tu aventura!</Text><Text style={s.note}>Juegos sencillos y acceso a las secciones públicas de Hinchas. No se muestran herramientas de entrenador.</Text><View style={s.grid}>
  <Tile icon="🥅" title="Penaltis" subtitle="¡Juega!" onPress={()=>{setGoal(null);setScreen('penaltis')}}/>
  <Tile icon="🧠" title="Quiz futbolero" subtitle="¡Juega!" onPress={()=>{setQIndex(0);setAnswer(null);setScreen('quiz')}}/>
+ <Tile icon="🏅" title="Mis medallas" subtitle="Mi progreso" onPress={()=>setScreen('medallas')}/>
  <Tile icon="🃏" title="Mi carta" subtitle="Personalízala" onPress={()=>setScreen('carta')}/>
  <Tile icon="🛡️" title="Adivina el escudo" subtitle="¡Juega!" onPress={()=>setScreen('escudos')}/>
  <Tile icon="⚡" title="Regates" subtitle="4 niveles" onPress={()=>setScreen('regates')}/>
@@ -40,6 +45,7 @@ export default function KidsHub({onOpenPublic,onExit}){
  {screen==='regates'&&<KidsFootballChallenges mode="regates" onPoints={award}/>}
  {screen==='tactica'&&<KidsFootballChallenges mode="tactica" onPoints={award}/>}
  {screen==='carta'&&<View style={s.panel}><KidsPlayerCard/></View>}
+ {screen==='medallas'&&<KidsMedals stars={points} onBack={()=>setScreen('inicio')}/>}
  
  <Text style={s.foot}>Zona KIDS en desarrollo · Juegos sin premios de dinero ni rankings infantiles públicos.</Text></View>
 }

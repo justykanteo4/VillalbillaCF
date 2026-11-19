@@ -1,13 +1,11 @@
 {
-  "id": "2026.11.19.player-card-videogame",
+  "id": "2026.11.19.ajuste-jugadores-sin-modo-infantil",
   "date": "2026-11-19",
-  "title": "Jugadores · crea tu carta personalizada Villalbilla C.F.",
+  "title": "Villalbilla C.F. · navegación normal y cartas de jugadores",
   "changes": [
-    "Nueva sección Mi carta exclusiva del área de Jugadores, con acceso desde el inicio del jugador.",
-    "Carta estilo videojuego con el escudo original del Villalbilla C.F. integrado en la APK.",
-    "Foto del jugador o imagen privada opcional, nombre, dorsal, posición y seis valoraciones editables.",
-    "Partidos, goles y asistencias mostrados cuando están disponibles en los datos actuales.",
-    "Personalización guardada localmente, con opción de eliminar fotografía; no publica datos ni modifica estadísticas oficiales.",
-    "Se mantienen eliminados todos los componentes del antiguo modo KIDS."
+    "La cabecera y la navegación recuperan exclusivamente las secciones habituales del club.",
+    "Los ajustes del club conservan únicamente las herramientas de administración en uso.",
+    "Jugadores incorpora Mi carta personalizada con el escudo original del Villalbilla C.F.",
+    "Hinchas, entrenadores y VillalbillaFantasy mantienen sus funciones habituales."
   ]
 }

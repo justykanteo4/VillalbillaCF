@@ -26,3 +26,17 @@ test('foto: genera segmentación local gratuita, máscara alfa y PNG',()=>{
  assert.match(html,/ReactNativeWebView\.postMessage/);
  assert.throws(()=>backgroundRemovalHtml('</script>'),/Fotografía inválida/);
 });
+
+test('carta original: vista y descarga comparten PNG y sustitución de datos',()=>{
+ const {renderCardDocument,W,H}=require('./card-template-renderer.cjs');
+ const params={template:'aGVsbG8=',photo:'',name:'JUSTO',number:'7',role:'DC',avg:88,category:'SÉNIOR',ratings:{velocidad:90},played:12,goals:4,assists:2};
+ const preview=renderCardDocument(params),download=renderCardDocument(params,true);
+ assert.equal(W,1199);assert.equal(H,1312);
+ assert.match(preview,/data:image\/png;base64/);
+ assert.match(preview,/score\(D\.avg\)/);
+ assert.match(preview,/JUSTO/);
+ assert.match(download,/"exportPng":true/);
+ assert.match(preview,/"exportPng":false/);
+ assert.match(preview,/D\.template/);
+ assert.throws(()=>renderCardDocument({template:''}),/Plantilla PNG no disponible/);
+});

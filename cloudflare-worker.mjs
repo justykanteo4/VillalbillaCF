@@ -3,7 +3,6 @@ import {dispatchOfferNotifications} from './fantasy-offer-notifications.mjs';
 import {ingestFantasyReport} from './fantasy-report-points.mjs';
 import {handleFantasyPositions} from './fantasy-player-positions.mjs';
 import {handleMatchTaskStatus} from './admin-match-task-service.mjs';
-import {handleKidsSettings} from './club-kids-settings.mjs';
 import {handleResultEdits,overlayResultEdits} from './result-edits-service.mjs';
 import {handleClubMvp} from './club-mvp-service.mjs';
 import {scheduledWeeklyPrizes} from './fantasy-weekly-prizes.mjs';
@@ -147,7 +146,6 @@ export default {
     } });
     if(url.pathname.startsWith('/api/chats/'))return Response.json({error:'El chat se ha eliminado.'},{status:410,headers:{'Cache-Control':'no-store'}});
     const fantasyPositionResponse=await handleFantasyPositions(request,env);if(fantasyPositionResponse)return fantasyPositionResponse;
-    const kidsSettingsResponse=await handleKidsSettings(request,env);if(kidsSettingsResponse)return kidsSettingsResponse;
     const taskStatusResponse=await handleMatchTaskStatus(request,env);if(taskStatusResponse)return taskStatusResponse;
     const resultEditResponse=await handleResultEdits(request,env);if(resultEditResponse)return resultEditResponse;
     const clubMvpResponse=await handleClubMvp(request,env,{ctx});if(clubMvpResponse)return clubMvpResponse;

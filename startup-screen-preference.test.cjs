@@ -19,7 +19,7 @@ test('Pantalla de inicio: restringe zonas privadas, Fantasy y perfiles de jugado
  assert.equal(resumeArea(coach,'trainer',null,'privado'),'privado');
  assert.equal(resumeArea(player,'player',null,'jugador'),'jugador');
  assert.equal(resumeArea(admin,'trainer',null,'VillalbillaFantasy'),'VillalbillaFantasy');
- assert.equal(resumeArea(null,'fan',null,'VillalbillaFantasy'),'Noticias');
+ assert.equal(resumeArea(null,'fan',null,'VillalbillaFantasy'),'Usuario');
 });
 test('Preferencia personal conectada a la aplicación y al menú',()=>{
  const settings=fs.readFileSync('SettingsHub.js','utf8');

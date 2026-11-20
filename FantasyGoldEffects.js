@@ -6,7 +6,7 @@ import theme from './fantasy-theme.cjs';
 export default function FantasyGoldEffects(){
  const shimmer=useRef(new Animated.Value(0)).current;
  const twinkle=useRef(new Animated.Value(0)).current;
- const [reducedMotion,setReducedMotion]=useState(true);
+ const [reducedMotion,setReducedMotion]=useState(false);
  useEffect(()=>{
   let active=true;
   AccessibilityInfo.isReduceMotionEnabled().then(reduce=>{if(active)setReducedMotion(reduce)}).catch(()=>{});
@@ -29,12 +29,14 @@ export default function FantasyGoldEffects(){
   return()=>{sweep.stop();stars.stop()};
  },[reducedMotion,shimmer,twinkle]);
  if(reducedMotion)return null;
- const shift=shimmer.interpolate({inputRange:[0,1],outputRange:[-120,450]});
+ const shift=shimmer.interpolate({inputRange:[0,1],outputRange:[-120,850]});
  const opacity=shimmer.interpolate({inputRange:[0,0.12,0.8,1],outputRange:[0,0.8,0.8,0]});
- return <View pointerEvents="none" accessible={false} style={{position:'absolute',top:0,left:0,right:0,height:84,overflow:'hidden',zIndex:10}}>
+ return <View pointerEvents="none" accessible={false} style={{position:'absolute',top:0,left:0,right:0,height:220,overflow:'hidden',zIndex:10}}>
    <View style={{position:'absolute',top:3,left:0,right:0,height:1,backgroundColor:theme.accent,opacity:0.28}}/>
-   <Animated.View style={{position:'absolute',top:0,left:0,width:80,height:3,backgroundColor:theme.accent,opacity,transform:[{translateX:shift},{skewX:'-28deg'}],shadowColor:theme.accent,shadowOpacity:0.8,shadowRadius:10,elevation:1}}/>
-   <Animated.Text style={{position:'absolute',right:24,top:8,color:theme.accent,fontSize:16,opacity:twinkle,transform:[{scale:twinkle.interpolate({inputRange:[0,1],outputRange:[0.6,1.15]})}]}}>✦</Animated.Text>
-   <Animated.Text style={{position:'absolute',left:35,top:28,color:theme.accent,fontSize:11,opacity:twinkle.interpolate({inputRange:[0,1],outputRange:[0.65,0]})}}>✧</Animated.Text>
+   <Animated.View style={{position:'absolute',top:0,left:0,width:100,height:3,backgroundColor:theme.accent,opacity,transform:[{translateX:shift},{skewX:'-28deg'}],shadowColor:theme.accent,shadowOpacity:0.8,shadowRadius:10,elevation:1}}/>
+   <Animated.Text style={{position:'absolute',right:24,top:40,color:theme.accent,fontSize:16,opacity:twinkle,transform:[{scale:twinkle.interpolate({inputRange:[0,1],outputRange:[0.6,1.15]})}]}}>✦</Animated.Text>
+   <Animated.Text style={{position:'absolute',left:35,top:115,color:theme.accent,fontSize:11,opacity:twinkle.interpolate({inputRange:[0,1],outputRange:[0.65,0]})}}>✧</Animated.Text>
+   <Animated.Text style={{position:'absolute',right:80,top:172,color:theme.accent,fontSize:19,opacity:twinkle.interpolate({inputRange:[0,1],outputRange:[0.05,0.75]})}}>✦</Animated.Text>
+   <Animated.Text style={{position:'absolute',left:'55%',top:74,color:theme.accent,fontSize:14,opacity:twinkle}}>✧</Animated.Text>
   </View>;
 }

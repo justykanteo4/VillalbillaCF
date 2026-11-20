@@ -10,13 +10,13 @@ import fantasyTheme from './fantasy-theme.cjs';
 import FantasyIcon from './FantasyIcon';
 import React,{useEffect,useState} from 'react';
 import {View,Text,Pressable,AppState,useColorScheme} from 'react-native';
-const text={color:fantasyTheme.text,lineHeight:22},panel={padding:18,gap:14,borderRadius:18,backgroundColor:fantasyTheme.panel,borderWidth:1,borderColor:fantasyTheme.border};
+const text={color:fantasyTheme.text,lineHeight:22},panel={padding:18,gap:14,borderRadius:18,backgroundColor:fantasyTheme.panel,borderWidth:1,borderColor:fantasyTheme.border,shadowColor:fantasyTheme.accent,shadowOpacity:0.12,shadowRadius:10,elevation:1};
 function Construction(){return <View style={{...panel,alignItems:'center',paddingVertical:36}}><FantasyIcon size={112}/><Text style={{color:fantasyTheme.accent,fontSize:25,fontWeight:'900',textAlign:'center'}}>VillalbillaFantasy</Text><Text style={{color:fantasyTheme.text,fontSize:22,fontWeight:'800',textAlign:'center'}}>Está en construcción</Text><Text style={{...text,fontSize:18,textAlign:'center'}}>¡Ya queda poco!</Text><Text style={{...text,textAlign:'center'}}>Pronto podrás crear tu liga e invitar a tus amigos por código.</Text></View>}
 export default function FantasyScreen({account,section='plantilla',onSectionChange=()=>{},onFinance=()=>{},preferredLeagueId,onLeagueChange}){
  const systemScheme=useColorScheme(),[appearanceRevision,refreshAppearance]=useState(0);
  useEffect(()=>{let live=true;initializeFantasyTheme().catch(()=>{});const listener=()=>{if(live)refreshAppearance(v=>v+1)};const unsubscribe=subscribeFantasyTheme(listener);return()=>{live=false;unsubscribe()}},[]);
  applyFantasyPalette(currentFantasyPalette(systemScheme));
- Object.assign(text,{color:fantasyTheme.text});Object.assign(panel,{backgroundColor:fantasyTheme.panel,borderColor:fantasyTheme.border});
+ Object.assign(text,{color:fantasyTheme.text});Object.assign(panel,{backgroundColor:fantasyTheme.panel,borderColor:fantasyTheme.border,shadowColor:fantasyTheme.accent});
  const admin=account?.status==='admin',scope=JSON.stringify([account?.id,account?.status,account?.claim?.teamId,account?.claim?.role]),[record,setRecord]=useState(null),[error,se]=useState(''),[retry,sr]=useState(0);
  const access=record?.scope===scope?record.data:null,rules=access?.rules,canPlay=access?.canPlay,disabled=access?.disabled===true;
  useBackAction(()=>{onSectionChange('plantilla');return true},20,section!=='plantilla');

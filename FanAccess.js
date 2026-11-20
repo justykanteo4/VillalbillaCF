@@ -5,7 +5,7 @@ import {auth,onAuthStateChanged,getProfile,watchProfile,claimFanAccess} from './
 import {registerAccessPush} from './access-notifications';
 
 const text={color:'#eaf0fa',lineHeight:22};
-const button={padding:14,borderRadius:10,backgroundColor:'#1b2e69'};
+const button={padding:14,borderRadius:8,backgroundColor:'#222',borderBottomWidth:1,borderColor:'#444'};
 export default function FanAccess({onApproved,onChangeRole}){
  const [user,setUser]=useState(auth?.currentUser?.isAnonymous?null:auth?.currentUser||null);
  const [profile,setProfile]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
@@ -35,7 +35,7 @@ export default function FanAccess({onApproved,onChangeRole}){
   finally{setBusy(false)}
  }
  const approved=profile?.status==='approved'||profile?.status==='admin';
- return <View style={{gap:16,padding:18,backgroundColor:'#111820',borderRadius:12}}>
+ return <View style={{gap:16,paddingHorizontal:8,paddingVertical:18,backgroundColor:'#000',borderTopWidth:1,borderBottomWidth:1,borderColor:'#303030',width:'100%'}}>
   <Text style={{...text,fontSize:24,fontWeight:'800'}}>❤️ Acceso de hinchas</Text>
   {!user?<><Text style={text}>Introduce tu correo electrónico y contraseña, o crea una cuenta. Para registrarte debes verificar el enlace enviado a tu correo.</Text><AccessMethods onSuccess={setUser}/></>:
    !profile?<Text style={text}>Comprobando tu cuenta…</Text>:

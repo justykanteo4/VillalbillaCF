@@ -42,7 +42,7 @@ export default function FantasyAnimatedPressable({children,onPress,disabled=fals
   animation.current.start();
  };
  return <Animated.View style={[{transform:[{scale},{rotate:tilt.interpolate({inputRange:[-1,0,1],outputRange:['-2deg','0deg','2deg']})}]},style]}>
-  <Pressable {...props} disabled={disabled} onPressIn={()=>animate(true)} onPressOut={()=>animate(false)} onPress={onPress} style={[{flex:1,minWidth:0,justifyContent:'center'},contentStyle]}>
+  <Pressable {...props} disabled={disabled} onPressIn={()=>animate(true)} onPressOut={()=>animate(false)} onPress={onPress} style={[{minWidth:0,justifyContent:'center'},contentStyle]}>
    {children}
    {!reduceMotion&&glow&&<Animated.View pointerEvents="none" accessible={false} style={{position:'absolute',top:0,right:0,left:0,bottom:0,borderRadius:12,borderColor:theme.accent,borderWidth:1,opacity:spark,shadowColor:theme.accent,shadowOpacity:0.8,shadowRadius:12}}/>}
    {!reduceMotion&&glow&&<Animated.Text pointerEvents="none" accessible={false} style={{position:'absolute',right:6,top:-6,color:theme.accent,fontSize:16,opacity:spark,transform:[{scale:spark.interpolate({inputRange:[0,1],outputRange:[0.4,1.2]})}]}}>✦</Animated.Text>}

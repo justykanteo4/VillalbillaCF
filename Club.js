@@ -169,17 +169,21 @@ const chooseEntry=role=>{setEntryRole(role);AsyncStorage.setItem('villalbilla.en
  useActivity(account&&['admin','approved'].includes(account.status)?account.claim?.role==='player'?'player':'trainer':entryRole==='fan'?'fan':null);
  const logout=async()=>{
   if(!auth)throw Error('No se pudo acceder al servicio de sesión.');
-  // Nunca simular la desconexión si Firebase no la ha confirmado.
-  try{await unregisterAccessPush()}catch{}
-  if(auth.currentUser)await signOut(auth);
+  // El cierre real de Firebase es prioritario: una llamada lenta de notificaciones
+  // nunca debe bloquear el botón Salir.
+  if(auth.currentUser){
+   void unregisterAccessPush().catch(()=>{});
+   await signOut(auth);
+  }
   if(auth.currentUser)throw Error('No se pudo cerrar la sesión. Inténtalo otra vez.');
   setAccount(null);setEntryRole(null);setLoginRole(null);setRequestRoute(null);setClubRoute(null);
   selectAccessRequest(null);clearScreenHistory();lastScreen.current=null;
-  await Promise.allSettled([
+  resetArea('Usuario');
+  // Limpiar las preferencias de navegación no necesita bloquear la pantalla.
+  void Promise.allSettled([
    AsyncStorage.removeItem('villalbilla.entry-role.v1'),
    AsyncStorage.removeItem('villalbilla.last-screen.v1')
   ]);
-  resetArea('Usuario');
  };
  if(entryReady&&splashDataReady&&!authReady&&entryRole)return <StartupPreview teamIds={favoriteTeamIds}/>;
  if(!launchReady||!entryReady||!splashDataReady||!authReady)return <SafeAreaView style={s.loading}><Text style={s.muted}>Preparando tu sesión…</Text></SafeAreaView>;

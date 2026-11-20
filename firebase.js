@@ -244,6 +244,23 @@ export async function queueAccessApproval(uid){
  await runTransaction(db,async transaction=>{const ref=doc(db,'trainerProfiles',uid),snap=await transaction.get(ref);if(snap.exists()&&snap.data().accessNotice?.id===result.noticeId)transaction.update(ref,{'accessNotice.queued':true})});
  return result;
 }
+export async function claimFanAccess(user) {
+ if(!db||!user||user.isAnonymous)throw Error('Inicia sesión para solicitar acceso como hincha.');
+ const verified=user.emailVerified||user.providerData?.some(p=>['google.com','apple.com'].includes(p.providerId));
+ if(!verified)throw Error('Verifica tu correo electrónico antes de solicitar acceso.');
+ const ref=doc(db,'trainerProfiles',user.uid);
+ await runTransaction(db,async transaction=>{
+  const snap=await transaction.get(ref);
+  if(!snap.exists())throw Error('No se encontró tu perfil. Vuelve a iniciar sesión.');
+  const old=snap.data();
+  if(['approved','admin','pending'].includes(old.status))return;
+  if(!['unassigned','rejected','revoked'].includes(old.status))throw Error('No puedes cambiar esta solicitud.');
+  transaction.update(ref,{claim:{role:'fan',name:(user.displayName||old.name||'Hincha del club').slice(0,100)},status:'pending',updatedAt:Date.now()});
+ });
+ const saved=await getDoc(ref),result={id:user.uid,...saved.data()};
+ if(result.status==='pending')try{await queueAccessRequest(result)}catch{}
+ return result;
+}
 export async function claimOfficialIdentity(user,identity){
  if(!db||!user)throw Error('Inicia sesión antes de seleccionar tu ficha.');
  const claim=identityClaim(identity,teamCatalog),ref=doc(db,'trainerProfiles',user.uid);

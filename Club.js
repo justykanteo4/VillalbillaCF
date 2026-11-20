@@ -166,7 +166,20 @@ const chooseEntry=role=>{setEntryRole(role);AsyncStorage.setItem('villalbilla.en
  }catch{if(active){if(account?.status==='admin'){setRequestRoute(id);openStoredScreen('admin:'+uid,'requests');resetArea('admin-approvals')}else resetArea('Usuario');await consumeNotification(id)}}finally{if(handlingNotification.current===id)handlingNotification.current=null}})();return()=>{active=false;if(handlingNotification.current===id)handlingNotification.current=null};
  },[notificationOpen?.id,launchReady,authReady,account?.id,account?.status]);
  useActivity(account&&['admin','approved'].includes(account.status)?account.claim?.role==='player'?'player':'trainer':entryRole==='fan'?'fan':null);
- const logout=async()=>{try{await unregisterAccessPush()}catch{}try{await signOut(auth)}catch{}setAccount(null);setEntryRole(null);setRequestRoute(null);setClubRoute(null);selectAccessRequest(null);clearScreenHistory();await AsyncStorage.removeItem('villalbilla.entry-role.v1');resetArea('Usuario')};
+ const logout=async()=>{
+  if(!auth)throw Error('No se pudo acceder al servicio de sesión.');
+  // Nunca simular la desconexión si Firebase no la ha confirmado.
+  try{await unregisterAccessPush()}catch{}
+  if(auth.currentUser)await signOut(auth);
+  if(auth.currentUser)throw Error('No se pudo cerrar la sesión. Inténtalo otra vez.');
+  setAccount(null);setEntryRole(null);setLoginRole(null);setRequestRoute(null);setClubRoute(null);
+  selectAccessRequest(null);clearScreenHistory();lastScreen.current=null;
+  await Promise.allSettled([
+   AsyncStorage.removeItem('villalbilla.entry-role.v1'),
+   AsyncStorage.removeItem('villalbilla.last-screen.v1')
+  ]);
+  resetArea('Usuario');
+ };
  if(entryReady&&splashDataReady&&!authReady&&entryRole)return <StartupPreview teamIds={favoriteTeamIds}/>;
  if(!launchReady||!entryReady||!splashDataReady||!authReady)return <SafeAreaView style={s.loading}><Text style={s.muted}>Preparando tu sesión…</Text></SafeAreaView>;
  if(!account&&!entryRole&&!clubRoute)return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.content}><UserRoleChoice onSelect={chooseEntry}/></ScrollView></SafeAreaView>;

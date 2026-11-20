@@ -10,7 +10,7 @@ export default function FantasyAppearanceSettings(){
  return <View style={panel}>
   <Text style={title}>Apariencia de Fantasy</Text>
   <Text style={{...text,color:theme.muted}}>Elige el tema de Villalbilla Fantasy. Automático utiliza el ajuste del dispositivo ({scheme==='light'?'claro':'oscuro'}).</Text>
-  {MODES.map(([value,label])=><Pressable key={value} accessibilityRole="radio" accessibilityState={{checked:selected===value,disabled:saving}} onPress={()=>choose(value)} disabled={saving} style={{padding:14,borderWidth:1,borderRadius:10,borderColor:selected===value?theme.accent:theme.border,backgroundColor:theme.header}}>
+  {MODES.map(([value,label])=><Pressable key={value} accessibilityRole="radio" accessibilityState={{checked:selected===value,disabled:saving}} onPress={()=>choose(value)} disabled={saving} style={{padding:14,borderWidth:1,borderRadius:8,borderColor:selected===value?theme.accent:'#303030',backgroundColor:'#000'}}>
     <Text style={{...text,fontWeight:selected===value?'900':'600'}}>{selected===value?'● ':'○ '}{label}</Text>
    </Pressable>)}
   {!!error&&<Text accessibilityRole="alert" style={{...text,color:theme.negative}}>{error}</Text>}

@@ -3,16 +3,16 @@ import {View,Text,Pressable,TextInput} from 'react-native';
 import theme from './fantasy-theme.cjs';
 import FantasyAnimatedPressable from './FantasyAnimatedPressable';
 export {theme};
-export const text={color:theme.text,lineHeight:22},panel={padding:16,gap:12,borderRadius:16,backgroundColor:theme.panel,borderWidth:1,borderColor:theme.border},title={...text,fontSize:22,fontWeight:'900'},input={padding:12,borderRadius:10,borderWidth:1,borderColor:theme.border,color:theme.text,backgroundColor:theme.header};
+export const text={color:theme.text,lineHeight:22},panel={paddingVertical:14,paddingHorizontal:8,gap:12,borderRadius:0,backgroundColor:'#000',borderTopWidth:1,borderBottomWidth:1,borderColor:'#303030'},title={...text,fontSize:22,fontWeight:'900'},input={padding:12,borderRadius:8,borderWidth:1,borderColor:'#454545',color:theme.text,backgroundColor:'#000'};
 export function applyFantasyPalette(palette){
  Object.assign(theme,palette);
  Object.assign(text,{color:theme.text});
- Object.assign(panel,{backgroundColor:theme.panel,borderColor:theme.border});
+ Object.assign(panel,{backgroundColor:'#000',borderColor:'#303030'});
  Object.assign(title,{color:theme.text});
- Object.assign(input,{borderColor:theme.border,color:theme.text,backgroundColor:theme.header});
+ Object.assign(input,{borderColor:'#454545',color:theme.text,backgroundColor:'#000'});
 }
 export const money=cents=>(cents/100).toLocaleString('es-ES',{maximumFractionDigits:2})+' M';
-export function Button({children,onPress,disabled=false,secondary=false}){return <FantasyAnimatedPressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={{padding:12,borderRadius:10,backgroundColor:secondary?theme.header:theme.button,opacity:disabled?0.45:1,borderWidth:secondary?1:0,borderColor:theme.border,shadowColor:theme.accent,shadowOpacity:secondary?0.06:0.22,shadowRadius:8,elevation:secondary?0:2}}><Text style={{...text,textAlign:'center',fontWeight:'800',color:secondary?theme.text:theme.buttonText}}>{children}</Text></FantasyAnimatedPressable>}
+export function Button({children,onPress,disabled=false,secondary=false}){return <FantasyAnimatedPressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={{padding:12,borderRadius:10,backgroundColor:secondary?'#171717':theme.button,opacity:disabled?0.45:1,borderWidth:secondary?1:0,borderColor:theme.border,shadowColor:theme.accent,shadowOpacity:secondary?0.06:0.22,shadowRadius:8,elevation:secondary?0:2}}><Text style={{...text,textAlign:'center',fontWeight:'800',color:secondary?theme.text:theme.buttonText}}>{children}</Text></FantasyAnimatedPressable>}
 export function ErrorText({children}){return children?<Text accessibilityRole="alert" style={{...text,color:theme.negative}}>{children}</Text>:null}
 export function Field({label,value,onChange,number=false}){return <View style={{gap:5}}><Text style={text}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChange} keyboardType={number?'decimal-pad':'default'} placeholderTextColor={theme.muted} style={input}/></View>}
 const rules = [

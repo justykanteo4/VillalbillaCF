@@ -8,11 +8,12 @@ import FantasySettings from './FantasySettings';
 import {useBackAction} from './useBackNavigation';
 import fantasyTheme from './fantasy-theme.cjs';
 import FantasyIcon from './FantasyIcon';
+import FantasyGoldEffects from './FantasyGoldEffects';
 import React,{useEffect,useState} from 'react';
 import {View,Text,Pressable,AppState,useColorScheme} from 'react-native';
 const text={color:fantasyTheme.text,lineHeight:22},panel={padding:18,gap:14,borderRadius:18,backgroundColor:fantasyTheme.panel,borderWidth:1,borderColor:fantasyTheme.border,shadowColor:fantasyTheme.accent,shadowOpacity:0.12,shadowRadius:10,elevation:1};
 function Construction(){return <View style={{...panel,alignItems:'center',paddingVertical:36}}><FantasyIcon size={112}/><Text style={{color:fantasyTheme.accent,fontSize:25,fontWeight:'900',textAlign:'center'}}>VillalbillaFantasy</Text><Text style={{color:fantasyTheme.text,fontSize:22,fontWeight:'800',textAlign:'center'}}>Está en construcción</Text><Text style={{...text,fontSize:18,textAlign:'center'}}>¡Ya queda poco!</Text><Text style={{...text,textAlign:'center'}}>Pronto podrás crear tu liga e invitar a tus amigos por código.</Text></View>}
-export default function FantasyScreen({account,section='plantilla',onSectionChange=()=>{},onFinance=()=>{},preferredLeagueId,onLeagueChange}){
+function FantasyScreenContent({account,section='plantilla',onSectionChange=()=>{},onFinance=()=>{},preferredLeagueId,onLeagueChange}){
  const systemScheme=useColorScheme(),[appearanceRevision,refreshAppearance]=useState(0);
  useEffect(()=>{let live=true;initializeFantasyTheme().catch(()=>{});const listener=()=>{if(live)refreshAppearance(v=>v+1)};const unsubscribe=subscribeFantasyTheme(listener);return()=>{live=false;unsubscribe()}},[]);
  applyFantasyPalette(currentFantasyPalette(systemScheme));
@@ -37,4 +38,9 @@ export default function FantasyScreen({account,section='plantilla',onSectionChan
   return <View><FantasyPurchaseReceipt accountId={account.id} key={'receipt-'+account.id} request={fantasyRequest} onOpenLeague={id=>{onLeagueChange?.(id);onSectionChange('plantilla')}}/><FantasyLeagues key={account.id+':'+appearanceRevision+':'+systemScheme} account={account} section={section} onFinance={onFinance} preferredLeagueId={preferredLeagueId} onLeagueChange={onLeagueChange}/><FantasyPrizeReceipt key={'prize-'+account.id} request={fantasyRequest}/></View>;
  }
  return <View style={panel}><Text style={text}>{error||'Comprobando identidad en las actas…'}</Text>{error&&<Pressable accessibilityRole="button" onPress={()=>sr(n=>n+1)} style={{padding:12,backgroundColor:fantasyTheme.button,borderRadius:10}}><Text style={{color:fantasyTheme.buttonText,fontWeight:'800'}}>Reintentar acceso</Text></Pressable>}</View>;
+}
+
+// Decoración animada común a todas las secciones de Fantasy.
+export default function FantasyScreen(props){
+ return <View style={{position:'relative',minHeight:100}}><FantasyScreenContent {...props}/><FantasyGoldEffects/></View>;
 }

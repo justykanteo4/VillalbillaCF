@@ -9,8 +9,8 @@ import {useBackAction} from './useBackNavigation';
 import fantasyTheme from './fantasy-theme.cjs';
 import FantasyIcon from './FantasyIcon';
 import FantasyGoldEffects from './FantasyGoldEffects';
-import React,{useEffect,useState} from 'react';
-import {View,Text,Pressable,AppState,useColorScheme} from 'react-native';
+import React,{useEffect,useRef,useState} from 'react';
+import {View,Text,Pressable,AppState,useColorScheme,Animated,Easing,AccessibilityInfo} from 'react-native';
 const text={color:fantasyTheme.text,lineHeight:22},panel={padding:18,gap:14,borderRadius:18,backgroundColor:fantasyTheme.panel,borderWidth:1,borderColor:fantasyTheme.border,shadowColor:fantasyTheme.accent,shadowOpacity:0.12,shadowRadius:10,elevation:1};
 function Construction(){return <View style={{...panel,alignItems:'center',paddingVertical:36}}><FantasyIcon size={112}/><Text style={{color:fantasyTheme.accent,fontSize:25,fontWeight:'900',textAlign:'center'}}>VillalbillaFantasy</Text><Text style={{color:fantasyTheme.text,fontSize:22,fontWeight:'800',textAlign:'center'}}>Está en construcción</Text><Text style={{...text,fontSize:18,textAlign:'center'}}>¡Ya queda poco!</Text><Text style={{...text,textAlign:'center'}}>Pronto podrás crear tu liga e invitar a tus amigos por código.</Text></View>}
 function FantasyScreenContent({account,section='plantilla',onSectionChange=()=>{},onFinance=()=>{},preferredLeagueId,onLeagueChange}){
@@ -40,7 +40,30 @@ function FantasyScreenContent({account,section='plantilla',onSectionChange=()=>{
  return <View style={panel}><Text style={text}>{error||'Comprobando identidad en las actas…'}</Text>{error&&<Pressable accessibilityRole="button" onPress={()=>sr(n=>n+1)} style={{padding:12,backgroundColor:fantasyTheme.button,borderRadius:10}}><Text style={{color:fantasyTheme.buttonText,fontWeight:'800'}}>Reintentar acceso</Text></Pressable>}</View>;
 }
 
+// Entrada y salida visual entre secciones sin retrasar ni desmontar los datos.
+function FantasySectionMotion({section,children}){
+ const fade=useRef(new Animated.Value(1)).current;
+ const shift=useRef(new Animated.Value(0)).current;
+ const [reduceMotion,setReduceMotion]=useState(true);
+ useEffect(()=>{
+  let active=true;
+  AccessibilityInfo.isReduceMotionEnabled().then(v=>{if(active)setReduceMotion(!!v)}).catch(()=>{});
+  const listener=AccessibilityInfo.addEventListener?.('reduceMotionChanged',setReduceMotion);
+  return()=>{active=false;listener?.remove?.()};
+ },[]);
+ useEffect(()=>{
+  if(reduceMotion)return;
+  fade.setValue(0.35);shift.setValue(16);
+  const animation=Animated.parallel([
+   Animated.timing(fade,{toValue:1,duration:280,easing:Easing.out(Easing.cubic),useNativeDriver:true}),
+   Animated.spring(shift,{toValue:0,speed:15,bounciness:5,useNativeDriver:true}),
+  ]);
+  animation.start();
+  return()=>animation.stop();
+ },[section,reduceMotion,fade,shift]);
+ return <Animated.View style={{opacity:fade,transform:[{translateY:shift}]}}>{children}</Animated.View>;
+}
 // Efectos visuales comunes a todas las secciones de Fantasy.
 export default function FantasyScreen(props){
- return <View style={{position:'relative',minHeight:100}}><FantasyScreenContent {...props}/><FantasyGoldEffects/></View>;
+ return <View style={{position:'relative',minHeight:100}}><FantasySectionMotion section={props.section}><FantasyScreenContent {...props}/></FantasySectionMotion><FantasyGoldEffects/></View>;
 }

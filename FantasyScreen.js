@@ -9,7 +9,7 @@ import {useBackAction} from './useBackNavigation';
 import fantasyTheme from './fantasy-theme.cjs';
 import FantasyIcon from './FantasyIcon';
 import FantasyGoldEffects from './FantasyGoldEffects';
-import FantasyVubi from './FantasyVubi';
+import {FantasyVubiPeek} from './FantasyVubi';
 import React,{useEffect,useState} from 'react';
 import {View,Text,Pressable,AppState,useColorScheme} from 'react-native';
 const text={color:fantasyTheme.text,lineHeight:22},panel={padding:18,gap:14,borderRadius:18,backgroundColor:fantasyTheme.panel,borderWidth:1,borderColor:fantasyTheme.border,shadowColor:fantasyTheme.accent,shadowOpacity:0.12,shadowRadius:10,elevation:1};
@@ -43,5 +43,5 @@ function FantasyScreenContent({account,section='plantilla',onSectionChange=()=>{
 
 // Decoración animada común a todas las secciones de Fantasy.
 export default function FantasyScreen(props){
- return <View style={{position:'relative',minHeight:100}}><FantasyVubi/><FantasyScreenContent {...props}/><FantasyGoldEffects/></View>;
+ return <View style={{position:'relative',minHeight:100}}><FantasyScreenContent {...props}/><FantasyGoldEffects/><FantasyVubiPeek/></View>;
 }

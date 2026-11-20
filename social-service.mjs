@@ -19,7 +19,7 @@ async function author(request,uid){
  const picture=decodeJwt(request.headers.get('Authorization').slice(7)).picture;let photo=null;try{const u=new URL(picture);if(u.protocol==='https:'&&/(^|\.)googleusercontent\.com$/.test(u.hostname)&&picture.length<2048)photo=picture}catch{}
  const trainer=approved?catalog.trainer.find(p=>p.teamId===teamId&&names.matchesPersonQuery(p.name,safe)):null;const profile={name:safe,playerId:playerId||trainer?.playerId||null,teamId,photo:photo||trainer?.photo||null};if(authors.size>1000)authors.clear();authors.set(uid,{profile,until:Date.now()+300000});return profile;
 }
-async function verifySocialUser(request){const uid=await verifyAccessUser(request);const token=request.headers.get('Authorization').slice(7);if(decodeJwt(token).firebase?.sign_in_provider==='anonymous')throw error('Inicia sesión con tu cuenta para participar.',401);return uid}
+async function verifySocialUser(request){const uid=await verifyAccessUser(request);const token=request.headers.get('Authorization').slice(7);const claims=decodeJwt(token);if(claims.firebase?.sign_in_provider==='anonymous')throw error('Inicia sesión con tu cuenta para participar.',401);if(claims.email_verified!==true&&!['google.com','apple.com'].includes(claims.firebase?.sign_in_provider))throw error('Verifica tu correo electrónico antes de participar.',403);return uid}
 export async function handleSocial(request,env,{verify=verifySocialUser,getAuthor=author,authorize=verifyAdmin,getVoterIdentity=voterIdentity,voteAccess=votingAccess,cleanupOptions,ctx}={}){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/social/'))return null;
  try{

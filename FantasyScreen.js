@@ -44,7 +44,7 @@ function FantasyScreenContent({account,section='plantilla',onSectionChange=()=>{
 function FantasySectionMotion({section,children}){
  const fade=useRef(new Animated.Value(1)).current;
  const shift=useRef(new Animated.Value(0)).current;
- const [reduceMotion,setReduceMotion]=useState(true);
+ const [reduceMotion,setReduceMotion]=useState(false);
  useEffect(()=>{
   let active=true;
   AccessibilityInfo.isReduceMotionEnabled().then(v=>{if(active)setReduceMotion(!!v)}).catch(()=>{});

@@ -27,10 +27,10 @@ export default function FantasySettings({request,onBack,account}){
  const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
  const term=normalize(search.trim());
  const matches=keywords=>!term||normalize(keywords).includes(term);
- return <View style={{gap:12}}>
+ return <View style={{gap:14,backgroundColor:'#000',width:'100%',paddingHorizontal:0}}>
   <Button secondary onPress={onBack}>‹ Volver a Fantasy</Button>
   <Text accessibilityRole="header" style={{...text,fontSize:24,fontWeight:'900'}}>Ajustes Fantasy</Text>
-  <TextInput accessibilityLabel="Buscar ajustes Fantasy" placeholder="Buscar ajustes Fantasy…" placeholderTextColor={theme.muted} value={search} onChangeText={setSearch} style={{backgroundColor:'#162544',borderWidth:1,borderColor:'#334667',color:'#fff',padding:13,borderRadius:12}}/>
+  <TextInput accessibilityLabel="Buscar ajustes Fantasy" placeholder="Buscar ajustes Fantasy…" placeholderTextColor={theme.muted} value={search} onChangeText={setSearch} style={{backgroundColor:'#000',borderWidth:1,borderColor:'#454545',color:'#fff',padding:13,borderRadius:8}}/>
   {isAdmin&&matches("Administración y seguridad exportar datos actividad reciente acceso usuarios participantes permisos invitaciones suspender")&&<SettingsGroup key={"access:"+term} title="Club · Administración y seguridad" subtitle="Acceso y gestión de participantes" initiallyOpen>
    <FantasyAccessSettings request={request}/>
    <FantasyUserSettings request={request}/>

@@ -8,7 +8,6 @@ import FantasySettings from './FantasySettings';
 import {useBackAction} from './useBackNavigation';
 import fantasyTheme from './fantasy-theme.cjs';
 import FantasyIcon from './FantasyIcon';
-import FantasyGoldEffects from './FantasyGoldEffects';
 import React,{useEffect,useRef,useState} from 'react';
 import {View,Text,Pressable,AppState,useColorScheme,Animated,Easing,AccessibilityInfo} from 'react-native';
 const text={color:fantasyTheme.text,lineHeight:22},panel={padding:18,gap:14,borderRadius:18,backgroundColor:fantasyTheme.panel,borderWidth:1,borderColor:fantasyTheme.border,shadowColor:fantasyTheme.accent,shadowOpacity:0.12,shadowRadius:10,elevation:1};
@@ -65,5 +64,5 @@ function FantasySectionMotion({section,children}){
 }
 // Efectos visuales comunes a todas las secciones de Fantasy.
 export default function FantasyScreen(props){
- return <View style={{position:'relative',minHeight:100}}><FantasySectionMotion section={props.section}><FantasyScreenContent {...props}/></FantasySectionMotion><FantasyGoldEffects/></View>;
+ return <View style={{position:'relative',minHeight:100}}><FantasySectionMotion section={props.section}><FantasyScreenContent {...props}/></FantasySectionMotion></View>;
 }

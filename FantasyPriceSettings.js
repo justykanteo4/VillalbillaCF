@@ -11,7 +11,7 @@ import TeamSelector from './TeamSelector';
 import PlayerPortrait from './PlayerPortrait';
 import teams from './teams.json';
 import theme from './fantasy-theme.cjs';
-const text={color:theme.text,lineHeight:22},panel={padding:16,gap:12,borderRadius:16,backgroundColor:theme.panel,borderWidth:1,borderColor:theme.border},input={padding:13,borderRadius:10,borderWidth:1,borderColor:theme.border,backgroundColor:theme.header,color:theme.text};
+const text={color:theme.text,lineHeight:22},panel={paddingHorizontal:8,paddingVertical:14,gap:12,borderRadius:0,backgroundColor:'#000',borderTopWidth:1,borderBottomWidth:1,borderColor:'#303030'},input={padding:13,borderRadius:8,borderWidth:1,borderColor:'#454545',backgroundColor:'#000',color:theme.text};
 const normalize=v=>String(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function Action({children,onPress,disabled,secondary=false}){return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={{padding:13,borderRadius:10,backgroundColor:secondary?theme.header:theme.button,opacity:disabled?0.5:1}}><Text style={{color:secondary?theme.text:theme.buttonText,fontWeight:'800',textAlign:'center'}}>{children}</Text></Pressable>}
 export default function FantasyPriceSettings({request,account}){

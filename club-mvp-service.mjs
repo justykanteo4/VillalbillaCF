@@ -35,8 +35,8 @@ export async function handleClubMvp(request,env,{authorize=authorizeClubResultEd
   if(!validScope(teamId,matchId))throw fail('Partido no válido.');
   if(request.method==='POST'){
    const {kind,revision,playerIds}=value;
-   if(kind!=='mvp'||!Number.isSafeInteger(revision)||revision<0||!Array.isArray(playerIds)||(playerIds.length>0&&playerIds.length<3)||new Set(playerIds).size!==playerIds.length)
-    throw fail('Selecciona tres o más MVP o ninguno para retirar los premios.');
+   if(kind!=='mvp'||!Number.isSafeInteger(revision)||revision<0||!Array.isArray(playerIds)||(playerIds.length>2)||new Set(playerIds).size!==playerIds.length)
+    throw fail('Selecciona uno o dos MVP, o ninguno para retirar los premios.');
   }
   // This authorization reads the approved role and assigned teams from Firestore,
   // never from data supplied in the request body.

@@ -1,12 +1,10 @@
 {
-  "id": "2026.11.19.banners-originales-imagenes",
-  "date": "2026-11-19",
-  "title": "Noticias · banners con imágenes originales",
+  "id": "2026.11.21.recuperacion-pantallas",
+  "date": "2026-11-21",
+  "title": "Estabilidad · recuperación de pantallas",
   "changes": [
-    "Los dos bloques principales de Noticias usan exactamente las dos imágenes PNG proporcionadas para Fantasy y Crea tu carta personalizada.",
-    "Las imágenes se incorporan al paquete de la aplicación y se muestran completas, sin textos, iconos o efectos añadidos encima.",
-    "Pulsar Fantasy abre la liga y pulsar Crea tu carta abre el editor personalizado.",
-    "Se retiran los fondos y dibujos anteriores para evitar diferencias con las referencias.",
-    "El resto de Noticias permanece sin cambios y el modo KIDS continúa eliminado."
+    "Se añade una pantalla de recuperación oscura cuando una sección falla al renderizar, en lugar de quedarse en blanco.",
+    "El botón Volver a intentarlo reinicia la vista de la aplicación sin borrar los datos guardados.",
+    "Los fallos de renderizado se registran en el diagnóstico para facilitar su investigación."
   ]
 }

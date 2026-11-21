@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {AccessibilityInfo,Animated,Pressable} from 'react-native';
+import {AccessibilityInfo,Animated,Easing,Pressable} from 'react-native';
 
 // Feedback visual breve; nunca retrasa las acciones ni captura gestos de otros bloques.
 export default function FantasyAnimatedPressable({children,onPress,disabled=false,style,contentStyle,...props}){

@@ -47,11 +47,12 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
   const [news,setNews]=useState(seed),[ig,setIg]=useState({connected:false,posts:[]}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[teamIds,setTeamIds]=useState([]),[dateSelection,setDateSelection]=useState('auto');
   const newsRef=useRef(seed),refreshController=useRef(null),persistTimer=useRef(null);
   const persistNews=()=>{clearTimeout(persistTimer.current);const value=newsRef.current;AsyncStorage.setItem('villalbilla.public.news',JSON.stringify(value)).catch(()=>{});saveCopy('/api/news',value).catch(()=>{})};
-  const alive=useRef(true),newsUpdated=useRef(false),inFlight=useRef(false);
+  const alive=useRef(true),newsUpdated=useRef(false),inFlight=useRef(false),lastRefresh=useRef(0);
   useEffect(()=>subscribeAdminTaskNews(value=>{if(alive.current){newsRef.current=mergeResults(newsRef.current,value);setNews(newsRef.current);persistNews()}}),[]);
   async function refresh(force=false){
-    if(inFlight.current)return;
-    inFlight.current=true;setBusy(true);const controller=new AbortController();refreshController.current=controller;
+    if(inFlight.current||!force&&AppState.currentState!=='active')return;
+    if(!force&&Date.now()-lastRefresh.current<300000)return;
+    inFlight.current=true;lastRefresh.current=Date.now();setBusy(true);const controller=new AbortController();refreshController.current=controller;
     const applyNews=value=>{if(alive.current){newsUpdated.current=true;newsRef.current=mergeResults(newsRef.current,value);setNews(newsRef.current);publishAdminTaskNews(newsRef.current);if(newsRef.current.teams.every(t=>!t.error&&!t.offline))setError('');clearTimeout(persistTimer.current);persistTimer.current=setTimeout(persistNews,250)}};
     setError('');
     if(mode==='news')api('/api/instagram',{onUpdate:value=>{if(alive.current)setIg({...value,posts:(value.posts||[]).slice(0,8)})}}).then(value=>{if(alive.current)setIg({...value,posts:(value.posts||[]).slice(0,8)})}).catch(()=>{if(alive.current)setIg(value=>({...value,error:true}))});
@@ -65,7 +66,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
     alive.current=true;
     AsyncStorage.getItem('villalbilla.public.news').then(value=>{if(value&&alive.current){const stored=JSON.parse(value);if(Array.isArray(stored.teams)&&!newsUpdated.current)setNews(newsRef.current=mergeResults(newsRef.current,stored))}}).catch(()=>{});
     readCopy('/api/news').then(copy=>{if(alive.current&&copy?.data?.teams){newsRef.current=mergeResults(newsRef.current,copy.data);setNews(newsRef.current)}}).catch(()=>{});
-    refresh();const timer=setInterval(refresh,300000),subscription=AppState.addEventListener('change',state=>{if(state==='active')refresh()});
+    refresh();const timer=setInterval(()=>refresh(),300000),subscription=AppState.addEventListener('change',state=>{if(state==='active')refresh()});
     return()=>{alive.current=false;persistNews();refreshController.current?.abort();clearInterval(timer);subscription.remove()};
   },[]);
 

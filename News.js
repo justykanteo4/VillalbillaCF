@@ -50,7 +50,7 @@ export default function News({mode='news',favoriteTeamIds=[],favoritePlayerIds=[
   const alive=useRef(true),newsUpdated=useRef(false),inFlight=useRef(false),lastRefresh=useRef(0);
   useEffect(()=>subscribeAdminTaskNews(value=>{if(alive.current){newsRef.current=mergeResults(newsRef.current,value);setNews(newsRef.current);persistNews()}}),[]);
   async function refresh(force=false){
-    if(inFlight.current||!force&&AppState.currentState!=='active')return;
+    if(inFlight.current||!force&&['background','inactive'].includes(AppState.currentState))return;
     if(!force&&Date.now()-lastRefresh.current<300000)return;
     inFlight.current=true;lastRefresh.current=Date.now();setBusy(true);const controller=new AbortController();refreshController.current=controller;
     const applyNews=value=>{if(alive.current){newsUpdated.current=true;newsRef.current=mergeResults(newsRef.current,value);setNews(newsRef.current);publishAdminTaskNews(newsRef.current);if(newsRef.current.teams.every(t=>!t.error&&!t.offline))setError('');clearTimeout(persistTimer.current);persistTimer.current=setTimeout(persistNews,250)}};

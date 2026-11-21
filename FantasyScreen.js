@@ -10,7 +10,7 @@ import fantasyTheme from './fantasy-theme.cjs';
 import FantasyIcon from './FantasyIcon';
 import React,{useEffect,useState} from 'react';
 import {View,Text,Pressable,AppState,useColorScheme} from 'react-native';
-const text={color:fantasyTheme.text,lineHeight:22},panel={padding:18,gap:14,borderRadius:18,backgroundColor:fantasyTheme.panel,borderWidth:1,borderColor:fantasyTheme.border,shadowColor:fantasyTheme.accent,shadowOpacity:0.12,shadowRadius:10,elevation:1};
+const text={color:fantasyTheme.text,lineHeight:22},panel={padding:18,gap:14,borderRadius:18,backgroundColor:fantasyTheme.panel,borderWidth:1,borderColor:fantasyTheme.border,};
 function Construction(){return <View style={{...panel,alignItems:'center',paddingVertical:36}}><FantasyIcon size={112}/><Text style={{color:fantasyTheme.accent,fontSize:25,fontWeight:'900',textAlign:'center'}}>VillalbillaFantasy</Text><Text style={{color:fantasyTheme.text,fontSize:22,fontWeight:'800',textAlign:'center'}}>Está en construcción</Text><Text style={{...text,fontSize:18,textAlign:'center'}}>¡Ya queda poco!</Text><Text style={{...text,textAlign:'center'}}>Pronto podrás crear tu liga e invitar a tus amigos por código.</Text></View>}
 function FantasyScreenContent({account,section='plantilla',onSectionChange=()=>{},onFinance=()=>{},preferredLeagueId,onLeagueChange}){
  const systemScheme=useColorScheme(),[appearanceRevision,refreshAppearance]=useState(0);

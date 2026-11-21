@@ -1,10 +1,10 @@
 {
   "id": "2026.11.21.recuperacion-pantallas",
   "date": "2026-11-21",
-  "title": "Estabilidad · recuperación de pantallas",
+  "title": "Estabilidad · recuperación al navegar",
   "changes": [
-    "Se añade una pantalla de recuperación oscura cuando una sección falla al renderizar, en lugar de quedarse en blanco.",
-    "El botón Volver a intentarlo reinicia la vista de la aplicación sin borrar los datos guardados.",
-    "Los fallos de renderizado se registran en el diagnóstico para facilitar su investigación."
+    "Se aísla el contenido de cada sección para impedir que un error de renderizado bloquee toda la navegación.",
+    "Cuando una sección falla, se puede volver a Noticias o reintentar sin eliminar datos guardados.",
+    "La recuperación se restablece al navegar a otra sección y el error queda registrado en diagnósticos."
   ]
 }

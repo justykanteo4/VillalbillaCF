@@ -4,6 +4,7 @@ import {loadTeamCalendar} from './team-calendar';
 import React,{useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,StyleSheet,AppState} from 'react-native';
 import {api} from './api';
+import {readCopy} from './offline';
 import teams from './teams.json';
 import seed from './standings-seed.json';
 const cleanName=name=>String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toLowerCase();
@@ -23,7 +24,7 @@ export default function Standings({initialTeamId='680163',lockedTeamId=null,onTe
  const teamChoices=[...teams].sort((a,b)=>Number(favoriteTeamIds.includes(b.id))-Number(favoriteTeamIds.includes(a.id))||a.category.localeCompare(b.category,'es'));
  const visibleChoices=favoritesOnly?teamChoices.filter(t=>favoriteTeamIds.includes(t.id)):teamChoices;
  useEffect(()=>{select(preferredId)},[preferredId]);
- useEffect(()=>{let active=true,running=false;set(seed[id]||null);expand(null);async function refresh(){if(running)return;running=true;sb(true);try{const next=await api('/api/standings?team='+id,{onUpdate:value=>{if(active)set(value)}});if(active)set(next)}catch{if(active)set(old=>({...old,error:true}))}finally{running=false;if(active)sb(false)}}refresh();const timer=setInterval(refresh,300000),sub=AppState.addEventListener('change',s=>{if(s==='active')refresh()});return()=>{active=false;clearInterval(timer);sub.remove()}},[id]);
+ useEffect(()=>{let active=true,running=false;set(seed[id]||null);expand(null);readCopy('/api/standings?team='+id).then(copy=>{if(active&&copy?.data)set(copy.data)}).catch(()=>{});async function refresh(){if(running)return;running=true;sb(true);try{const next=await api('/api/standings?team='+id,{onUpdate:value=>{if(active)set(value)}});if(active)set(next)}catch{if(active)set(old=>({...old,error:true}))}finally{running=false;if(active)sb(false)}}refresh();const timer=setInterval(refresh,300000),sub=AppState.addEventListener('change',s=>{if(s==='active')refresh()});return()=>{active=false;clearInterval(timer);sub.remove()}},[id]);
  useEffect(()=>{let alive=true;setCrests(fixtureCrests([]));const apply=value=>{if(alive)setCrests(fixtureCrests(value?.fixtures))};loadTeamCalendar(id,{onUpdate:apply}).then(apply).catch(()=>{});return()=>{alive=false}},[id]);
  useEffect(()=>{onTeamChange?.(id)},[id,onTeamChange]);
  const current=teams.find(t=>t.id===id);

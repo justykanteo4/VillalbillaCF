@@ -7,7 +7,6 @@ import StartupPreview from './StartupPreview';
 import {prioritizeScreen} from './startup-work';
 import fantasyTheme from './fantasy-theme.cjs';
 import FantasyScreen from './FantasyScreen';
-import {fantasyRequest} from './FantasyLeagues';
 import FantasyNavigation from './FantasyNavigation';
 import PublicClubHeader from './PublicClubHeader';
 import useTeamReinforcements from './useTeamReinforcements';

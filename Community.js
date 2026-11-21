@@ -3,7 +3,7 @@ import AdminVoteDetails from './AdminVoteDetails';
 import React,{useEffect,useRef,useState} from 'react';
 import {View,Text,Image,TextInput,Pressable,StyleSheet,Modal,ScrollView,KeyboardAvoidingView,Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {auth,onAuthStateChanged,isAdminEmail,db,getProfile,watchProfile,claimFanAccess} from './firebase';
+import {auth,onAuthStateChanged,isAdminEmail,db} from './firebase';
 import {apiBase,api} from './api';
 import {doc,getDoc} from 'firebase/firestore';
 import AccessMethods from './AccessMethods';
@@ -23,14 +23,6 @@ function useCommunity(path,{keepData=false}={}){
 }
 function Action({onPress,disabled,children}){return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[s.button,disabled&&{opacity:0.5}]}><Text style={s.white}>{children}</Text></Pressable>}
 function ParticipateLogin(){const [open,setOpen]=useState(false);return <><Action onPress={()=>setOpen(true)}>Iniciar sesión para participar</Action><Modal visible={open} animationType="none" onRequestClose={()=>setOpen(false)}><KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':undefined} style={{flex:1,backgroundColor:'#0b121d',padding:22,paddingTop:50,gap:16}}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{gap:16}}><Action onPress={()=>setOpen(false)}>Cerrar</Action><Text style={s.title}>Participar en el club</Text><AccessMethods onSuccess={()=>setOpen(false)}/></ScrollView></KeyboardAvoidingView></Modal></>}
-function FanVoteApproval({user,onApproved}){
- const [profile,setProfile]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
- useEffect(()=>{let active=true;if(!user)return;getProfile(user).then(p=>{if(active)setProfile(p)}).catch(e=>{if(active)setError(e.message)});const stop=watchProfile(user,p=>{if(active){setProfile(p);if(['approved','admin'].includes(p.status))onApproved?.()}},e=>{if(active)setError(e.message)});return()=>{active=false;stop()}},[user?.uid]);
- if(!user||profile?.status==='approved'||profile?.status==='admin')return null;
- const pending=profile?.status==='pending';
- async function request(){setBusy(true);setError('');try{setProfile(await claimFanAccess(user))}catch(e){setError(e.message||'No se pudo enviar la solicitud.')}finally{setBusy(false)}}
- return <View style={s.notice}><Text style={s.white}>{pending?'Tu solicitud está pendiente de aprobación por el club. Podrás votar cuando la acepten.':'Para votar como hincha necesitas la aprobación del club.'}</Text>{!pending&&<Action disabled={busy||!profile} onPress={request}>{busy?'Enviando solicitud…':'Solicitar acceso como hincha'}</Action>}{!!error&&<Text style={s.error}>{error}</Text>}</View>;
-}
 function CandidatePortrait({row,category,size=48}){
  const [photo,setPhoto]=useState(row.photo||null),[failed,setFailed]=useState(false);
  useEffect(()=>{let active=true;setPhoto(row.photo||null);setFailed(false);if(category==='trainer'&&!row.photo&&!row.playerId&&row.teamId){const apply=data=>{if(active&&data.photo)setPhoto(data.photo)};api('/api/report-membership?team='+encodeURIComponent(row.teamId)+'&name='+encodeURIComponent(row.name)+'&offset=0',{onUpdate:apply}).then(apply).catch(()=>{})}return()=>{active=false}},[row.id,row.photo,row.playerId,category]);

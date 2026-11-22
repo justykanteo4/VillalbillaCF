@@ -70,7 +70,7 @@ test('MVP: cambios auditados, uno o dos por partido, autor verificado y revisió
  assert.equal(logged.actor_role,'trainer');
  assert.deepEqual(JSON.parse(logged.previous_player_ids),[]);
  assert.deepEqual(JSON.parse(logged.player_ids),winners.slice(0,2));
- assert.equal((await f.call(f.post({revision,playerIds:winners.slice(0,3)}))).status,409);
+ assert.equal((await f.call(f.post({revision,playerIds:winners.slice(0,2)}))).status,409);
  assert.equal(f.sql.prepare('SELECT COUNT(*) n FROM club_mvp_audit').get().n,1);
  r=await f.call(f.post({revision:revision+1,playerIds:winners.slice(0,1)}));
  assert.equal(r.status,200);

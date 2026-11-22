@@ -535,7 +535,7 @@ test('Club configures the number of automatic market players per league',async t
  assert.equal((await handleFantasy(request(path,{slots:24,revision:0}),e,owner)).status,409);
  const listing=await handleFantasy(request('/leagues/'+id+'/market'),e,owner);
  assert.equal(listing.status,200,await listing.clone().text());
- assert.equal((await listing.json()).marketLimit,20);
+ assert.equal((await listing.json()).marketLimit,14);
  assert.equal((await handleFantasy(request(path,{slots:24,revision:1}),e,owner)).status,200);
  assert.equal((await handleFantasy(request(path,{slots:16,revision:2}),e,owner)).status,200);
  assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM fantasy_leagues WHERE id=?').get(id).n,1);

@@ -1,10 +1,8 @@
 {
-  "id": "2026.11.21.recuperacion-pantallas",
-  "date": "2026-11-21",
-  "title": "Estabilidad · recuperación al navegar",
+  "id": "2026.11.23.fantasy-estilos",
+  "date": "2026-11-23",
+  "title": "Fantasy: recuperación de pantallas",
   "changes": [
-    "Se aísla el contenido de cada sección para impedir que un error de renderizado bloquee toda la navegación.",
-    "Cuando una sección falla, se puede volver a Noticias o reintentar sin eliminar datos guardados.",
-    "La recuperación se restablece al navegar a otra sección y el error queda registrado en diagnósticos."
+    "Se evita modificar estilos ya entregados a React Native al actualizar la apariencia de Fantasy, para que sus pantallas puedan volver a dibujarse."
   ]
 }

@@ -103,6 +103,8 @@ jobs:
           pnpm run check:fantasy-clauses
           node --test admin-match-tasks.test.mjs
           pnpm run check:release
+      - name: Verify frozen Fantasy styles
+        run: node --test fantasy-style-render.test.cjs
       - name: Export all three app bundles
         run: pnpm exec expo export --platform all --output-dir work/verify-release
       - name: Package prepared public data

@@ -3,13 +3,13 @@ import {View,Text,Pressable,TextInput} from 'react-native';
 import theme from './fantasy-theme.cjs';
 import FantasyAnimatedPressable from './FantasyAnimatedPressable';
 export {theme};
-export const text={color:theme.text,lineHeight:22},panel={paddingVertical:14,paddingHorizontal:8,gap:12,borderRadius:0,backgroundColor:'#000',borderTopWidth:1,borderBottomWidth:1,borderColor:'#303030'},title={...text,fontSize:22,fontWeight:'900'},input={padding:12,borderRadius:8,borderWidth:1,borderColor:'#454545',color:theme.text,backgroundColor:'#000'};
+export let text={color:theme.text,lineHeight:22},panel={paddingVertical:14,paddingHorizontal:8,gap:12,borderRadius:0,backgroundColor:'#000',borderTopWidth:1,borderBottomWidth:1,borderColor:'#303030'},title={...text,fontSize:22,fontWeight:'900'},input={padding:12,borderRadius:8,borderWidth:1,borderColor:'#454545',color:theme.text,backgroundColor:'#000'};
 export function applyFantasyPalette(palette){
  Object.assign(theme,palette);
- Object.assign(text,{color:theme.text});
- Object.assign(panel,{backgroundColor:'#000',borderColor:'#303030'});
- Object.assign(title,{color:theme.text});
- Object.assign(input,{borderColor:'#454545',color:theme.text,backgroundColor:'#000'});
+ text={...text,color:theme.text};
+ panel={...panel,backgroundColor:'#000',borderColor:'#303030'};
+ title={...title,color:theme.text};
+ input={...input,borderColor:'#454545',color:theme.text,backgroundColor:'#000'};
 }
 export const money=cents=>(cents/100).toLocaleString('es-ES',{maximumFractionDigits:2})+' M';
 export function Button({children,onPress,disabled=false,secondary=false}){return <FantasyAnimatedPressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={{padding:12,borderRadius:10,backgroundColor:secondary?'#171717':theme.button,opacity:disabled?0.45:1,borderWidth:secondary?1:0,borderColor:theme.border}}><Text style={{...text,textAlign:'center',fontWeight:'800',color:secondary?theme.text:theme.buttonText}}>{children}</Text></FantasyAnimatedPressable>}

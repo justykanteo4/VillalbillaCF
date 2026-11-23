@@ -1,3 +1,4 @@
+import {DividerView} from './AppDividers';
 import React,{useRef,useState} from 'react';
 import {View,Text,TextInput} from 'react-native';
 import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
@@ -26,7 +27,7 @@ export default function FantasyMarketWindow({request}){
   setNotice('Fechas del mercado guardadas. Las operaciones anteriores no se modifican.');
  })}
  const changed=current&&(start.trim()!==current.startDate||end.trim()!==current.endDate);
- return <View style={{...panel,gap:12}}>
+ return <DividerView style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:20}}>Club · Calendario del mercado</Text>
   <Text style={text}>Establece cuándo pueden realizarse nuevos fichajes, pujas, cláusulas y ofertas en cada liga. Las fechas siguen el calendario de Madrid y ambos días se incluyen. Deja un campo vacío para no limitar ese extremo.</Text>
   <Button secondary disabled={busy} onPress={load}>{leagues?'Actualizar ligas':'Seleccionar liga'}</Button>
@@ -42,5 +43,5 @@ export default function FantasyMarketWindow({request}){
   </View>}
   {!!notice&&<Text accessibilityRole="alert" style={{...text,color:theme.accent}}>{notice}</Text>}
   <ErrorText>{error}</ErrorText>
- </View>;
+ </DividerView>;
 }

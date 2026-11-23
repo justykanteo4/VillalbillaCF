@@ -1,3 +1,4 @@
+import {DividerView} from './AppDividers';
 import React,{useRef,useState} from 'react';
 import {View,Text,TextInput} from 'react-native';
 import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
@@ -29,7 +30,7 @@ export default function FantasySeasonArchive({request}){
   }catch(e){setError(e.message||'No se pudo cerrar la temporada.')}
   finally{lock.current=false;setBusy(false)}
  }
- return <View style={{...panel,gap:12}}>
+ return <DividerView style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:19}}>Club · Historial de temporadas</Text>
   <Text style={text}>Archiva los puntos y las jornadas antes de iniciar otra temporada. Las clasificaciones archivadas no se sobrescriben ni se borran al reiniciar una liga.</Text>
   <Button secondary disabled={busy} onPress={()=>open?setOpen(false):loadLeagues()}>{open?'Ocultar temporadas':'Gestionar temporadas'}</Button>
@@ -49,5 +50,5 @@ export default function FantasySeasonArchive({request}){
   </>}
   {!!notice&&<Text accessibilityRole="alert" style={{...text,color:theme.accent}}>{notice}</Text>}
   <ErrorText>{error}</ErrorText>
- </View>;
+ </DividerView>;
 }

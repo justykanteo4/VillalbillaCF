@@ -1,3 +1,5 @@
+import {DividerView} from './AppDividers';
+import appTheme from './app-theme';
 import React,{useState,useEffect} from 'react';
 import {View,Text,StyleSheet,Linking,Pressable} from 'react-native';
 import {api} from './api';
@@ -38,7 +40,7 @@ export default function MatchWeather({fieldId,date,time,compact=false}){
     </View>;
   }
 
-  return <View style={s.panel}>
+  return <DividerView style={s.panel}>
     <Text style={s.title}>EL TIEMPO EN EL CAMPO</Text>
     <View style={s.conditionRow} accessibilityLabel={'Previsión: '+condition}>
       <Text style={s.weatherIcon}>{icon}</Text>
@@ -55,7 +57,7 @@ export default function MatchWeather({fieldId,date,time,compact=false}){
       <Text style={s.muted}>Previsión orientativa, puede cambiar antes del partido.</Text>
     </>}
     <Pressable accessibilityRole="link" onPress={()=>Linking.openURL('https://open-meteo.com/').catch(()=>{})}><Text style={s.source}>Datos meteorológicos: Open-Meteo ↗</Text></Pressable>
-  </View>;
+  </DividerView>;
 }
 
-const s=StyleSheet.create({panel:{paddingTop:16,borderTopWidth:1,borderColor:'#2d3e52',gap:12},title:{color:'#91adff',fontSize:11,fontWeight:'800',letterSpacing:1},conditionRow:{flexDirection:'row',alignItems:'center',gap:12},weatherIcon:{fontSize:34},condition:{fontSize:19,color:'#fff',fontWeight:'800',flex:1},muted:{color:'#aab8cb',fontSize:12,lineHeight:20},row:{flexDirection:'row',flexWrap:'wrap',gap:10},metric:{padding:12,backgroundColor:'#1b2e4b',borderRadius:12,flexGrow:1,flexBasis:'40%',gap:6},value:{color:'#fff',fontSize:20,fontWeight:'800'},source:{color:'#91adff',fontSize:11,paddingVertical:6},compact:{flexDirection:'row',alignItems:'center',gap:7,alignSelf:'flex-start',paddingVertical:5,paddingHorizontal:9,borderRadius:10,backgroundColor:'#0d1726',maxWidth:'100%'},compactIcon:{fontSize:17},compactCondition:{fontSize:11,color:'#b8c7da',fontWeight:'600',flexShrink:1},compactTemperature:{fontSize:11,color:'#91adff',fontWeight:'800'}});
+const s=StyleSheet.create({panel:{paddingTop:16,borderTopWidth:appTheme.lineWidth,borderColor:appTheme.accent,gap:12},title:{color:appTheme.accent,fontSize:11,fontWeight:'800',letterSpacing:1},conditionRow:{flexDirection:'row',alignItems:'center',gap:12},weatherIcon:{fontSize:34},condition:{fontSize:19,color:'#fff',fontWeight:'800',flex:1},muted:{color:'#aab8cb',fontSize:12,lineHeight:20},row:{flexDirection:'row',flexWrap:'wrap',gap:10},metric:{padding:12,backgroundColor:'#1b2e4b',borderRadius:12,flexGrow:1,flexBasis:'40%',gap:6},value:{color:'#fff',fontSize:20,fontWeight:'800'},source:{color:appTheme.accent,fontSize:11,paddingVertical:6},compact:{flexDirection:'row',alignItems:'center',gap:7,alignSelf:'flex-start',paddingVertical:5,paddingHorizontal:9,borderRadius:10,backgroundColor:'#0d1726',maxWidth:'100%'},compactIcon:{fontSize:17},compactCondition:{fontSize:11,color:'#b8c7da',fontWeight:'600',flexShrink:1},compactTemperature:{fontSize:11,color:appTheme.accent,fontWeight:'800'}});

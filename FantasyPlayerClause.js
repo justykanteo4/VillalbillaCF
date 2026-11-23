@@ -1,3 +1,4 @@
+import {DividerView} from './AppDividers';
 import React,{useRef,useState} from 'react';
 import {View,Text,Modal,ScrollView,Pressable} from 'react-native';
 import {Button,ErrorText,panel,title,text,theme,money} from './FantasyUI';
@@ -29,7 +30,7 @@ export default function FantasyPlayerClause({leagueId,player,request,onUpdated=(
   <Button secondary onPress={open}>🛡️ Subir cláusula</Button>
   <Modal visible={visible} transparent animationType="fade" onRequestClose={()=>{if(!busy)show(false)}}>
    <View style={{flex:1,justifyContent:'center',padding:18,backgroundColor:'#000b'}}>
-    <View style={{...panel,maxHeight:'92%',gap:12}}>
+    <DividerView style={{...panel,maxHeight:'92%',gap:12}}>
      <ScrollView contentContainerStyle={{gap:12}}>
       <Text style={title}>Subir cláusula de {player.name}</Text>
       {quote&&<>
@@ -67,7 +68,7 @@ export default function FantasyPlayerClause({leagueId,player,request,onUpdated=(
      </ScrollView>
      <Button disabled={busy||!quote?.enabled||!valid} onPress={confirm}>{busy?'Guardando…':'Confirmar subida de cláusula'}</Button>
      <Button secondary disabled={busy} onPress={()=>show(false)}>Cancelar</Button>
-    </View>
+    </DividerView>
    </View>
   </Modal>
  </>;

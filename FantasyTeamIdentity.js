@@ -1,3 +1,4 @@
+import {DividerView} from './AppDividers';
 import React,{useEffect,useState} from 'react';
 import {View,Text,TextInput,Image,Switch} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -57,7 +58,7 @@ export default function FantasyTeamIdentity({leagueId,request,onUpdated=()=>{}})
   }catch(e){setError(e.message||'No se pudo cambiar la privacidad.');await load()}
   finally{setBusy(false)}
  }
- return <View style={{...panel,gap:12}}>
+ return <DividerView style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:20}}>Mi equipo Fantasy</Text>
   <Text style={{...text,color:theme.muted}}>El nombre identifica a tu equipo dentro de la liga. Tú decides si los demás pueden ver su foto.</Text>
   <View style={{flexDirection:'row',alignItems:'center',gap:12}}>
@@ -75,5 +76,5 @@ export default function FantasyTeamIdentity({leagueId,request,onUpdated=()=>{}})
   <Button disabled={busy||!rows.some(t=>t.me)} onPress={save}>{busy?'Guardando…':'Guardar nombre y foto'}</Button>
   {!!notice&&<Text style={{...text,color:theme.accent}}>{notice}</Text>}
   <ErrorText>{error}</ErrorText>
- </View>;
+ </DividerView>;
 }

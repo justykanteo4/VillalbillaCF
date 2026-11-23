@@ -1,3 +1,4 @@
+import {DividerView} from './AppDividers';
 import React,{useEffect,useRef,useState} from 'react';
 import {View,Text,Switch} from 'react-native';
 import {Button,ErrorText,panel,title,text,theme} from './FantasyUI';
@@ -22,7 +23,7 @@ export default function FantasyLeagueCreationSettings({request}){
    if(alive.current){setError(e.message||'No se pudo cambiar el ajuste.');try{setState(await request('/admin/league-creation',{cache:'reload'}))}catch{}}
   }finally{lock.current=false;if(alive.current)setBusy(false)}
  }
- return <View style={{...panel,gap:12}}>
+ return <DividerView style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:20}}>Club · Crear nuevas ligas</Text>
   <View style={{flexDirection:'row',alignItems:'center',gap:12}}>
    <Text style={{...text,flex:1,fontWeight:'800'}}>Permitir crear ligas nuevas</Text>
@@ -33,5 +34,5 @@ export default function FantasyLeagueCreationSettings({request}){
   {!!notice&&<Text style={{...text,color:theme.accent}}>{notice}</Text>}
   <ErrorText>{error}</ErrorText>
   <Button secondary disabled={busy} onPress={load}>Actualizar configuración</Button>
- </View>;
+ </DividerView>;
 }

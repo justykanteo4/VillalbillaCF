@@ -1,3 +1,4 @@
+import appTheme from './app-theme';
 import React from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
 import {recordDiagnostic} from './diagnostics';
@@ -37,11 +38,11 @@ export default class AppErrorBoundary extends React.Component {
   }
 }
 const styles = StyleSheet.create({
-  screen: {flex: 1, minHeight: 260, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16},
+  screen: {flex: 1, minHeight: 260, backgroundColor: appTheme.background, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16},
   title: {color: '#fff', fontSize: 21, fontWeight: '800', textAlign: 'center'},
   subtitle: {color: '#b4bfd0', fontSize: 15, lineHeight: 23, textAlign: 'center'},
   button: {backgroundColor: '#c52321', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12},
   buttonText: {color: '#fff', fontWeight: '800', fontSize: 15},
   secondaryButton: {paddingHorizontal: 20, paddingVertical: 12},
-  secondaryText: {color: '#91adff', fontWeight: '700', fontSize: 15}
+  secondaryText: {color: appTheme.accent, fontWeight: '700', fontSize: 15}
 });

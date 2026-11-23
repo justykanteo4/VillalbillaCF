@@ -1,3 +1,5 @@
+import {DividerView} from './AppDividers';
+import appTheme from './app-theme';
 import React,{useEffect,useState,useRef} from 'react';
 import {View,Text,TextInput,Pressable} from 'react-native';
 import {ruleFields} from './fantasy-leagues.cjs';
@@ -35,7 +37,7 @@ export default function FantasyPointsSettings({request}){
   }catch(e){if(active.current)setError(e.message||'No se pudieron guardar los puntos.')}
   finally{lock.current=false;if(active.current)setBusy(false)}
  }
- return <View style={{...panel,gap:12}}>
+ return <DividerView style={{...panel,gap:12}}>
   <Text style={{...text,color:theme.muted,fontSize:12}}>Puntuaciones por acción · Todas las ligas</Text>
   {editable.map(r=><View key={r.key} style={{flexDirection:'row',alignItems:'center',gap:10,paddingVertical:3}}>
    <Text style={{...text,flex:1,fontWeight:'700'}}>{r.label}</Text>
@@ -46,12 +48,12 @@ export default function FantasyPointsSettings({request}){
   <Button secondary disabled={busy} onPress={load}>Restaurar valores actuales</Button>
   <Button secondary disabled={busy} onPress={loadHistory}>Ver historial de puntuaciones</Button>
   {history?.length===0&&<Text style={{...text,color:theme.muted}}>Todavía no hay cambios registrados.</Text>}
-  {history?.map(item=><View key={item.revision} style={{padding:10,borderTopWidth:1,borderColor:theme.border,gap:5}}>
+  {history?.map(item=><DividerView key={item.revision} style={{padding:10,borderTopWidth:appTheme.lineWidth,borderColor:theme.border,gap:5}}>
     <Text style={{...text,fontWeight:'800'}}>Revisión {item.revision} · {new Date(item.createdAt).toLocaleString('es-ES')}</Text>
     <Text style={{...text,color:theme.muted}}>Modificado por {item.actor}</Text>
     {editable.filter(field=>item.before?.[field.key]!==item.after?.[field.key]).map(field=><Text key={field.key} style={text}>{field.label}: {item.before?.[field.key]} → {item.after?.[field.key]}</Text>)}
-  </View>)}
+  </DividerView>)}
   <ErrorText>{error}</ErrorText>
   {!!notice&&<Text style={{...text,color:theme.accent}}>{notice}</Text>}
- </View>;
+ </DividerView>;
 }

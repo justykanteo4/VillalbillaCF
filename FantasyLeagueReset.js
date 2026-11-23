@@ -1,3 +1,4 @@
+import {DividerView} from './AppDividers';
 import React,{useRef,useState} from 'react';
 import {View,Text,TextInput} from 'react-native';
 import {Button,ErrorText,panel,title,text,theme} from './FantasyUI';
@@ -35,7 +36,7 @@ export default function FantasyLeagueReset({request}){
   }catch(e){setError(e.message||'No se pudo reiniciar la liga. No repitas la acción sin comprobar su estado.')}
   finally{locked.current=false;setBusy(false)}
  }
- return <View style={{...panel,gap:12}}>
+ return <DividerView style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:20}}>Club · Reinicio de ligas de prueba</Text>
   <Text style={text}>Solo administradores. Borra plantillas, compras, subastas, cláusulas y resultados de Fantasy de una liga, sin borrar la liga, sus participantes, sus ajustes, sus mensajes ni las temporadas archivadas.</Text>
   <Button secondary disabled={busy} onPress={()=>open?setOpen(false):list()}>{open?'Ocultar reinicios':'Gestionar reinicio de ligas'}</Button>
@@ -54,5 +55,5 @@ export default function FantasyLeagueReset({request}){
   </>}
   {!!notice&&<Text accessibilityRole="alert" style={{...text,color:theme.accent}}>{notice}</Text>}
   <ErrorText>{error}</ErrorText>
- </View>
+ </DividerView>
 }

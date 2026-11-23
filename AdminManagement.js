@@ -1,19 +1,20 @@
+import appTheme from './app-theme';
 import {matchesPersonQuery,displayPersonName} from './name-search.cjs';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { Pressable, Text, TextInput, View, Modal } from 'react-native';
 import { addClubAdmin, listClubAdmins, listClubAccounts, removeClubAdmin, flushAdminRevocations, auth } from './firebase';
 
 const styles = {
-  card: { padding: 20, borderRadius: 20, backgroundColor: '#151f2d', borderWidth: 1, borderColor: '#2c3e54', gap: 13 },
+  card: { padding: 20, borderRadius: 20, backgroundColor: appTheme.panel, borderWidth: 1, borderColor: appTheme.border, gap: 13 },
   title: { fontSize: 17, fontWeight: '700', color: '#f0f4fa' },
   text: { color: '#aab8cb', fontSize: 13, lineHeight: 20 },
-  input: { minHeight: 48, borderWidth: 1, borderColor: '#34475e', backgroundColor: '#101c2b', borderRadius: 11, padding: 14, fontSize: 15, color: '#f0f4fa' },
+  input: { minHeight: 48, borderWidth: 1, borderColor: appTheme.border, backgroundColor: appTheme.surface, borderRadius: 11, padding: 14, fontSize: 15, color: '#f0f4fa' },
   button: { padding: 14, borderRadius: 12, backgroundColor: '#c52321', alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  admin: { paddingTop: 11, borderTopWidth: 1, borderColor: '#2d3e52', color: '#dce6f2', fontSize: 14 },
+  admin: { paddingTop: 11, borderTopWidth: appTheme.lineWidth, borderColor: appTheme.accent, color: '#dce6f2', fontSize: 14 },
   error: { padding: 12, color: '#ffc1c9', backgroundColor: '#40202b', borderRadius: 10 },
   success: { color: '#8ce2a8', fontSize: 13 },
-  secondary: { color: '#91adff', fontSize: 13, fontWeight: '700', textAlign: 'center', padding: 8 },
+  secondary: { color: appTheme.accent, fontSize: 13, fontWeight: '700', textAlign: 'center', padding: 8 },
 };
 
 export default function AdminManagement() {

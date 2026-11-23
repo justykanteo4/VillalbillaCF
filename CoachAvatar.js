@@ -1,3 +1,4 @@
+import appTheme from './app-theme';
 import React,{useEffect,useState} from 'react';
 import {View,Pressable,Text} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,7 +20,7 @@ export default function CoachAvatar({account,teamId}){
  return <View style={{alignItems:'center',gap:3}}>
   <Pressable accessibilityRole="button" accessibilityLabel="Añadir o cambiar foto del entrenador" onPress={choose}>
    <PlayerPortrait playerId={detected} name={name} photo={manual||hasOfficial} onPhotoError={()=>sfFailed(true)} disableLookup size={42}/>
-   <Text style={{color:'#91adff',fontSize:9,textAlign:'center'}}>{manual||hasOfficial?'Cambiar foto':'+ Foto'}</Text>
+   <Text style={{color:appTheme.accent,fontSize:9,textAlign:'center'}}>{manual||hasOfficial?'Cambiar foto':'+ Foto'}</Text>
   </Pressable>
   {!!manual&&<Pressable accessibilityRole="button" accessibilityLabel="Quitar foto personalizada del entrenador" onPress={remove}><Text style={{color:'#aab8cb',fontSize:9}}>Quitar</Text></Pressable>}
   {!!error&&<Text style={{color:'#ffc1c9',fontSize:9,maxWidth:100}}>{error}</Text>}

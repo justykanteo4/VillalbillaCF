@@ -1,3 +1,4 @@
+import {DividerView} from './AppDividers';
 import React, {useRef, useState} from 'react';
 import {Text, View} from 'react-native';
 import {Button, ErrorText, Field, panel, text, title} from './FantasyUI';
@@ -61,7 +62,7 @@ export default function FantasyAdminTransfer({request}) {
     });
   }
 
-  return <View style={panel}>
+  return <DividerView style={panel}>
     <Text style={title}>Traspaso manual de jugadores</Text>
     {leagues === null ? <Button secondary disabled={busy} onPress={() => run(async () => {
       const result = await request('/admin/leagues/reset', {cache:'reload'});
@@ -93,5 +94,5 @@ export default function FantasyAdminTransfer({request}) {
     </>}
     <ErrorText>{error}</ErrorText>
     {!!notice && <Text accessibilityRole="alert" style={text}>{notice}</Text>}
-  </View>;
+  </DividerView>;
 }

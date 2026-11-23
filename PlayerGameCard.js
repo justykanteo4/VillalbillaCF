@@ -1,3 +1,5 @@
+import {SectionStack} from './AppDividers';
+import appTheme from './app-theme';
 import React,{useEffect,useRef,useState} from 'react';
 import {Image,Pressable,Text,TextInput,View,Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -81,7 +83,7 @@ export default function PlayerGameCard({account,player,team}){
  };
  const deletePhoto=async()=>{if(!photo)return;const old=photo;try{setPhoto(null);await persist(null);await FileSystem.deleteAsync(old,{idempotent:true})}catch{setError('No se pudo eliminar la foto local.')}};
  const changeRating=(key,delta)=>{setRatings(old=>({...old,[key]:clamp(old[key]+delta)}));setSaved(false)};
- return <View style={{gap:16}}>
+ return <SectionStack style={{gap:16}}>
   <View style={{alignItems:'center',gap:8}}>
    <Text style={{color:'#fff',fontSize:23,fontWeight:'900'}}>🎮 MI CARTA DE JUGADOR</Text>
    <Text style={{color:'#bacde7',textAlign:'center'}}>Carta personalizada · edición privada en tu dispositivo</Text>
@@ -117,7 +119,7 @@ export default function PlayerGameCard({account,player,team}){
   </View>}
   {!!segmentation&&<View style={{height:2,width:2,opacity:.01,overflow:'hidden',position:'absolute'}} pointerEvents="none"><WebView key={segmentation.source} originWhitelist={['*']} source={{html:segmentation.html,baseUrl:'https://cdn.jsdelivr.net/'}} javaScriptEnabled onMessage={finishSegmentation} onError={()=>{setSegmentation(null);setBusy(false);setError('Error al cargar el modelo de recorte.')}} style={{height:2,width:2}}/></View>}
   <Text style={{color:'#a3b9d2',fontSize:12,lineHeight:18,textAlign:'center'}}>La personalización no cambia las estadísticas oficiales ni publica fotografías. Las imágenes de menores deben utilizarse únicamente con autorización adecuada.</Text>
- </View>;
+ </SectionStack>;
 }
 
 const cardStyle={
@@ -132,7 +134,7 @@ const cardStyle={
  crestPanel:{alignItems:'center',width:120,gap:1},
  crest:{width:77,height:81},
  clubName:{fontSize:12,color:'#fff',fontWeight:'900',textAlign:'center'},
- portraitArea:{height:164,alignItems:'center',justifyContent:'flex-end',marginTop:-27,marginBottom:3,overflow:'hidden',borderBottomColor:'#26caff',borderBottomWidth:2},
+ portraitArea:{height:164,alignItems:'center',justifyContent:'flex-end',marginTop:-27,marginBottom:3,overflow:'hidden',borderBottomColor:'#26caff',borderBottomWidth:appTheme.lineWidth},
  portraitGlow:{position:'absolute',height:116,width:'90%',bottom:-40,borderRadius:100,backgroundColor:'#145ca2',opacity:.65},
  portrait:{height:162,width:'90%'},
  backPanel:{height:164,alignItems:'center',justifyContent:'center',gap:2},

@@ -1,3 +1,4 @@
+import appTheme from './app-theme';
 import React,{useEffect,useState} from 'react';
 import {View,Text,Pressable} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,7 +11,7 @@ export default function StartupScreenPreference({account}){
  return <View style={{padding:15,gap:12,borderRadius:12,backgroundColor:'#162544'}}>
   <Text style={{color:'#fff',fontSize:18,fontWeight:'800'}}>Pantalla de inicio</Text>
   <Text style={{color:'#aab8cb'}}>Elige qué ver cuando abras la aplicación. Si esa sección no está disponible para tu cuenta, se abrirá tu pantalla habitual.</Text>
-  {choices.map(choice=><Pressable key={choice.id} accessibilityRole="radio" accessibilityState={{checked:selected===choice.id}} onPress={()=>choose(choice.id)} style={{padding:12,borderWidth:1,borderRadius:9,borderColor:selected===choice.id?'#91adff':'#334667',backgroundColor:selected===choice.id?'#1b2e69':'#101c2b'}}>
+  {choices.map(choice=><Pressable key={choice.id} accessibilityRole="radio" accessibilityState={{checked:selected===choice.id}} onPress={()=>choose(choice.id)} style={{padding:12,borderWidth:1,borderRadius:9,borderColor:selected===choice.id?appTheme.accent:'#334667',backgroundColor:selected===choice.id?appTheme.selected:appTheme.surface}}>
    <Text style={{color:'#fff'}}>{selected===choice.id?'◉ ':'○ '}{choice.name}</Text>
   </Pressable>)}
   {!!error&&<Text accessibilityRole="alert" style={{color:'#ffc1c9'}}>{error}</Text>}

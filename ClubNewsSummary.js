@@ -1,3 +1,5 @@
+import {DividerView} from './AppDividers';
+import appTheme from './app-theme';
 import React,{useEffect,useState} from 'react';
 import {View,Text,StyleSheet,AppState} from 'react-native';
 import {api} from './api';
@@ -9,7 +11,7 @@ import seed from './club-cards-seed.json';
 
 function Totals({title,subtitle,total}){
  const cardValue=value=>total.teamMatches&&!total.cardMatches?'—':String(value);
- return <View style={s.card}>
+ return <DividerView style={s.card}>
   <View style={s.header}><Text style={s.title}>{title}</Text><Text style={s.muted}>{subtitle}</Text></View>
   <View style={s.balance}>
    {[['PG',total.won,'Partidos ganados'],['PE',total.drawn,'Partidos empatados'],['PP',total.lost,'Partidos perdidos']].map(([label,value,description])=><Text key={label} accessibilityLabel={description+': '+value} style={s.balanceValue}>{label} <Text style={{color:'#fff'}}>{value}</Text></Text>)}
@@ -23,7 +25,7 @@ function Totals({title,subtitle,total}){
    ].map(([label,value,color])=><View key={label} style={s.metric}><Text style={[s.value,{color}]}>{value}</Text><Text style={s.label}>{label}</Text></View>)}
   </View>
   <Text style={s.muted}>{total.teams} equipos · {total.matches} partidos</Text>
- </View>;
+ </DividerView>;
 }
 
 export default function ClubNewsSummary({teams}){
@@ -43,9 +45,9 @@ export default function ClubNewsSummary({teams}){
 const s=StyleSheet.create({
  heading:{fontSize:16,fontWeight:'900',color:'#fff'},title:{fontSize:14,fontWeight:'800',color:'#fff'},
  header:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:6,flexWrap:'wrap'},
- card:{paddingHorizontal:8,paddingVertical:12,borderRadius:0,backgroundColor:'#000',borderTopWidth:1,borderBottomWidth:1,borderColor:'#303030',gap:8},
+ card:{paddingHorizontal:8,paddingVertical:12,borderRadius:18,backgroundColor:appTheme.panel,borderTopWidth:appTheme.lineWidth,borderBottomWidth:appTheme.lineWidth,borderColor:appTheme.accent,gap:8},
  muted:{fontSize:11,lineHeight:16,color:'#aab8cb'},
- metrics:{flexDirection:'row',gap:5},metric:{flex:1,minWidth:0,paddingVertical:7,paddingHorizontal:2,borderRadius:8,backgroundColor:'#171717',gap:2,alignItems:'center'},
+ metrics:{flexDirection:'row',gap:5},metric:{flex:1,minWidth:0,paddingVertical:7,paddingHorizontal:2,borderRadius:8,backgroundColor:appTheme.surface,gap:2,alignItems:'center'},
  value:{fontSize:22,lineHeight:26,fontWeight:'900'},label:{fontSize:10,lineHeight:13,color:'#dce6f2',textAlign:'center'},
- balance:{flexDirection:'row',justifyContent:'space-around',gap:10,paddingVertical:6},balanceValue:{fontSize:14,fontWeight:'800',color:'#91adff'},
+ balance:{flexDirection:'row',justifyContent:'space-around',gap:10,paddingVertical:6},balanceValue:{fontSize:14,fontWeight:'800',color:appTheme.accent},
 });

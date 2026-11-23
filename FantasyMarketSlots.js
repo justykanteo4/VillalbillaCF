@@ -1,3 +1,4 @@
+import {DividerView} from './AppDividers';
 import React,{useRef,useState} from 'react';
 import {View,Text} from 'react-native';
 import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
@@ -18,7 +19,7 @@ export default function FantasyMarketSlots({request}){
   const d=await request('/admin/leagues/'+encodeURIComponent(current.league.id)+'/market-slots',{method:'POST',body:JSON.stringify({slots,revision:current.revision})});
   setCurrent(d);setSlots(d.slots);setNotice('Cantidad guardada: '+d.slots+' jugadores. Se aplicará en el siguiente refresco del mercado.');
  })}
- return <View style={{...panel,gap:12}}>
+ return <DividerView style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:20}}>Club · Jugadores en el mercado</Text>
   <Text style={text}>Selecciona cuántos jugadores automáticos aparecen por liga. El valor tradicional es 16; puedes ampliarlo hasta 24. Las ventas de los participantes no cuentan en ese límite.</Text>
   <Button secondary disabled={busy} onPress={list}>{leagues?'Actualizar ligas':'Seleccionar liga'}</Button>
@@ -35,5 +36,5 @@ export default function FantasyMarketSlots({request}){
   </View>}
   {!!notice&&<Text accessibilityRole="alert" style={{...text,color:theme.accent}}>{notice}</Text>}
   <ErrorText>{error}</ErrorText>
- </View>;
+ </DividerView>;
 }

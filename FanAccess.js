@@ -1,3 +1,5 @@
+import {DividerView} from './AppDividers';
+import appTheme from './app-theme';
 import React,{useEffect,useState} from 'react';
 import {View,Text,Pressable} from 'react-native';
 import AccessMethods from './AccessMethods';
@@ -5,7 +7,7 @@ import {auth,onAuthStateChanged,getProfile,watchProfile,claimFanAccess} from './
 import {registerAccessPush} from './access-notifications';
 
 const text={color:'#eaf0fa',lineHeight:22};
-const button={padding:14,borderRadius:8,backgroundColor:'#222',borderBottomWidth:1,borderColor:'#444'};
+const button={padding:14,borderRadius:8,backgroundColor:'#222',borderBottomWidth:appTheme.lineWidth,borderColor:'#444'};
 export default function FanAccess({onApproved,onChangeRole}){
  const [user,setUser]=useState(auth?.currentUser?.isAnonymous?null:auth?.currentUser||null);
  const [profile,setProfile]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
@@ -35,7 +37,7 @@ export default function FanAccess({onApproved,onChangeRole}){
   finally{setBusy(false)}
  }
  const approved=profile?.status==='approved'||profile?.status==='admin';
- return <View style={{gap:16,paddingHorizontal:8,paddingVertical:18,backgroundColor:'#000',borderTopWidth:1,borderBottomWidth:1,borderColor:'#303030',width:'100%'}}>
+ return <DividerView style={{gap:16,paddingHorizontal:8,paddingVertical:18,backgroundColor:appTheme.background,borderTopWidth:appTheme.lineWidth,borderBottomWidth:appTheme.lineWidth,borderColor:appTheme.accent,width:'100%'}}>
   <Text style={{...text,fontSize:24,fontWeight:'800'}}>❤️ Acceso de hinchas</Text>
   {!user?<><Text style={text}>Introduce tu correo electrónico y contraseña, o crea una cuenta. Para registrarte debes verificar el enlace enviado a tu correo.</Text><AccessMethods onSuccess={setUser}/></>:
    !profile?<Text style={text}>Comprobando tu cuenta…</Text>:
@@ -44,5 +46,5 @@ export default function FanAccess({onApproved,onChangeRole}){
    <><Text style={text}>Correo: {user.email}</Text><Text style={text}>Después de verificar tu correo, solicita la aprobación del club para votar.</Text><Pressable accessibilityRole="button" onPress={request} disabled={busy} style={button}><Text style={text}>{busy?'Enviando…':'Solicitar acceso como hincha'}</Text></Pressable></>}
   {!!error&&<Text accessibilityRole="alert" style={{color:'#ffc1c9'}}>{error}</Text>}
   <Pressable accessibilityRole="button" onPress={onChangeRole} style={button}><Text style={text}>Cambiar tipo de usuario</Text></Pressable>
- </View>;
+ </DividerView>;
 }

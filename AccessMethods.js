@@ -1,3 +1,4 @@
+import appTheme from './app-theme';
 import React,{useEffect,useState} from 'react';
 import {Pressable,Text,TextInput,View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,7 +12,7 @@ import {
 import AppleSignIn from './AppleSignIn';
 import GoogleSignIn from './GoogleSignIn';
 
-const text={color:'#eaf0fa',lineHeight:22},input={padding:14,borderRadius:8,color:'#fff',backgroundColor:'#000',borderWidth:1,borderColor:'#454545',minHeight:50},button={padding:14,borderRadius:8,backgroundColor:'#242424',alignItems:'center',borderBottomWidth:1,borderColor:'#555'};
+const text={color:'#eaf0fa',lineHeight:22},input={padding:14,borderRadius:8,color:'#fff',backgroundColor:appTheme.panel,borderWidth:1,borderColor:appTheme.border,minHeight:50},button={padding:14,borderRadius:8,backgroundColor:'#242424',alignItems:'center',borderBottomWidth:appTheme.lineWidth,borderColor:'#555'};
 const REMEMBERED_EMAIL_KEY='villalbilla.remembered.email';
 
 export default function AccessMethods({onSuccess}){
@@ -73,22 +74,22 @@ export default function AccessMethods({onSuccess}){
 
   if(!firebaseConfigured)return <Text style={text}>Firebase aún no está conectado. Cuando se añada la configuración del club, aquí se activarán los inicios de sesión.</Text>;
 
-  return <View style={{gap:14,backgroundColor:'#000',width:'100%'}}>
+  return <View style={{gap:14,backgroundColor:appTheme.background,width:'100%'}}>
     <Text style={text}>Inicia sesión con tu correo y contraseña. También puedes entrar con Google.</Text>
     <TextInput accessibilityLabel="Correo de acceso" autoCapitalize="none" autoComplete="email" textContentType="username" keyboardType="email-address" returnKeyType="next" placeholder="Correo electrónico" placeholderTextColor="#91a5be" value={email} onChangeText={changeEmail} style={input}/>
       <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
         <TextInput accessibilityLabel="Contraseña de acceso" secureTextEntry={!showPassword} autoCapitalize="none" textContentType={register?'newPassword':'password'} returnKeyType="done" placeholder={register?'Contraseña nueva (mínimo 12 caracteres)':'Contraseña'} placeholderTextColor="#91a5be" value={password} onChangeText={sp} style={[input,{flex:1,minWidth:0}]}/>
-        <Pressable accessibilityRole="button" accessibilityLabel={showPassword?'Ocultar contraseña':'Mostrar contraseña'} onPress={()=>ssh(value=>!value)} style={{padding:8}}><Text style={{color:'#91adff',fontWeight:'700'}}>{showPassword?'Ocultar':'Mostrar'}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={showPassword?'Ocultar contraseña':'Mostrar contraseña'} onPress={()=>ssh(value=>!value)} style={{padding:8}}><Text style={{color:appTheme.accent,fontWeight:'700'}}>{showPassword?'Ocultar':'Mostrar'}</Text></Pressable>
       </View>
       <Pressable accessibilityRole="checkbox" accessibilityState={{checked:remember}} onPress={toggleRemember} style={{flexDirection:'row',alignItems:'center',gap:10,paddingVertical:3}}>
-        <View style={{width:22,height:22,borderRadius:5,borderWidth:1,borderColor:remember?'#91adff':'#718198',backgroundColor:remember?'#303030':'transparent',alignItems:'center',justifyContent:'center'}}>{remember&&<Text style={{color:'#fff',fontWeight:'800'}}>✓</Text>}</View>
+        <View style={{width:22,height:22,borderRadius:5,borderWidth:1,borderColor:remember?appTheme.accent:'#718198',backgroundColor:remember?appTheme.border:'transparent',alignItems:'center',justifyContent:'center'}}>{remember&&<Text style={{color:'#fff',fontWeight:'800'}}>✓</Text>}</View>
         <Text style={text}>Recordar usuario</Text>
       </Pressable>
       {register&&<Text style={text}>Crear la cuenta no envía todavía una solicitud. Después verifica el correo, inicia sesión, elige equipo y nombre, y pulsa «Solicitar acceso a este equipo».</Text>}
-      <Pressable onPress={()=>{sr(!register);smsg('');sp('')}}><Text style={{color:'#91adff'}}>{register?'Ya tengo cuenta':'Crear cuenta'}</Text></Pressable>
-      {!register&&<Pressable disabled={busy} onPress={resetPassword}><Text style={{color:'#91adff'}}>He olvidado mi contraseña</Text></Pressable>}
+      <Pressable onPress={()=>{sr(!register);smsg('');sp('')}}><Text style={{color:appTheme.accent}}>{register?'Ya tengo cuenta':'Crear cuenta'}</Text></Pressable>
+      {!register&&<Pressable disabled={busy} onPress={resetPassword}><Text style={{color:appTheme.accent}}>He olvidado mi contraseña</Text></Pressable>}
       <Pressable accessibilityRole="button" disabled={busy||!email||password.length<(register?12:1)} style={[button,{backgroundColor:'#262626',opacity:(busy||!email||password.length<(register?12:1)) ? 0.65 : 1}]} onPress={submitPassword}><Text style={text}>{busy?'Procesando…':register?'Crear cuenta':'Iniciar sesión'}</Text></Pressable>
-      <View style={{height:1,backgroundColor:'#303030',marginVertical:2}}/>
+      <View style={{height:1,backgroundColor:appTheme.border,marginVertical:2}}/>
       <GoogleSignIn onSuccess={onSuccess}/>
       <AppleSignIn onSuccess={onSuccess}/>
     {!!message&&<Text style={{color:'#ffc1c9',lineHeight:22}}>{message}</Text>}

@@ -1,3 +1,5 @@
+import {SectionStack} from './AppDividers';
+import appTheme from './app-theme';
 import React,{useEffect,useRef,useState} from 'react';
 import {View,Text,TextInput,Pressable} from 'react-native';
 import teams from './teams.json';
@@ -88,13 +90,13 @@ export default function ClubResultEditor({account}){
  if(!selectable.length)return <Text style={label}>No tienes equipos autorizados para corregir resultados.</Text>;
  const matchName=m=>[m.homeName||m.homeTeam||m.home||'Local',m.awayName||m.awayTeam||m.away||'Visitante'].join(' - ');
  const filtered=filterEditableFixtures(fixtures,search);
- return <View style={{gap:14}}>
+ return <SectionStack style={{gap:14}}>
   <Text accessibilityRole="header" style={{...title,fontSize:23}}>Corregir resultados</Text>
   <Text style={label}>Solo tus equipos autorizados. Los cambios se guardan con tu nombre y fecha.</Text>
   <TeamSelector value={teamId} onChange={setTeamId} options={selectable} label="Equipo"/>
   {busy&&!match&&<Text style={label}>Cargando partidos…</Text>}
   {!match?<View style={{gap:8}}>
-   <TextInput accessibilityLabel="Buscar partidos para corregir" placeholder="Buscar rival, fecha o jornada" placeholderTextColor={colors.muted} value={search} onChangeText={v=>{setSearch(v);setShowAll(false)}} style={{padding:12,backgroundColor:'#0b121d',color:colors.text,borderRadius:10}}/>
+   <TextInput accessibilityLabel="Buscar partidos para corregir" placeholder="Buscar rival, fecha o jornada" placeholderTextColor={colors.muted} value={search} onChangeText={v=>{setSearch(v);setShowAll(false)}} style={{padding:12,backgroundColor:appTheme.panel,color:colors.text,borderRadius:10}}/>
    {fixtures.length===0&&!busy&&<Text style={label}>No hay partidos disponibles.</Text>}
    {!busy&&fixtures.length>0&&filtered.length===0&&<Text style={label}>No hay partidos para esta búsqueda.</Text>}
    {(showAll?filtered:filtered.slice(0,40)).map(fixture=><Pressable key={String(fixture.id)} accessibilityRole="button" onPress={()=>openMatch(fixture)} style={card}>
@@ -109,7 +111,7 @@ export default function ClubResultEditor({account}){
    <View style={{flexDirection:'row',gap:12}}>
     {[['Goles local',home,setHome],['Goles visitante',away,setAway]].map(([text,value,setValue])=><View key={text} style={{flex:1,gap:7}}>
      <Text style={label}>{text}</Text>
-     <TextInput accessibilityLabel={text} value={value} onChangeText={setValue} editable={!busy} keyboardType="number-pad" maxLength={2} style={{padding:13,borderRadius:9,backgroundColor:'#0b121d',color:colors.text,fontSize:20,textAlign:'center'}}/>
+     <TextInput accessibilityLabel={text} value={value} onChangeText={setValue} editable={!busy} keyboardType="number-pad" maxLength={2} style={{padding:13,borderRadius:9,backgroundColor:appTheme.panel,color:colors.text,fontSize:20,textAlign:'center'}}/>
     </View>)}
    </View>
    <Action disabled={busy||revision===null||!validScore(home)||!validScore(away)} onPress={()=>save(false)}>{busy?'Comprobando…':'Guardar corrección'}</Action>
@@ -118,5 +120,5 @@ export default function ClubResultEditor({account}){
   </View>}
   {!!error&&<Text accessibilityRole="alert" style={{color:colors.error}}>{error}</Text>}
   {!!notice&&<Text accessibilityRole="alert" style={{color:'#8ce2a8'}}>{notice}</Text>}
- </View>;
+ </SectionStack>;
 }

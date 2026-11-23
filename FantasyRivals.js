@@ -1,3 +1,5 @@
+import {SectionStack,DividerView} from './AppDividers';
+import appTheme from './app-theme';
 import {FantasyTeamPhoto} from './FantasyTeamIdentity';
 import React,{useEffect,useRef,useState} from 'react';
 import {View,Text,Pressable,TextInput,Modal,ScrollView,AppState} from 'react-native';
@@ -102,7 +104,7 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
   finally{locked.current=false;if(alive.current)setBusy(false)}
  }
  const offerValue=Number(amount.replace(',','.')),offerValid=amount.trim()!==''&&Number.isFinite(offerValue)&&offerValue>=1&&offerValue<=1000&&Math.abs(offerValue*100-Math.round(offerValue*100))<1e-6;
- return <View style={{gap:14}}>
+ return <SectionStack style={{gap:14}}>
   <Text accessibilityRole="header" style={{...title,fontSize:25}}>Rivales</Text>
   <Text style={{...text,color:theme.muted}}>Consulta las plantillas, haz ofertas, intercambia futbolistas y propón cesiones temporales.</Text>
   <ErrorText>{error}</ErrorText>
@@ -110,25 +112,25 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
   {loading&&!data&&<Text style={text}>Cargando las plantillas…</Text>}
   {data?.offline&&<Text style={{...text,color:theme.accent}}>Mostrando la última copia guardada. Para fichar necesitas conexión.</Text>}
   {data?.rivals?.length===0&&<Text style={text}>Todavía no hay otros participantes en esta liga.</Text>}
-  {!!loans.length&&<View style={panel}>
+  {!!loans.length&&<DividerView style={panel}>
    <Text style={{...title,fontSize:19}}>Cesiones</Text>
-   {loans.map(l=><View key={l.id} style={{gap:7,borderTopWidth:1,borderColor:theme.border,paddingTop:10}}>
+   {loans.map(l=><DividerView key={l.id} style={{gap:7,borderTopWidth:appTheme.lineWidth,borderColor:theme.border,paddingTop:10}}>
     <Text style={{...text,fontWeight:'800'}}>{l.playerName} · {l.durationWeeks} {l.durationWeeks===1?'semana':'semanas'}</Text>
     <Text style={text}>{l.lender} → {l.borrower}</Text>
     <Text style={{...text,color:theme.muted}}>Estado: {({pending:'Pendiente',active:'Cedido',returned:'Devuelto',rejected:'Rechazado',cancelled:'Cancelado',expired:'Caducado'})[l.status]||l.status}</Text>
     {l.status==='active'&&<Text style={text}>Devolución prevista: {new Date(l.endsAt).toLocaleDateString('es-ES')}</Text>}
     {l.status==='pending'&&(l.incoming?<View style={{gap:7}}><Button disabled={busy} onPress={()=>decideLoan(l,'accept')}>Aceptar cesión</Button><Button secondary disabled={busy} onPress={()=>decideLoan(l,'reject')}>Rechazar</Button></View>:<Button secondary disabled={busy} onPress={()=>decideLoan(l,'cancel')}>Cancelar propuesta</Button>)}
-   </View>)}
-  </View>}
-  {!!exchanges.length&&<View style={panel}><Text style={{...title,fontSize:19}}>Intercambios</Text>
-   {exchanges.map(e=><View key={e.id} style={{gap:7,borderTopWidth:1,borderColor:theme.border,paddingTop:10}}>
+   </DividerView>)}
+  </DividerView>}
+  {!!exchanges.length&&<DividerView style={panel}><Text style={{...title,fontSize:19}}>Intercambios</Text>
+   {exchanges.map(e=><DividerView key={e.id} style={{gap:7,borderTopWidth:appTheme.lineWidth,borderColor:theme.border,paddingTop:10}}>
     <Text style={{...text,fontWeight:'800'}}>{e.incoming?'Propuesta de '+e.proposer:'Propuesta para '+e.receiver}</Text>
     <Text style={text}>Ofrecido: {e.proposerPlayerName} · Solicitado: {e.receiverPlayerName}</Text>
     <Text style={{...text,color:theme.muted}}>Estado: {({pending:'Pendiente',accepted:'Aceptado',rejected:'Rechazado',cancelled:'Cancelado',expired:'Caducado'})[e.status]||e.status}</Text>
     {e.status==='pending'&&(e.incoming?<View style={{gap:7}}><Button disabled={busy} onPress={()=>decideExchange(e,'accept')}>Aceptar intercambio</Button><Button secondary disabled={busy} onPress={()=>decideExchange(e,'reject')}>Rechazar</Button></View>:<Button secondary disabled={busy} onPress={()=>decideExchange(e,'cancel')}>Cancelar propuesta</Button>)}
-   </View>)}
-  </View>}
-  {(data?.rivals||[]).map(rival=><View key={rival.id} style={panel}>
+   </DividerView>)}
+  </DividerView>}
+  {(data?.rivals||[]).map(rival=><DividerView key={rival.id} style={panel}>
    <Pressable accessibilityRole="button" accessibilityLabel={'Ver plantilla de '+rival.name} accessibilityState={{expanded:expanded===rival.id}} onPress={()=>setExpanded(expanded===rival.id?null:rival.id)} style={{flexDirection:'row',alignItems:'center',gap:12,paddingVertical:6}}>
     <FantasyTeamPhoto photo={rival.photo} size={52}/><View style={{flex:1,gap:4}}>
      <Text style={{...title,fontSize:19}}>{rival.name}</Text>
@@ -139,7 +141,7 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
    {expanded===rival.id&&<View style={{gap:8}}>
     <Button secondary disabled={busy} onPress={()=>openLoan(rival)}>Ofrecer una cesión</Button>
     {!rival.players.length&&<Text style={text}>Este rival todavía no tiene jugadores.</Text>}
-    {rival.players.map(player=><View key={player.ownershipId} style={{gap:9,borderTopWidth:1,borderColor:theme.border,paddingTop:12}}>
+    {rival.players.map(player=><DividerView key={player.ownershipId} style={{gap:9,borderTopWidth:appTheme.lineWidth,borderColor:theme.border,paddingTop:12}}>
      <View style={{flexDirection:'row',alignItems:'center',gap:10}}>
       <PlayerPortrait playerId={player.id} teamId={player.teamId} name={player.name} size={48}/>
       <View style={{flex:1,gap:4}}>
@@ -156,13 +158,13 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
       <View style={{flex:1}}><Button secondary disabled={busy||!data.clausesEnabled} onPress={()=>openClause(player)}>Pagar cláusula</Button></View>
      </View>
      <Button secondary disabled={busy} onPress={()=>openExchange(player)}>Proponer intercambio</Button>
-    </View>)}
+    </DividerView>)}
    </View>}
-  </View>)}
+  </DividerView>)}
   <Button secondary disabled={loading||busy} onPress={()=>{setLoading(true);refresh(true)}}>{loading?'Actualizando…':'Actualizar rivales'}</Button>
   <Modal visible={!!operation} transparent animationType="fade" onRequestClose={()=>{if(!busy){setOperation(null);setSelected(null)}}}>
    <View style={{flex:1,justifyContent:'center',padding:16,backgroundColor:'#000b'}}>
-    <View accessibilityViewIsModal style={{...panel,maxHeight:'90%'}}>
+    <DividerView accessibilityViewIsModal style={{...panel,maxHeight:'90%'}}>
      <ScrollView contentContainerStyle={{gap:12}}>
       <Text style={title}>{operation==='loan'?'Ofrecer cesión':operation==='exchange'?'Proponer intercambio':operation==='offer'?'Hacer oferta':'Pagar cláusula'}</Text>
       <Text style={{...text,fontWeight:'800'}}>{selected?.name}</Text>
@@ -192,8 +194,8 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
      </ScrollView>
      <Button disabled={busy||operation==='loan'&&!loanMine||operation==='exchange'&&!exchangeMine||operation==='offer'&&!offerValid||operation==='clause'&&(!quote?.enabled||quote?.protectedRoundsRemaining>0)} onPress={execute}>{busy?'Procesando…':operation==='loan'?'Ofrecer cesión':operation==='exchange'?'Enviar propuesta de intercambio':operation==='offer'?'Enviar oferta':'Confirmar pago de cláusula'}</Button>
      <Button secondary disabled={busy} onPress={()=>{setOperation(null);setSelected(null);setError('')}}>Cancelar</Button>
-    </View>
+    </DividerView>
    </View>
   </Modal>
- </View>;
+ </SectionStack>;
 }

@@ -1,3 +1,4 @@
+import {DividerView} from './AppDividers';
 import React,{useState} from 'react';
 import {Text,Pressable,View} from 'react-native';
 import {loadTeamCalendar} from './team-calendar';
@@ -20,7 +21,7 @@ export default function FantasyOfficialMatches({teamId}){
  if(!teamId)return null;
  const now=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
  const fixtures=(team?.fixtures||[]).filter(m=>m.date).sort((a,b)=>a.date.localeCompare(b.date)).filter(m=>m.date>=new Date(Date.now()-14*86400000).toISOString().slice(0,10)).slice(0,8);
- return <View style={panel}>
+ return <DividerView style={panel}>
   <Text style={{...title,fontSize:19}}>Partidos oficiales · RFFM</Text>
   <Text style={{...text,color:theme.muted}}>Calendario de tu categoría con los escudos que publique la Federación.</Text>
   <Button secondary onPress={toggle}>{opened?'Ocultar partidos':'Ver partidos y escudos'}</Button>
@@ -41,5 +42,5 @@ export default function FantasyOfficialMatches({teamId}){
     </View>
    </View>)}
   </View>}
- </View>;
+ </DividerView>;
 }

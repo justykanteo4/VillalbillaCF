@@ -1,3 +1,4 @@
+import appTheme from './app-theme';
 import {backgroundTurn,preferredStartupTeams} from './startup-work';
 import React,{useEffect} from 'react';
 import {AppState,View,Text} from 'react-native';
@@ -20,4 +21,4 @@ export default function ReleaseStartup({children}){
  },[]);
  return children;
 }
-export function ReleaseNotes(){return <View style={{gap:12}}><Text style={{color:'#fff',fontSize:20,fontWeight:'800'}}>Últimas novedades</Text><Text style={{color:'#91adff'}}>{notes.title} · {notes.id}</Text>{notes.changes.map(change=><Text key={change} style={{color:'#eaf0fa',lineHeight:23}}>• {change}</Text>)}<Text style={{color:'#aab8cb',lineHeight:22}}>Esta actualización incluye {manifest.reports} actas y {manifest.entries} archivos públicos. Los datos que aún no estaban publicados se completan cuando están disponibles.</Text></View>}
+export function ReleaseNotes(){return <View style={{gap:12}}><Text style={{color:'#fff',fontSize:20,fontWeight:'800'}}>Últimas novedades</Text><Text style={{color:appTheme.accent}}>{notes.title} · {notes.id}</Text>{notes.changes.map(change=><Text key={change} style={{color:'#eaf0fa',lineHeight:23}}>• {change}</Text>)}<Text style={{color:'#aab8cb',lineHeight:22}}>Esta actualización incluye {manifest.reports} actas y {manifest.entries} archivos públicos. Los datos que aún no estaban publicados se completan cuando están disponibles.</Text></View>}

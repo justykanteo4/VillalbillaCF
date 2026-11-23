@@ -1,3 +1,4 @@
+import {DividerView} from './AppDividers';
 import React,{useRef,useState} from 'react';
 import {View,Text} from 'react-native';
 import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
@@ -25,7 +26,7 @@ export default function FantasySpecialRounds({request}){
    setNotice(multiplier===2?'Jornada doble activada antes del primer partido.':'Puntuación normal restaurada para la jornada.');
   });
  }
- return <View style={{...panel,gap:12}}>
+ return <DividerView style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:20}}>Club · Jornadas especiales</Text>
   <Text style={text}>Marca una jornada de Fantasy con puntuación doble (×2). Se duplican los puntos del once y del entrenador para esa semana. Solo se puede cambiar antes del primer partido; así protegemos las clasificaciones y los premios ya repartidos.</Text>
   <Button secondary disabled={busy} onPress={list}>{leagues?'Actualizar ligas':'Seleccionar liga'}</Button>
@@ -41,5 +42,5 @@ export default function FantasySpecialRounds({request}){
   </View>}
   {!!notice&&<Text accessibilityRole="alert" style={{...text,color:theme.accent}}>{notice}</Text>}
   <ErrorText>{error}</ErrorText>
- </View>;
+ </DividerView>;
 }

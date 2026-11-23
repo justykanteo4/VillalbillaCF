@@ -1,3 +1,5 @@
+import {DividerView} from './AppDividers';
+import appTheme from './app-theme';
 import React,{useRef,useState} from 'react';
 import {View,Text,TextInput} from 'react-native';
 import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
@@ -89,7 +91,7 @@ export default function FantasyLeagueManage({request}){
   await run(async()=>{const result=await request('/admin/leagues/history?league='+encodeURIComponent(current.id),{cache:'reload'});setHistory(result.events||[])});
  }
  const valid=!!current&&name.trim().length>=3&&name.trim().length<=60&&Number.isInteger(Number(limit))&&Number(limit)>=Math.max(2,current.memberCount)&&Number(limit)<=15&&(current.mode!=='classic'||Number(limit)===current.maxMembers)&&(name.trim()!==current.name||Number(limit)!==current.maxMembers);
- return <View style={{...panel,gap:12}}>
+ return <DividerView style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:20}}>Club · Nombre y participantes</Text>
   <Text style={text}>Cambia el nombre de una liga o su límite de participantes sin borrar datos. Las ligas clásicas mantienen su límite fijo.</Text>
   <Button secondary disabled={busy} onPress={load}>{list?'Actualizar ligas':'Gestionar ligas'}</Button>
@@ -140,15 +142,15 @@ export default function FantasyLeagueManage({request}){
     <Button disabled={busy||copyName.trim().length<3||copyNickname.trim().length<2} onPress={duplicate}>Crear liga copiando únicamente las reglas</Button>
    </View>}
    {history?.length===0&&<Text style={{...text,color:theme.muted}}>Todavía no hay cambios registrados en esta liga.</Text>}
-   {history?.map((event,index)=><View key={index} style={{gap:3,borderTopWidth:1,borderColor:theme.border,paddingTop:8}}>
+   {history?.map((event,index)=><DividerView key={index} style={{gap:3,borderTopWidth:appTheme.lineWidth,borderColor:theme.border,paddingTop:8}}>
     <Text style={text}>{new Date(event.createdAt).toLocaleString('es-ES')} · {event.actor}</Text>
     {event.kind==='lifecycle'?<Text style={{...text,color:theme.muted}}>Estado: {event.before.state} → {event.after.state}</Text>:<>
      <Text style={{...text,color:theme.muted}}>{event.before.name} → {event.after.name}</Text>
      <Text style={{...text,color:theme.muted}}>Plazas: {event.before.maxMembers} → {event.after.maxMembers}</Text>
     </>}
-   </View>)}
+   </DividerView>)}
   </View>}
   {!!notice&&<Text accessibilityRole="alert" style={{...text,color:theme.accent}}>{notice}</Text>}
   <ErrorText>{error}</ErrorText>
- </View>;
+ </DividerView>;
 }

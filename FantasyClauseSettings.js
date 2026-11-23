@@ -1,3 +1,4 @@
+import {DividerView} from './AppDividers';
 import React,{useEffect,useState} from 'react';
 import {View,Text} from 'react-native';
 import {Button,ErrorText,panel,title,text,theme} from './FantasyUI';
@@ -26,7 +27,7 @@ export default function FantasyClauseSettings({request}){
   finally{setBusy(false)}
  }
  const league=leagues.find(item=>item.id===selected);
- return <View style={{...panel,gap:12}}>
+ return <DividerView style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:20}}>Club · Cláusulas de las ligas</Text>
   <Text style={{...text,color:theme.muted}}>Solo administradores. Activa o desactiva las cláusulas de cada liga.</Text>
   <Button secondary disabled={busy} onPress={()=>open?setOpen(false):loadLeagues()}>{open?'Ocultar gestión':'Gestionar cláusulas'}</Button>
@@ -37,5 +38,5 @@ export default function FantasyClauseSettings({request}){
    {league&&enabled!==null&&!busy&&<FantasyClauseLeagueAdmin key={league.id+':'+String(enabled)} league={{...league,settings:{clausesEnabled:enabled}}} request={request} onUpdated={()=>loadStatus(league.id)}/>}
   </>}
   <ErrorText>{error}</ErrorText>
- </View>;
+ </DividerView>;
 }

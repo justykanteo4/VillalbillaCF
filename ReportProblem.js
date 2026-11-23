@@ -1,3 +1,4 @@
+import appTheme from './app-theme';
 import React,{useState} from 'react';
 import {View,Text,TextInput,Pressable,Share,Platform} from 'react-native';
 
@@ -24,14 +25,14 @@ export default function ReportProblem(){
   <Text style={{color:'#aab8cb'}}>Describe el error sin incluir contraseñas, teléfonos ni datos privados de menores. El informe no se envía hasta que tú lo compartas.</Text>
   <Text style={{color:'#fff',fontWeight:'700'}}>¿Dónde ocurre?</Text>
   <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>
-   {areas.map(value=><Pressable key={value} accessibilityRole="radio" accessibilityState={{checked:value===area}} onPress={()=>setArea(value)} style={{padding:9,borderWidth:1,borderColor:value===area?'#91adff':'#334667',backgroundColor:value===area?'#1b2e69':'#101c2b',borderRadius:8}}>
+   {areas.map(value=><Pressable key={value} accessibilityRole="radio" accessibilityState={{checked:value===area}} onPress={()=>setArea(value)} style={{padding:9,borderWidth:1,borderColor:value===area?appTheme.accent:'#334667',backgroundColor:value===area?appTheme.selected:appTheme.surface,borderRadius:8}}>
     <Text style={{color:'#fff'}}>{value}</Text>
    </Pressable>)}
   </View>
-  <TextInput multiline accessibilityLabel="Descripción del problema" placeholder="Qué estabas haciendo y qué ocurrió..." placeholderTextColor="#aab8cb" value={details} onChangeText={value=>setDetails(value.slice(0,1200))} style={{color:'#fff',backgroundColor:'#101c2b',padding:12,borderRadius:10,borderWidth:1,borderColor:'#334667',minHeight:120,textAlignVertical:'top'}}/>
-  <Pressable accessibilityRole="button" onPress={share} style={{padding:14,borderRadius:10,backgroundColor:'#1b2e69'}}><Text style={{color:'#fff',textAlign:'center',fontWeight:'800'}}>Compartir informe</Text></Pressable>
-  {!!message&&<Text accessibilityRole="alert" style={{color:'#91adff'}}>{message}</Text>}
+  <TextInput multiline accessibilityLabel="Descripción del problema" placeholder="Qué estabas haciendo y qué ocurrió..." placeholderTextColor="#aab8cb" value={details} onChangeText={value=>setDetails(value.slice(0,1200))} style={{color:'#fff',backgroundColor:appTheme.surface,padding:12,borderRadius:10,borderWidth:1,borderColor:'#334667',minHeight:120,textAlignVertical:'top'}}/>
+  <Pressable accessibilityRole="button" onPress={share} style={{padding:14,borderRadius:10,backgroundColor:appTheme.selected}}><Text style={{color:'#fff',textAlign:'center',fontWeight:'800'}}>Compartir informe</Text></Pressable>
+  {!!message&&<Text accessibilityRole="alert" style={{color:appTheme.accent}}>{message}</Text>}
   {!!error&&<Text accessibilityRole="alert" style={{color:'#ffc1c9'}}>{error}</Text>}
-  {details.trim().length>=10&&<TextInput multiline editable={false} selectTextOnFocus accessibilityLabel="Informe para copiar" value={report} style={{color:'#dce6f2',backgroundColor:'#101c2b',padding:12,borderRadius:8,minHeight:105}}/>}
+  {details.trim().length>=10&&<TextInput multiline editable={false} selectTextOnFocus accessibilityLabel="Informe para copiar" value={report} style={{color:'#dce6f2',backgroundColor:appTheme.surface,padding:12,borderRadius:8,minHeight:105}}/>}
  </View>;
 }

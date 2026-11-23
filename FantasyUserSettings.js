@@ -1,3 +1,5 @@
+import {DividerView} from './AppDividers';
+import appTheme from './app-theme';
 import React,{useEffect,useRef,useState} from 'react';
 import {Text,View} from 'react-native';
 import {Button,ErrorText,Field,panel,text,title,theme} from './FantasyUI';
@@ -30,7 +32,7 @@ export default function FantasyUserSettings({request}){
   }catch(e){if(active.current)setError(e.message)}
   finally{locked.current=false;if(active.current)setBusy(false)}
  }
- return <View style={panel}>
+ return <DividerView style={panel}>
   <Text accessibilityRole="header" style={title}>Usuarios de Fantasy</Text>
   {!open?<Button secondary onPress={()=>{setOpen(true);load('')}}>Gestionar usuarios</Button>:<>
    <Field label="Buscar por nombre o ID" value={query} onChange={setQuery}/>
@@ -39,7 +41,7 @@ export default function FantasyUserSettings({request}){
    {!!notice&&<Text accessibilityRole="alert" style={text}>{notice}</Text>}
    {busy&&<Text style={text}>Consultando Fantasy…</Text>}
    {!!page&&!page.users.length&&<Text style={text}>No se encontraron usuarios.</Text>}
-   {page?.users.map(user=><View key={user.uid} style={{gap:6,borderTopWidth:1,borderColor:theme.border,paddingTop:10}}>
+   {page?.users.map(user=><DividerView key={user.uid} style={{gap:6,borderTopWidth:appTheme.lineWidth,borderColor:theme.border,paddingTop:10}}>
     <Text style={{...text,fontWeight:'800'}}>{user.nickname}</Text>
     <Text style={{...text,color:theme.muted}}>{user.uid} · {user.leagues} {user.leagues===1?'liga':'ligas'}</Text>
     {user.excludedAt!=null?<Button secondary disabled={busy} onPress={()=>change(user,false)}>Restaurar acceso</Button>:
@@ -48,8 +50,8 @@ export default function FantasyUserSettings({request}){
       <Button disabled={busy} onPress={()=>change(user,true)}>Confirmar retirada de acceso</Button>
       <Button secondary disabled={busy} onPress={()=>select(null)}>Cancelar</Button>
      </>:<Button secondary disabled={busy} onPress={()=>select(user.uid)}>Quitar de Fantasy</Button>}
-   </View>)}
+   </DividerView>)}
    {!!page?.next&&<Button secondary disabled={busy} onPress={()=>load(search.current,page.next)}>Ver más usuarios</Button>}
   </>}
- </View>;
+ </DividerView>;
 }

@@ -1,3 +1,5 @@
+import {SectionStack} from './AppDividers';
+import appTheme from './app-theme';
 import React,{useEffect,useState} from 'react';
 import {View,Text,TextInput,Pressable} from 'react-native';
 import {auth} from './firebase';
@@ -33,11 +35,11 @@ export default function AdminResultAudit(){
  useEffect(()=>{refresh()},[]);
  const filtered=entries.filter(row=>normalize([row.actor_name,row.actor_email,row.match_id,teamName(row.team_id),row.action].join(' ')).includes(normalize(search.trim())));
  const filteredMvp=mvpEntries.filter(row=>normalize([row.actor_name,row.actor_role,row.match_id,teamName(row.team_id),selectedPlayers(row.player_ids),selectedPlayers(row.previous_player_ids)].join(' ')).includes(normalize(search.trim())));
- return <View style={{gap:14}}>
+ return <SectionStack style={{gap:14}}>
   <Text accessibilityRole="header" style={{color:palette.text,fontSize:24,fontWeight:'800'}}>Auditoría de resultados</Text>
   <Text style={{color:palette.muted,lineHeight:20}}>Últimas 100 correcciones de resultados y 100 cambios de MVP: autor, equipo, fecha y datos anteriores/nuevos. Solo visible para administradores.</Text>
   <TextInput accessibilityLabel="Buscar cambios deportivos" placeholder="Buscar equipo, partido o responsable" placeholderTextColor={palette.muted} value={search} onChangeText={setSearch} style={{backgroundColor:palette.panel,color:palette.text,borderRadius:10,padding:13}}/>
-  <Pressable accessibilityRole="button" disabled={loading} onPress={refresh} style={{padding:14,backgroundColor:'#1b2e69',borderRadius:10,opacity:loading?0.5:1}}><Text style={{color:palette.text,fontWeight:'700'}}>{loading?'Consultando…':'Actualizar historial'}</Text></Pressable>
+  <Pressable accessibilityRole="button" disabled={loading} onPress={refresh} style={{padding:14,backgroundColor:appTheme.selected,borderRadius:10,opacity:loading?0.5:1}}><Text style={{color:palette.text,fontWeight:'700'}}>{loading?'Consultando…':'Actualizar historial'}</Text></Pressable>
   {!!error&&<Text accessibilityRole="alert" style={{color:palette.error}}>{error}</Text>}
   {checked&&<Text style={{color:palette.muted}}>Última consulta: {checked.toLocaleString('es-ES')} · {filtered.length+filteredMvp.length} registros visibles</Text>}
   {!loading&&!filtered.length&&!filteredMvp.length&&<Text style={{color:palette.muted}}>{entries.length||mvpEntries.length?'No hay cambios para esta búsqueda.':'No hay correcciones registradas.'}</Text>}
@@ -55,5 +57,5 @@ export default function AdminResultAudit(){
    <Text style={{color:palette.text}}>{score(row.previous_home)} - {score(row.previous_away)} → {row.action==='restore'?'Resultado federativo':score(row.home_score)+' - '+score(row.away_score)}</Text>
    <Text style={{color:palette.muted}}>{row.actor_name||row.actor_uid} · {new Date(row.created_at).toLocaleString('es-ES')}</Text>
   </View>)}
- </View>;
+ </SectionStack>;
 }

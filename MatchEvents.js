@@ -1,3 +1,5 @@
+import {DividerView} from './AppDividers';
+import appTheme from './app-theme';
 import React,{useState,useEffect,useRef} from 'react';
 import {View,Text,Pressable,StyleSheet,AppState} from 'react-native';
 import {api} from './api';
@@ -33,9 +35,9 @@ export default function MatchEvents({match,onVenue,onUpdate,forceRefresh=false})
    {data&&!data.error&&!data.closed&&<Text style={s.warning}>Acta pendiente de cierre: los datos pueden estar incompletos.</Text>}
    {[['Goles','goals','goalsAvailable'],['Tarjetas','cards','cardsAvailable']].map(([label,key,available])=><View style={s.card} key={key}>
     <Text style={s.heading}>{label}</Text>
-    {!data?.[available]?<Text style={s.muted}>Información no publicada en el acta disponible.</Text>:!data[key].length?<Text style={s.muted}>{key==='goals'?'No hay goles registrados en el acta.':'No hay tarjetas registradas en el acta.'}</Text>:data[key].map((e,i)=><View key={i} style={s.event}><Text style={s.minute}>{e.minute?e.minute+'′':'Minuto no publicado'}</Text><PlayerPortrait name={e.name} teamId={String(e.team||'').toLocaleLowerCase('es').includes('villalbilla')?match.team.id:null} disableLookup={!String(e.team||'').toLocaleLowerCase('es').includes('villalbilla')} size={44}/><View style={{flex:1,gap:5}}><Text style={s.name}>{e.name}</Text><Text style={s.muted}>{e.team}</Text><Text style={[s.type,key==='cards'&&{color:e.color==='red'?'#ff9995':'#f7d66e'}]}>{e.type}</Text></View></View>)}
+    {!data?.[available]?<Text style={s.muted}>Información no publicada en el acta disponible.</Text>:!data[key].length?<Text style={s.muted}>{key==='goals'?'No hay goles registrados en el acta.':'No hay tarjetas registradas en el acta.'}</Text>:data[key].map((e,i)=><DividerView key={i} style={s.event}><Text style={s.minute}>{e.minute?e.minute+'′':'Minuto no publicado'}</Text><PlayerPortrait name={e.name} teamId={String(e.team||'').toLocaleLowerCase('es').includes('villalbilla')?match.team.id:null} disableLookup={!String(e.team||'').toLocaleLowerCase('es').includes('villalbilla')} size={44}/><View style={{flex:1,gap:5}}><Text style={s.name}>{e.name}</Text><Text style={s.muted}>{e.team}</Text><Text style={[s.type,key==='cards'&&{color:e.color==='red'?'#ff9995':'#f7d66e'}]}>{e.type}</Text></View></DividerView>)}
    </View>)}
   </>}
  </View>;
 }
-const s=StyleSheet.create({card:{backgroundColor:'#151f2d',padding:20,borderRadius:18,gap:16,borderWidth:1,borderColor:'#2d3e52'},heading:{fontSize:21,fontWeight:'800',color:'#fff'},muted:{fontSize:13,lineHeight:21,color:'#aab8cb'},warning:{color:'#ffc1c9',lineHeight:21},link:{color:'#91adff',fontWeight:'700',padding:10},event:{flexDirection:'row',gap:12,borderTopWidth:1,borderColor:'#2d3e52',paddingTop:14},minute:{fontSize:14,color:'#91adff',fontWeight:'800',width:62},name:{color:'#fff',fontWeight:'700',lineHeight:21},type:{fontSize:12,color:'#91adff',fontWeight:'700'}});
+const s=StyleSheet.create({card:{backgroundColor:appTheme.panel,padding:20,borderRadius:18,gap:16,borderWidth:1,borderColor:appTheme.border},heading:{fontSize:21,fontWeight:'800',color:'#fff'},muted:{fontSize:13,lineHeight:21,color:'#aab8cb'},warning:{color:'#ffc1c9',lineHeight:21},link:{color:appTheme.accent,fontWeight:'700',padding:10},event:{flexDirection:'row',gap:12,borderTopWidth:appTheme.lineWidth,borderColor:appTheme.accent,paddingTop:14},minute:{fontSize:14,color:appTheme.accent,fontWeight:'800',width:62},name:{color:'#fff',fontWeight:'700',lineHeight:21},type:{fontSize:12,color:appTheme.accent,fontWeight:'700'}});

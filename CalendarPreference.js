@@ -1,3 +1,4 @@
+import appTheme from './app-theme';
 import React,{useEffect,useState} from 'react';
 import {View,Text,Pressable} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,7 +11,7 @@ export default function CalendarPreference(){
  return <View style={{padding:15,gap:12,borderRadius:12,backgroundColor:'#162544'}}>
   <Text accessibilityRole="header" style={{fontSize:20,fontWeight:'800',color:'#fff'}}>Preferencias de calendario</Text>
   <Text style={{color:'#aab8cb'}}>Elige qué partidos quieres ver al abrir el calendario. Puedes cambiar el filtro en cualquier momento.</Text>
-  {calendarPreference.filters.map(value=><Pressable key={value} accessibilityRole="radio" accessibilityState={{checked:filter===value}} onPress={()=>change(value)} style={{padding:13,borderWidth:1,borderColor:value===filter?'#91adff':'#334667',backgroundColor:value===filter?'#1b2e69':'#101c2b',borderRadius:9}}><Text style={{color:'#fff'}}>{filter===value?'◉ ':'○ '}{value}</Text></Pressable>)}
+  {calendarPreference.filters.map(value=><Pressable key={value} accessibilityRole="radio" accessibilityState={{checked:filter===value}} onPress={()=>change(value)} style={{padding:13,borderWidth:1,borderColor:value===filter?appTheme.accent:'#334667',backgroundColor:value===filter?appTheme.selected:appTheme.surface,borderRadius:9}}><Text style={{color:'#fff'}}>{filter===value?'◉ ':'○ '}{value}</Text></Pressable>)}
   {!!error&&<Text accessibilityRole="alert" style={{color:'#ffc1c9'}}>{error}</Text>}
  </View>;
 }

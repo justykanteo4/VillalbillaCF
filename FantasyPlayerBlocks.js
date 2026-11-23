@@ -1,3 +1,5 @@
+import {DividerView} from './AppDividers';
+import appTheme from './app-theme';
 import React,{useRef,useState} from 'react';
 import {View,Text,TextInput} from 'react-native';
 import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
@@ -30,7 +32,7 @@ export default function FantasyPlayerBlocks({request}){
   });
  }
  const results=query.trim().length>=2?players.filter(player=>matchesPersonQuery(player.name+' '+player.team,query.trim())).slice(0,25):[];
- return <View style={{...panel,gap:12}}>
+ return <DividerView style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:20}}>Club · Bloquear fichajes de jugadores</Text>
   <Text style={text}>El bloqueo afecta a nuevas pujas, ofertas, compras y cláusulas en esta liga. No elimina jugadores ya fichados ni borra dinero.</Text>
   <Button secondary disabled={busy} onPress={load}>{leagues?'Actualizar ligas':'Elegir una liga'}</Button>
@@ -42,13 +44,13 @@ export default function FantasyPlayerBlocks({request}){
    {query.trim().length>=2&&results.length===0&&<Text style={{...text,color:theme.muted}}>No se encontraron jugadores.</Text>}
    {results.map(player=>{
     const isBlocked=blocked.some(item=>item.playerId===player.id);
-    return <View key={player.id} style={{gap:5,padding:9,borderBottomWidth:1,borderColor:theme.border}}>
+    return <DividerView key={player.id} style={{gap:5,padding:9,borderBottomWidth:appTheme.lineWidth,borderColor:theme.border}}>
      <Text style={{...text,fontWeight:'800'}}>{player.name} · {player.team||'Club'}</Text>
      <Button secondary disabled={busy} onPress={()=>change(player)}>{isBlocked?'Desbloquear fichajes':'Bloquear nuevos fichajes'}</Button>
-    </View>;
+    </DividerView>;
    })}
   </View>}
   {!!notice&&<Text accessibilityRole="alert" style={{...text,color:theme.accent}}>{notice}</Text>}
   <ErrorText>{error}</ErrorText>
- </View>;
+ </DividerView>;
 }

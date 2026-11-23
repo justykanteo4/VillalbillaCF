@@ -1,18 +1,20 @@
+import {DividerView} from './AppDividers';
+import appTheme from './app-theme';
 import React,{useEffect,useState} from 'react';
 import {View,Text,Pressable,TextInput} from 'react-native';
 import theme from './fantasy-theme.cjs';
 import FantasyAnimatedPressable from './FantasyAnimatedPressable';
 export {theme};
-export const text={color:theme.text,lineHeight:22},panel={paddingVertical:14,paddingHorizontal:8,gap:12,borderRadius:0,backgroundColor:'#000',borderTopWidth:1,borderBottomWidth:1,borderColor:'#303030'},title={...text,fontSize:22,fontWeight:'900'},input={padding:12,borderRadius:8,borderWidth:1,borderColor:'#454545',color:theme.text,backgroundColor:'#000'};
+export const text={color:theme.text,lineHeight:22},panel={paddingVertical:16,paddingHorizontal:16,gap:12,borderRadius:18,backgroundColor:theme.panel,borderTopWidth:appTheme.lineWidth,borderBottomWidth:appTheme.lineWidth,borderColor:appTheme.accent},title={...text,fontSize:22,fontWeight:'900'},input={padding:12,borderRadius:8,borderWidth:1,borderColor:appTheme.border,color:theme.text,backgroundColor:appTheme.panel};
 export function applyFantasyPalette(palette){
  Object.assign(theme,palette);
  Object.assign(text,{color:theme.text});
- Object.assign(panel,{backgroundColor:'#000',borderColor:'#303030'});
+ Object.assign(panel,{backgroundColor:theme.panel,borderColor:theme.border});
  Object.assign(title,{color:theme.text});
- Object.assign(input,{borderColor:'#454545',color:theme.text,backgroundColor:'#000'});
+ Object.assign(input,{borderColor:theme.border,color:theme.text,backgroundColor:theme.header});
 }
 export const money=cents=>(cents/100).toLocaleString('es-ES',{maximumFractionDigits:2})+' M';
-export function Button({children,onPress,disabled=false,secondary=false}){return <FantasyAnimatedPressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={{padding:12,borderRadius:10,backgroundColor:secondary?'#171717':theme.button,opacity:disabled?0.45:1,borderWidth:secondary?1:0,borderColor:theme.border}}><Text style={{...text,textAlign:'center',fontWeight:'800',color:secondary?theme.text:theme.buttonText}}>{children}</Text></FantasyAnimatedPressable>}
+export function Button({children,onPress,disabled=false,secondary=false}){return <FantasyAnimatedPressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={{padding:12,borderRadius:10,backgroundColor:secondary?theme.header:theme.button,opacity:disabled?0.45:1,borderWidth:secondary?1:0,borderColor:theme.border}}><Text style={{...text,textAlign:'center',fontWeight:'800',color:secondary?theme.text:theme.buttonText}}>{children}</Text></FantasyAnimatedPressable>}
 export function ErrorText({children}){return children?<Text accessibilityRole="alert" style={{...text,color:theme.negative}}>{children}</Text>:null}
 export function Field({label,value,onChange,number=false}){return <View style={{gap:5}}><Text style={text}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChange} keyboardType={number?'decimal-pad':'default'} placeholderTextColor={theme.muted} style={input}/></View>}
 const rules = [
@@ -65,14 +67,14 @@ export function FantasyRules({request}){
    if(heading==='MVP, once ideal y capitán')return [heading,items.map(item=>item.replace('Cada MVP suma 1 punto.','Cada MVP suma '+points.mvp+' puntos.'))];
    return [heading,items];
   });
-  return <View style={panel}>
+  return <DividerView style={panel}>
     <Text accessibilityRole="header" style={title}>Reglas de VillalbillaFantasy</Text>
-    {sections.map(([heading,items])=><View key={heading} style={{gap:7,borderTopWidth:1,borderColor:theme.border,paddingTop:12}}>
+    {sections.map(([heading,items])=><DividerView key={heading} style={{gap:7,borderTopWidth:appTheme.lineWidth,borderColor:theme.border,paddingTop:12}}>
       <Text accessibilityRole="header" style={{...text,color:theme.accent,fontSize:16,fontWeight:'800'}}>{heading}</Text>
       {items.map(item=><View key={item} style={{flexDirection:'row',gap:8}}>
         <Text style={{...text,color:theme.accent}}>•</Text>
         <Text style={{...text,flex:1}}>{item}</Text>
       </View>)}
-    </View>)}
-  </View>;
+    </DividerView>)}
+  </DividerView>;
 }

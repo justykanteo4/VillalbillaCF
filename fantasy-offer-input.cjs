@@ -1,0 +1,3 @@
+function offerAmount(text){const raw=String(text??'').trim().replace(/\s/g,'');if(!/^\d+(?:[.,]\d{0,2})?$/.test(raw))return null;const value=Number(raw.replace(',','.'));return Number.isFinite(value)&&value>=1&&value<=1000?Math.round(value*100)/100:null}
+function offerSnapshot(player,amount){if(!player||player.mine||!player.owner||!player.ownershipId||!Number.isFinite(amount)||amount<1||amount>1000||Math.abs(amount*100-Math.round(amount*100))>1e-7)return null;return {playerId:player.id,playerName:player.name,teamId:player.teamId,owner:player.owner,ownershipId:player.ownershipId,amount}}
+module.exports={offerAmount,offerSnapshot};

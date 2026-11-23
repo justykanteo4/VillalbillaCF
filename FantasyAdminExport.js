@@ -1,3 +1,4 @@
+import {DividerView} from './AppDividers';
 import React,{useState} from 'react';
 import {View,Text,Share,Platform} from 'react-native';
 import {Button,ErrorText,text,title,panel,theme} from './FantasyUI';
@@ -27,7 +28,7 @@ export default function FantasyAdminExport({request}){
   }catch(e){setError(e.message||'No se pudo preparar la exportación.')}
   finally{setBusy(false)}
  }
- return <View style={{...panel,gap:12}}>
+ return <DividerView style={{...panel,gap:12}}>
   <Text style={{...title,fontSize:20}}>Club · Exportar configuración de ligas</Text>
   <Text style={text}>Copia las reglas de una liga, su nombre y el número de participantes. Por privacidad, no se incluyen correos, nombres de jugadores ni códigos de invitación.</Text>
   <Button secondary onPress={load} disabled={busy}>{busy?'Consultando…':'Elegir liga para exportar'}</Button>
@@ -35,5 +36,5 @@ export default function FantasyAdminExport({request}){
   {!!notice&&<Text style={{...text,color:theme.accent}}>{notice}</Text>}
   <ErrorText>{error}</ErrorText>
   {!!prepared&&<Text selectable style={{...text,color:theme.muted,fontSize:11}}>{prepared}</Text>}
- </View>;
+ </DividerView>;
 }

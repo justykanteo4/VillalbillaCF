@@ -2,17 +2,14 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const babel=require('@babel/core');
 
 test('la apariencia puede actualizarse después de que React Native congele los estilos',()=>{
- const {code}=babel.transformSync(fs.readFileSync('FantasyUI.js','utf8'),{
-  configFile:false,babelrc:false,plugins:['@babel/plugin-transform-modules-commonjs',['@babel/plugin-transform-react-jsx',{runtime:'classic'}]],
- });
- const result={};
- vm.runInNewContext(code,{exports:result,require:id=>{
-  if(id==='./fantasy-theme.cjs')return {...require('./fantasy-theme.cjs')};
-  return {};
- }});
+ const source=fs.readFileSync('FantasyUI.js','utf8');
+ const start=source.indexOf('export let text='),end=source.indexOf('export const money=');
+ assert(start>=0&&end>start);
+ const declarations=source.slice(start,end).replace('export let ','let ').replace('export function ','function ');
+ const theme={...require('./fantasy-theme.cjs')};
+ const result=vm.runInNewContext(declarations+';({get text(){return text},get panel(){return panel},get title(){return title},get input(){return input},applyFantasyPalette})',{theme});
  const old=result.text;
  for(const name of ['text','panel','title','input'])Object.freeze(result[name]);
  assert.doesNotThrow(()=>result.applyFantasyPalette({text:'#123456',border:'#abcdef'}));

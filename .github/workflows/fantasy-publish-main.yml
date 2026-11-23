@@ -33,6 +33,8 @@ on:
       - 'fantasy-service.mjs'
       - 'fantasy-service.test.mjs'
       - 'fantasy-economy.test.mjs'
+      - 'fantasy-game.test.mjs'
+      - 'fantasy-style-render.test.cjs'
       - 'settings-upgrade-catalog.test.cjs'
       - 'FantasySettings.js'
       - 'FantasyLeagueManage.js'

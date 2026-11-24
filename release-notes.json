@@ -1,9 +1,9 @@
 {
-  "id": "2026.11.24.fantasy-control-pagos",
+  "id": "2026.11.24.fantasy-accesos-pagos",
   "date": "2026-11-24",
-  "title": "Fantasy: control de pagos",
+  "title": "Fantasy: accesos a partidos pendientes",
   "changes": [
-    "Panel de administración para diagnosticar jornadas, consultar premios y forzar el recálculo seguro de una liga.",
-    "Se elimina el mínimo de tres MVP también en el selector de ajustes de Fantasy."
+    "Acceso directo para modificar resultados y elegir MVP desde el control de pagos.",
+    "Los MVP que bloquean pagos aparecen también en tareas pendientes aunque falten en el calendario visible."
   ]
 }

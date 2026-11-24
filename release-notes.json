@@ -1,8 +1,8 @@
 {
-  "id": "2026.11.23.fantasy-estilos",
-  "date": "2026-11-23",
-  "title": "Fantasy: recuperación de pantallas",
+  "id": "2026.11.24.fantasy-premios",
+  "date": "2026-11-24",
+  "title": "Fantasy: abono de premios",
   "changes": [
-    "Se evita modificar estilos ya entregados a React Native al actualizar la apariencia de Fantasy, para que sus pantallas puedan volver a dibujarse."
+    "Se permite cerrar las jornadas con uno o dos MVP por victoria y se vuelven a evaluar los premios pendientes sin duplicar abonos."
   ]
 }

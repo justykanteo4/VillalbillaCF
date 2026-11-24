@@ -1,8 +1,9 @@
 {
-  "id": "2026.11.24.fantasy-premios",
+  "id": "2026.11.24.fantasy-mvp-libre",
   "date": "2026-11-24",
-  "title": "Fantasy: abono de premios",
+  "title": "Fantasy: MVP sin límite y premios",
   "changes": [
-    "Se permite cerrar las jornadas con uno o dos MVP por victoria y se vuelven a evaluar los premios pendientes sin duplicar abonos."
+    "Selección libre de MVP entre los convocados, con guardado desde un solo jugador o retirada de todos.",
+    "Las victorias con al menos un MVP dejan de aparecer como pendientes y permiten cerrar la jornada y recalcular los premios sin duplicarlos."
   ]
 }

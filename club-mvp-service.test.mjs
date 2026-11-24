@@ -54,22 +54,22 @@ test('MVP: acceso por equipo y capacidad, lectura exclusivamente del partido sol
  assert.equal((await f.call(f.get(),{authorize:async()=>{throw Object.assign(Error('Sin permiso'),{status:403})}})).status,403);
  assert.equal(await handleClubMvp(new Request(base+'/api/news'),f.env),null);
 });
-test('MVP: cambios auditados, uno o dos por partido, autor verificado y revisión concurrente',async t=>{
+test('MVP: cambios auditados, sin límite por partido, autor verificado y revisión concurrente',async t=>{
  const f=setup(t);
  const before=await (await f.call(f.get())).json();
  const revision=before.revision;
- assert.equal((await f.call(f.post({revision,playerIds:winners.slice(0,3)}))).status,400);
+ assert.equal((await f.call(f.post({revision,playerIds:[winners[0],winners[0]]}))).status,400);
  assert.equal((await f.call(f.post({revision,playerIds:winners.slice(0,2)},'https://evil.test'))).status,403);
  assert.equal((await f.call(f.post({kind:'idealXI',revision,playerIds:winners}))).status,400);
- let r=await f.call(f.post({revision,playerIds:winners.slice(0,2),actor_uid:'forged',actor_name:'Falso'}));
+ let r=await f.call(f.post({revision,playerIds:winners,actor_uid:'forged',actor_name:'Falso'}));
  assert.equal(r.status,200,JSON.stringify(await r.clone().json()));
- assert.equal(f.sql.prepare("SELECT COUNT(*) n FROM fantasy_awards WHERE kind='mvp' AND match_id=? AND team_id=?").get(match.id,match.teamId).n,2);
+ assert.equal(f.sql.prepare("SELECT COUNT(*) n FROM fantasy_awards WHERE kind='mvp' AND match_id=? AND team_id=?").get(match.id,match.teamId).n,4);
  const logged=f.sql.prepare('SELECT * FROM club_mvp_audit').get();
  assert.equal(logged.actor_uid,'coach-real');
  assert.equal(logged.actor_name,'Entrenador real');
  assert.equal(logged.actor_role,'trainer');
  assert.deepEqual(JSON.parse(logged.previous_player_ids),[]);
- assert.deepEqual(JSON.parse(logged.player_ids),winners.slice(0,2));
+ assert.deepEqual(JSON.parse(logged.player_ids),winners);
  assert.equal((await f.call(f.post({revision,playerIds:winners.slice(0,2)}))).status,409);
  assert.equal(f.sql.prepare('SELECT COUNT(*) n FROM club_mvp_audit').get().n,1);
  r=await f.call(f.post({revision:revision+1,playerIds:winners.slice(0,1)}));

@@ -1,9 +1,9 @@
 {
-  "id": "2026.11.24.fantasy-accesos-pagos",
+  "id": "2026.11.24.fantasy-fotos-entrenadores",
   "date": "2026-11-24",
-  "title": "Fantasy: accesos a partidos pendientes",
+  "title": "Fantasy: fotos de entrenadores",
   "changes": [
-    "Acceso directo para modificar resultados y elegir MVP desde el control de pagos.",
-    "Los MVP que bloquean pagos aparecen también en tareas pendientes aunque falten en el calendario visible."
+    "Los entrenadores que son jugadores reutilizan la ficha de jugador.",
+    "Los administradores pueden gestionar fotos del cuerpo técnico y los entrenadores sin foto pueden añadir una voluntariamente durante el alta."
   ]
 }

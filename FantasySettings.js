@@ -1,3 +1,4 @@
+import FantasyCoachPhotos from './FantasyCoachPhotos';
 import FantasyPaymentAdmin from './FantasyPaymentAdmin';
 import FantasySeasonArchive from './FantasySeasonArchive';
 import React,{useState} from 'react';
@@ -38,6 +39,7 @@ export default function FantasySettings({request,onBack,account}){
    <FantasyAdminActivity request={request}/>
    <FantasyAdminExport request={request}/>
   </SettingsGroup>}
+  {isAdmin&&matches("Fotos de entrenadores imagen retrato delegado cuerpo técnico")&&<SettingsGroup key={"coachphotos:"+term} initiallyOpen={!!term} title="Club · Fotos de entrenadores" subtitle="Gestionar fotografías de Fantasy"><FantasyCoachPhotos account={account}/></SettingsGroup>}
   {isAdmin&&matches("Control de pagos premios saldo errores diagnóstico forzar abonar liquidación jornadas")&&<SettingsGroup key={"payments:"+term} initiallyOpen={!!term} title="Club · Control de pagos" subtitle="Diagnóstico y abono de premios"><FantasyPaymentAdmin request={request} account={account}/></SettingsGroup>}
   {isAdmin&&matches("Ligas crear reiniciar nombres cambiar nombre limite participantes temporadas equipos plazas inscripciones")&&<SettingsGroup key={"leagues:"+term} initiallyOpen={!!term} title="Club · Ligas y competición" subtitle="Crear y reiniciar ligas">
    <FantasyLeagueCreationSettings request={request}/>

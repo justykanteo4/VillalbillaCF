@@ -7,6 +7,9 @@ on:
       - '.github/workflows/fantasy-publish-main.yml'
       - 'PublicClubHeader.js'
       - 'FantasyTeamHeaderAvatar.js'
+      - 'FantasyCoachPhotos.js'
+      - 'coach-photos.mjs'
+      - 'fantasy-coach-photos-schema.sql'
       - 'FantasyTeamIdentity.js'
       - 'FantasyArea.js'
       - 'FantasyRivals.js'
@@ -155,6 +158,7 @@ jobs:
           count=$(grep -ic 'CREATE TABLE' /tmp/fantasy-backup-before-photos.sql || true)
           if [ "$count" -lt 80 ]; then echo "::error::Incomplete database backup; migration cancelled"; exit 1; fi
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-team-photos-schema.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-coach-photos-schema.sql
           echo "Created or verified Fantasy public team photo table; backup retained privately on runner."
       - name: Migrate additive Fantasy player statistics after verified backup
         shell: bash

@@ -7,6 +7,7 @@ import {handleResultEdits,overlayResultEdits} from './result-edits-service.mjs';
 import {handleClubMvp} from './club-mvp-service.mjs';
 import {scheduledWeeklyPrizes} from './fantasy-weekly-prizes.mjs';
 import {scheduledFantasy,syncFantasySports} from './fantasy-jobs.mjs';
+import {handleCoachPhotos} from './coach-photos.mjs';
 import {handleFantasy} from './fantasy-service.mjs';
 import {handleKeeperAdjustments} from './goalkeeper-adjustments-service.mjs';
 import {dispatchVoteNotifications} from './vote-notifications.mjs';
@@ -149,6 +150,7 @@ export default {
     const taskStatusResponse=await handleMatchTaskStatus(request,env);if(taskStatusResponse)return taskStatusResponse;
     const resultEditResponse=await handleResultEdits(request,env);if(resultEditResponse)return resultEditResponse;
     const clubMvpResponse=await handleClubMvp(request,env,{ctx});if(clubMvpResponse)return clubMvpResponse;
+    const coachPhotoResponse=await handleCoachPhotos(request,env);if(coachPhotoResponse)return coachPhotoResponse;
     const fantasyResponse=await handleFantasy(request,env,{ctx});if(fantasyResponse)return fantasyResponse;
     const privateSanctions=await handlePrivateSanctions(request,env,ctx);if(privateSanctions)return privateSanctions;
     const keeperAdjustmentResponse=await handleKeeperAdjustments(request,env);if(keeperAdjustmentResponse)return keeperAdjustmentResponse;

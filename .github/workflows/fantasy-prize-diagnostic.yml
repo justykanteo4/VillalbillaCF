@@ -1,0 +1,28 @@
+name: Fantasy prize diagnostic (read only)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fantasy-prize-diagnostic.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.29.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - run: pnpm install --frozen-lockfile
+      - name: Aggregate prize status without personal data
+        run: |
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT json_extract(j.value,'$.week') AS week,json_extract(j.value,'$.status') AS status,json_extract(j.value,'$.missingMvpMatches') AS missing_mvp,json_extract(j.value,'$.pendingResults') AS pending_results,COUNT(*) AS leagues FROM fantasy_prize_state s,json_each(s.status_json) j GROUP BY 1,2,3,4 ORDER BY 1 DESC;"
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT week,COUNT(*) AS prizes,SUM(amount_cents) AS total FROM fantasy_weekly_prizes GROUP BY week ORDER BY week DESC; SELECT week,COUNT(*) AS events,SUM(amount_cents) AS total FROM fantasy_prize_events GROUP BY week ORDER BY week DESC; SELECT COUNT(*) AS leagues_with_managers FROM (SELECT DISTINCT league_id FROM fantasy_managers); SELECT COUNT(*) AS prize_states,SUM(CASE WHEN lease_until>0 THEN 1 ELSE 0 END) AS leases FROM fantasy_prize_state;"
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('fantasy_prize_first','fantasy_prize_adjust','fantasy_prize_credit'); SELECT COUNT(*) AS prizes_without_wallet FROM fantasy_weekly_prizes p LEFT JOIN fantasy_wallet_cents w ON p.league_id=w.league_id AND p.uid=w.uid WHERE w.uid IS NULL;"

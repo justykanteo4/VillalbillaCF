@@ -264,6 +264,15 @@ jobs:
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-loans-schema.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name='fantasy_player_loans';"
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT COUNT(*) AS loan_count FROM fantasy_player_loans;"
+      - name: Verify and repair direct sale settlement after D1 backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s /tmp/fantasy-backup-before-photos.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-sales-schema.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-resale-schema.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-sale-settlement-migration.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE name IN ('fantasy_player_sales','fantasy_sale_settle','fantasy_sale_relist','fantasy_resale_register');"
       - name: Migrate Fantasy season archives after verified backup
         shell: bash
         run: |

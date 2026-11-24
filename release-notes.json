@@ -1,8 +1,10 @@
 {
-  "id": "2026.11.24.orden-puntos",
-  "date": "2026-11-24",
-  "title": "Fantasy: ordenar por puntos",
+  "id": "2026.11.25.ventas-estables",
+  "date": "2026-11-25",
+  "title": "Fantasy: ventas y comprobación de operaciones",
   "changes": [
+    "Corregida la venta directa de jugadores alineados cuando el administrador ha bloqueado el once. El saldo se abona una sola vez y el once bloqueado se conserva.",
+    "Las ventas muestran el motivo concreto cuando el jugador está cedido, anunciado o debe conservarse por el mínimo de plantilla.",
     "Puedes ordenar por más puntos o por nombre en Clasificación, Jugadores, Plantilla, Rivales y Mercado.",
     "Los entrenadores que son jugadores reutilizan la ficha de jugador.",
     "Los administradores pueden gestionar fotos del cuerpo técnico y los entrenadores sin foto pueden añadir una voluntariamente durante el alta."

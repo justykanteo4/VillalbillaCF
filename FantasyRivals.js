@@ -1,3 +1,5 @@
+import FantasyOrder from './FantasyOrder';
+import {orderFantasyRows} from './fantasy-list-order.cjs';
 import {FantasyTeamPhoto} from './FantasyTeamIdentity';
 import React,{useEffect,useRef,useState} from 'react';
 import {View,Text,Pressable,TextInput,Modal,ScrollView,AppState} from 'react-native';
@@ -7,6 +9,7 @@ import {Button,ErrorText,panel,title,text,input,theme,money} from './FantasyUI';
 
 const million=value=>Number(value||0).toLocaleString('es-ES',{maximumFractionDigits:2})+' M';
 export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
+ const [order,setOrder]=useState('points');
  const [data,setData]=useState(null),[selected,setSelected]=useState(null),[expanded,setExpanded]=useState(null);
  const [operation,setOperation]=useState(null),[amount,setAmount]=useState(''),[quote,setQuote]=useState(null);
  const [exchanges,setExchanges]=useState([]),[myPlayers,setMyPlayers]=useState([]),[exchangeMine,setExchangeMine]=useState(null);
@@ -139,7 +142,7 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
    {expanded===rival.id&&<View style={{gap:8}}>
     <Button secondary disabled={busy} onPress={()=>openLoan(rival)}>Ofrecer una cesión</Button>
     {!rival.players.length&&<Text style={text}>Este rival todavía no tiene jugadores.</Text>}
-    {rival.players.map(player=><View key={player.ownershipId} style={{gap:9,borderTopWidth:1,borderColor:theme.border,paddingTop:12}}>
+    <FantasyOrder value={order} onChange={setOrder}/>{orderFantasyRows(rival.players,order).map(player=><View key={player.ownershipId} style={{gap:9,borderTopWidth:1,borderColor:theme.border,paddingTop:12}}>
      <View style={{flexDirection:'row',alignItems:'center',gap:10}}>
       <PlayerPortrait playerId={player.id} teamId={player.teamId} name={player.name} size={48}/>
       <View style={{flex:1,gap:4}}>

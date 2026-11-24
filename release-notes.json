@@ -1,8 +1,9 @@
 {
-  "id": "2026.11.24.fantasy-fotos-entrenadores",
+  "id": "2026.11.24.orden-puntos",
   "date": "2026-11-24",
-  "title": "Fantasy: fotos de entrenadores",
+  "title": "Fantasy: ordenar por puntos",
   "changes": [
+    "Puedes ordenar por más puntos o por nombre en Clasificación, Jugadores, Plantilla, Rivales y Mercado.",
     "Los entrenadores que son jugadores reutilizan la ficha de jugador.",
     "Los administradores pueden gestionar fotos del cuerpo técnico y los entrenadores sin foto pueden añadir una voluntariamente durante el alta."
   ]

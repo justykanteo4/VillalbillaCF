@@ -1,9 +1,9 @@
 {
-  "id": "2026.11.24.fantasy-mvp-libre",
+  "id": "2026.11.24.fantasy-control-pagos",
   "date": "2026-11-24",
-  "title": "Fantasy: MVP sin límite y premios",
+  "title": "Fantasy: control de pagos",
   "changes": [
-    "Selección libre de MVP entre los convocados, con guardado desde un solo jugador o retirada de todos.",
-    "Las victorias con al menos un MVP dejan de aparecer como pendientes y permiten cerrar la jornada y recalcular los premios sin duplicarlos."
+    "Panel de administración para diagnosticar jornadas, consultar premios y forzar el recálculo seguro de una liga.",
+    "Se elimina el mínimo de tres MVP también en el selector de ajustes de Fantasy."
   ]
 }

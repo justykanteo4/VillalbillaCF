@@ -28,7 +28,7 @@ const rules = [
     'Gol en propia puerta −1 · Amarilla −1 · Doble amarilla −3 en total · Roja directa −4.',
   ]],
   ['MVP, once ideal y capitán', [
-    'El club elige al menos 3 MVP de cada equipo ganador entre todos los convocados, incluidos los suplentes que no jugaron. Cada MVP suma 1 punto.',
+    'El club puede elegir cualquier número de MVP de cada equipo ganador entre todos los convocados, incluidos los suplentes que no jugaron. Cada MVP suma 1 punto.',
     'El once ideal se elige entre los MVP. Cobras 1 M por cada elegido que hayas alineado, o 2 M si era tu capitán. Este premio solo suma dinero.',
     'El capitán duplica sus puntos positivos, negativos y premios. Deben pasar 6 jornadas antes de volver a elegir al mismo jugador.',
   ]],
@@ -40,7 +40,7 @@ const rules = [
   ]],
   ['Premios de jornada', [
     '1.º: 10 M · 2.º: 8 M · 3.º: 6 M · Resto: 5 M. Si hay empate, se comparte el puesto y el premio.',
-    'Estos premios sustituyen los 2 M semanales. Se pagan al confirmar los resultados y al menos tres MVP de cada partido ganado.',
+    'Estos premios sustituyen los 2 M semanales. Se pagan al confirmar los resultados y al menos un MVP de cada partido ganado.',
     'El pago se hace al cerrar la jornada. Los ajustes por resultados pendientes se ven en Transacciones.',
   ]],
   ['Mercado y fichajes', [

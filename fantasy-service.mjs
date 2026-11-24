@@ -1,3 +1,4 @@
+import {paymentAdmin} from './fantasy-payment-admin.mjs';
 import {roundPlayerBreakdown} from './fantasy-round-player-breakdown.mjs';
 import {listSeasonArchives,archiveFantasySeason} from './fantasy-seasons.mjs';
 import {loanRoute} from './fantasy-loans.mjs';
@@ -86,6 +87,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  const access=db?await db.prepare('SELECT disabled,revision,updated_at FROM fantasy_access_settings WHERE id=1').first():null;
  const accessSettings={disabled:access?!!access.disabled:true,revision:access?.revision||0,updatedAt:access?.updated_at||null};
  if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
+ if(path==='/api/fantasy/admin/payments')return reply(await paymentAdmin(env.CHAT_DB,request.method,()=>body(request),url,currentTime));
  if(path==='/api/fantasy/admin/league-creation'){
   if(!db)throw fail('No se pudo consultar la creación de ligas.',503);
   if(request.method==='GET'){

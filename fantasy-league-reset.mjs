@@ -28,10 +28,13 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  // One D1 query instead of 2 PRAGMA calls per Fantasy table. On Workers
  // Free each invocation is limited to 50 D1 subrequests. This preview must
  // remain available even when the database has dozens of Fantasy tables.
- const tables=await rows(db.prepare(`SELECT m.name,
-  (SELECT json_group_array(json_object('name',p.name)) FROM pragma_table_info(m.name) AS p) AS columns_json,
-  (SELECT json_group_array(json_object('id',f.id,'table',f."table",'from',f."from",'to',f."to")) FROM pragma_foreign_key_list(m.name) AS f) AS foreign_json
-  FROM sqlite_master AS m WHERE m.type='table' AND m.name LIKE 'fantasy_%' ORDER BY m.name`));
+ const names=await rows(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'fantasy_%' ORDER BY name"));
+ const tables=[];
+ for(let i=0;i<names.length;i+=15){
+  const group=names.slice(i,i+15);
+  const metadata=await db.batch(group.flatMap(({name})=>[db.prepare('PRAGMA table_info('+identifier(name)+')'),db.prepare('PRAGMA foreign_key_list('+identifier(name)+')')]));
+  group.forEach(({name},j)=>tables.push({name,columns_json:JSON.stringify(metadata[j*2].results),foreign_json:JSON.stringify(metadata[j*2+1].results)}));
+ }
  const byName=new Map();
  for(const {name,columns_json,foreign_json} of tables){
   const columns=JSON.parse(columns_json||'[]'),foreign=JSON.parse(foreign_json||'[]');

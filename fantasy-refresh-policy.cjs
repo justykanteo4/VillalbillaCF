@@ -8,6 +8,7 @@ function fantasyRefreshAge(path){
  if(pathname==='/preview'||pathname==='/leagues')return 15*SECOND;
  if(pathname==='/inbox')return 2*MINUTE;
  if(/^\/leagues\/[^/]+\/market$/.test(pathname)||/^\/leagues\/[^/]+\/search$/.test(pathname))return 2*MINUTE;
+ if(/^\/leagues\/[^/]+\/(exchanges|loans)$/.test(pathname))return 2*MINUTE;
  if(/^\/leagues\/[^/]+\/alerts$/.test(pathname))return 2*MINUTE;
  if(/^\/leagues\/[^/]+\/rivals$/.test(pathname))return 15*MINUTE;
  if(/^\/leagues\/[^/]+\/table$/.test(pathname))return 10*MINUTE;

@@ -31,7 +31,7 @@ export default function FantasyPlayerMarket({leagueId,player,request,onUpdated=(
  }
  const price=Number(amount.replace(',','.')),valid=Number.isFinite(price)&&price>=1&&price<=1000&&Math.abs(price*100-Math.round(price*100))<1e-6;
  return <>
-  <Button secondary disabled={rosterCount<=12&&!player.forSale} onPress={show}>{player.forSale?'🏷️ En venta · Ver anuncio':'🏷️ Poner en el mercado'}</Button>
+  <Button secondary disabled={rosterCount<=12&&!player.forSale} onPress={show}>{player.forSale?'Retirar del mercado':'🏷️ Poner en el mercado'}</Button>
   <Modal visible={open} transparent animationType="fade" onRequestClose={()=>{if(!busy)setOpen(false)}}>
    <View style={{flex:1,justifyContent:'center',padding:18,backgroundColor:'#000b'}}>
     <View style={{...panel,gap:12}}>
@@ -54,7 +54,7 @@ export default function FantasyPlayerMarket({leagueId,player,request,onUpdated=(
       <Text style={{...text,color:theme.muted,fontSize:12}}>También puedes escribir un precio exacto (con decimales):</Text>
       <TextInput accessibilityLabel="Precio de salida de subasta" keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={input}/>
       {valid&&<Text style={{...text,color:theme.accent,fontWeight:'900'}}>Precio de salida: {price.toLocaleString('es-ES',{maximumFractionDigits:2})} M</Text>}
-      <Text style={{...text,color:theme.muted}}>El jugador seguirá siendo tuyo hasta que finalice una puja adjudicada. La plantilla debe mantener al menos 12 jugadores.</Text>
+      <Text style={{...text,color:theme.muted}}>El jugador seguirá siendo tuyo hasta que finalice una puja adjudicada. Puedes retirar el anuncio en cualquier momento antes de la adjudicación. La plantilla debe mantener al menos 12 jugadores.</Text>
       <Button disabled={busy||!valid} onPress={()=>execute(false)}>Confirmar anuncio</Button>
      </>}
      <ErrorText>{error}</ErrorText>

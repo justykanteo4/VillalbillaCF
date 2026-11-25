@@ -25,7 +25,7 @@ for (const [index,{id}] of leagues.entries()) {
   const beforeLeagues=sql.prepare('SELECT COUNT(*) n FROM fantasy_leagues').get().n;
   const beforeMembers=sql.prepare('SELECT COUNT(*) n FROM fantasy_members').get().n;
   const beforeOther=sql.prepare('SELECT COUNT(*) n FROM fantasy_roster WHERE league_id!=?').get(id).n;
-  const prepare=(q,args=[])=>({bind:(...values)=>prepare(q,values),first:async()=>sql.prepare(q).get(...args),all:async()=>({results:sql.prepare(q).all(...args)}),run:async()=>sql.prepare(q).run(...args)});
+  const prepare=(q,args=[])=>({bind:(...values)=>prepare(q,values),first:async()=>sql.prepare(q).get(...args),all:async()=>({results:sql.prepare(q).all(...args)}),run:async()=>/^PRAGMA /i.test(q)?{results:sql.prepare(q).all(...args)}:sql.prepare(q).run(...args)});
   const db={prepare,batch:async statements=>{sql.exec('BEGIN');try{const result=[];for(const statement of statements)result.push(await statement.run());sql.exec('COMMIT');return result}catch(error){sql.exec('ROLLBACK');throw error}}};
   const preview=await resetLeague({db,leagueId:id});
   assert.equal(preview.name,league.name);

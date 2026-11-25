@@ -266,6 +266,33 @@ jobs:
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-loans-schema.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name='fantasy_player_loans';"
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT COUNT(*) AS loan_count FROM fantasy_player_loans;"
+      - name: Diagnose direct sale using isolated production backup (no live transactions)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import sqlite3, time, uuid
+          db=sqlite3.connect(':memory:')
+          db.executescript(open('/tmp/fantasy-backup-before-photos.sql').read())
+          db.execute('PRAGMA foreign_keys=ON')
+          rows=db.execute("""SELECT r.id,r.league_id,r.uid,r.player_id,COALESCE(p.revision,0),COALESCE(p.price_cents,819)
+          FROM fantasy_roster r JOIN fantasy_managers m ON m.league_id=r.league_id AND m.uid=r.uid
+          LEFT JOIN fantasy_player_cents p ON p.player_id=r.player_id
+          WHERE (SELECT COUNT(*) FROM fantasy_roster x WHERE x.league_id=r.league_id AND x.uid=r.uid)>12
+          LIMIT 30""").fetchall()
+          for own,league,uid,player,revision,price in rows:
+              db.execute('SAVEPOINT sale_probe')
+              try:
+                  now=int(time.time()*1000)
+                  db.execute("""UPDATE fantasy_market_listings SET retired_day=? WHERE league_id=? AND player_id=? AND retired_day IS NULL AND NOT EXISTS(SELECT 1 FROM fantasy_manager_listings m WHERE m.listing_id=fantasy_market_listings.id AND m.expires_at>?) AND NOT EXISTS(SELECT 1 FROM fantasy_auction_rounds r WHERE r.league_id=fantasy_market_listings.league_id AND r.listing_id=fantasy_market_listings.id AND r.status='open') AND NOT EXISTS(SELECT 1 FROM fantasy_auction_bids b WHERE b.league_id=fantasy_market_listings.league_id AND b.listing_id=fantasy_market_listings.id AND b.status='active')""",(now//86400000,league,player,now))
+                  db.execute('INSERT INTO fantasy_player_sales VALUES(?,?,?,?,?,?,?,?,?,?)',(str(uuid.uuid4()),league,uid,player,own,str(uuid.uuid4()),price,(price*60+50)//100,revision,now))
+                  print('Sale probe: OK')
+              except sqlite3.Error as exc:
+                  print('Sale probe:',str(exc))
+              finally:
+                  db.execute('ROLLBACK TO sale_probe')
+                  db.execute('RELEASE sale_probe')
+          PY
       - name: Verify and repair direct sale settlement after D1 backup
         shell: bash
         run: |

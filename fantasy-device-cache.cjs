@@ -8,7 +8,7 @@ function createFantasyCache({read,save,now=Date.now,maxAgeForPath}){
  async function invalidate(uid,identity=false){const key=versionKey(uid,identity),at=Math.max(now(),(await epoch(uid,identity))+1);epochs.set(key,at);await persist(key,{at})}
  async function revoke(uid){await invalidate(uid);await invalidate(uid,true);await invalidate(uid,'inbox')}
  return async function cached(uid,path,options,fetcher){
-  const method=options.method||'GET',identity=path==='/preview',domain=/^\/inbox(?:\?|$)/.test(path)?'inbox':identity,version=await epoch(uid,domain),vkey=versionKey(uid,domain),key='fantasy.private.v1.'+uid+'.'+path+(options.scope?'#'+encodeURIComponent(options.scope):''),allowed=method==='GET'&&(identity||/^\/inbox(?:\?|$)/.test(path)||/^\/leagues(?:$|\/[a-zA-Z0-9-]+\/(?:squad|market|search|alerts|lineup|table|transactions|coaches|players|market-history|rivals)(?:\?|$))/.test(path));
+  const method=options.method||'GET',identity=path==='/preview',domain=/^\/inbox(?:\?|$)/.test(path)?'inbox':identity,version=await epoch(uid,domain),vkey=versionKey(uid,domain),key='fantasy.private.v1.'+uid+'.'+path+(options.scope?'#'+encodeURIComponent(options.scope):''),allowed=method==='GET'&&(identity||/^\/inbox(?:\?|$)/.test(path)||/^\/leagues(?:$|\/[a-zA-Z0-9-]+\/(?:squad|market|search|alerts|lineup|table|transactions|coaches|players|market-history|rivals|exchanges|loans)(?:\?|$))/.test(path));
   if(!allowed){try{const result=await fetcher();if(method!=='GET'&&!['/purchase-receipts/seen','/prize-receipts/seen'].includes(path)){if(path==='/admin/access')await revoke(uid);else await invalidate(uid,path==='/inbox'?'inbox':false)}return result}catch(error){if(error.status===401||error.status===403)await revoke(uid);throw error}}
   let copy=await stored(key),directoryOnly=false;if(copy&&Date.parse(copy.savedAt)<=version){if(path==='/leagues'&&Array.isArray(copy.data?.leagues)&&Date.parse(copy.savedAt)>await epoch(uid,true)){directoryOnly=true;copy={...copy,data:{...copy.data,leagues:copy.data.leagues.map(({finance,...league})=>league)}}}else copy=null;}
   if(copy)options.onCached?.({...copy.data,fromCache:true});
@@ -17,7 +17,7 @@ function createFantasyCache({read,save,now=Date.now,maxAgeForPath}){
   const effectiveAge=Number.isFinite(configuredAge)&&configuredAge>=0?configuredAge:maxAge;
   if(copy&&!directoryOnly&&now()-Date.parse(copy.savedAt)>=0&&now()-Date.parse(copy.savedAt)<effectiveAge&&options.cache!=='reload')return {...copy.data,fromCache:true};
   const jobKey=key+'.'+version;
-  if(!pending.has(jobKey)){const job=(async()=>{const data=await fetcher();if((epochs.get(vkey)||0)===version)await persist(key,data,new Date(Math.max(now(),version+1)).toISOString());return data})().finally(()=>pending.delete(jobKey));pending.set(jobKey,job)}
+  if(!pending.has(jobKey)){const job=(async()=>{const data=await fetcher();if((epochs.get(vkey)||0)===version)void persist(key,data,new Date(Math.max(now(),version+1)).toISOString());return data})().finally(()=>pending.delete(jobKey));pending.set(jobKey,job)}
   try{const data=await pending.get(jobKey);if((epochs.get(vkey)||0)!==version)return cached(uid,path,{...options,cache:'reload'},fetcher);return data}catch(error){if(error.status===401||error.status===403)await revoke(uid);if(copy&&(!error.status||error.status>=500))return {...copy.data,fromCache:true,offline:true};throw error}
  }
 }

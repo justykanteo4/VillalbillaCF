@@ -8,7 +8,7 @@ CREATE TABLE fantasy_sale_migration_copy AS SELECT * FROM fantasy_player_sales;
 CREATE TABLE fantasy_resale_migration_copy AS SELECT * FROM fantasy_resale_listings;
 DROP TABLE fantasy_resale_listings;
 DROP TABLE fantasy_player_sales;
-CREATE TABLE IF NOT EXISTS fantasy_player_sales(id TEXT PRIMARY KEY,league_id TEXT NOT NULL,uid TEXT NOT NULL,player_id TEXT NOT NULL,ownership_id TEXT NOT NULL UNIQUE,request_id TEXT NOT NULL,market_cents INTEGER NOT NULL CHECK(market_cents>0),amount_cents INTEGER NOT NULL CHECK(amount_cents IN (CAST((market_cents*60+50)/100 AS INTEGER),CAST((market_cents*92+50)/100 AS INTEGER))),price_revision INTEGER NOT NULL,created_at INTEGER NOT NULL,UNIQUE(league_id,uid,request_id),FOREIGN KEY(league_id,uid) REFERENCES fantasy_members(league_id,uid));
+CREATE TABLE IF NOT EXISTS fantasy_player_sales(id TEXT PRIMARY KEY,league_id TEXT NOT NULL,uid TEXT NOT NULL,player_id TEXT NOT NULL,ownership_id TEXT NOT NULL UNIQUE,request_id TEXT NOT NULL,market_cents INTEGER NOT NULL CHECK(market_cents>0),amount_cents INTEGER NOT NULL CHECK(amount_cents IN (CAST((market_cents*60+50)/100 AS INTEGER),CAST((market_cents*92+50)/100 AS INTEGER),CAST((market_cents*75+50)/100 AS INTEGER),CAST((market_cents*90+50)/100 AS INTEGER))),price_revision INTEGER NOT NULL,created_at INTEGER NOT NULL,UNIQUE(league_id,uid,request_id),FOREIGN KEY(league_id,uid) REFERENCES fantasy_members(league_id,uid));
 CREATE TABLE IF NOT EXISTS fantasy_resale_listings(sale_id TEXT PRIMARY KEY,listing_id TEXT NOT NULL UNIQUE,listed_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,FOREIGN KEY(sale_id) REFERENCES fantasy_player_sales(id),FOREIGN KEY(listing_id) REFERENCES fantasy_market_listings(id));
 CREATE INDEX IF NOT EXISTS fantasy_resale_expiry ON fantasy_resale_listings(expires_at);
 
@@ -18,7 +18,13 @@ DROP TABLE fantasy_resale_migration_copy;
 DROP TABLE fantasy_sale_migration_copy;
 CREATE INDEX IF NOT EXISTS fantasy_sales_user ON fantasy_player_sales(league_id,uid,created_at);
 CREATE TRIGGER IF NOT EXISTS fantasy_sale_guard BEFORE INSERT ON fantasy_player_sales BEGIN
- SELECT CASE WHEN NEW.amount_cents!=CAST((NEW.market_cents*60+50)/100 AS INTEGER) THEN RAISE(ABORT,'FANTASY_SALE_AMOUNT') END;
+ SELECT CASE WHEN NEW.amount_cents!=CAST((NEW.market_cents*60+50)/100 AS INTEGER) AND NOT EXISTS(
+ SELECT 1 FROM fantasy_manager_listings m JOIN fantasy_market_listings l ON l.id=m.listing_id
+ WHERE m.league_id=NEW.league_id AND m.uid=NEW.uid AND m.ownership_id=NEW.ownership_id AND m.player_id=NEW.player_id
+ AND NEW.request_id='game-'||m.listing_id AND l.retired_day IS NOT NULL
+ AND NEW.created_at>=m.expires_at-6*86400000 AND NEW.created_at<m.expires_at-4*86400000
+ AND NEW.amount_cents=CAST((NEW.market_cents*(CASE WHEN NEW.created_at<m.expires_at-5*86400000 THEN 75 ELSE 90 END)+50)/100 AS INTEGER)
+ ) THEN RAISE(ABORT,'FANTASY_SALE_AMOUNT') END;
  SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM fantasy_roster WHERE id=NEW.ownership_id AND league_id=NEW.league_id AND uid=NEW.uid AND player_id=NEW.player_id) THEN RAISE(ABORT,'FANTASY_SALE_OWNERSHIP') END;
  SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM fantasy_managers WHERE league_id=NEW.league_id AND uid=NEW.uid) THEN RAISE(ABORT,'FANTASY_SALE_MANAGER') END;
  SELECT CASE WHEN (SELECT COUNT(*) FROM fantasy_roster WHERE league_id=NEW.league_id AND uid=NEW.uid)<=12 THEN RAISE(ABORT,'FANTASY_ROSTER_MIN') END;

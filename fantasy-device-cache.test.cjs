@@ -22,7 +22,7 @@ test('la consulta real muestra copia antes de renovar token y descarta una sesiÃ
  const f=fixture();await f.request('a','/preview',{},async()=>({rules:{},canPlay:true}));f.advance(60000);
  const fs=require('node:fs'),source=fs.readFileSync('FantasyLeagues.js','utf8').split('export async function fantasyRequest')[1].split('\nexport {default}')[0];
  let resolveToken,network=0;const auth={currentUser:{uid:'a',getIdToken:()=>new Promise(r=>resolveToken=r)}};
- const request=new Function('auth','cachedFantasy','api','return async function fantasyRequest'+source)(auth,createFantasyCache(f.deps),async()=>{network++;return {rules:{},canPlay:true}});
+ const request=new Function('auth','cachedFantasy','api','fantasyDisplayNames','observeFantasyPurchases','return async function fantasyRequest'+source)(auth,createFantasyCache(f.deps),async()=>{network++;return {rules:{},canPlay:true}},require('./fantasy-display-names.cjs').fantasyDisplayNames,()=>{});
  let shown=false;const load=request('/preview',{onCached:()=>shown=true});await new Promise(r=>setImmediate(r));assert.equal(shown,true);assert.equal(network,0);
  auth.currentUser={uid:'b'};resolveToken('test-token');await assert.rejects(load,/cuenta ha cambiado/);assert.equal(network,0);
 });

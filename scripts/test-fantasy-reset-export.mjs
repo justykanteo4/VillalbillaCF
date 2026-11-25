@@ -16,7 +16,7 @@ try {
 } finally {listDb.close()}
 if(!leagues.length)throw Error('No sample league in production copy; unable to verify reset.');
 
-for (const [index,{id}] of leagues.entries()) {
+for (const remove of [false,true]) for (const [index,{id}] of leagues.entries()) {
  const sql=new DatabaseSync(':memory:');
  try {
   sql.exec(dump);
@@ -30,17 +30,17 @@ for (const [index,{id}] of leagues.entries()) {
   const preview=await resetLeague({db,leagueId:id});
   assert.equal(preview.name,league.name);
   const now=Math.max(Date.now(),league.created_at+1000);
-  await resetLeague({db,leagueId:id,confirm:'REINICIAR '+league.name,expectedCreatedAt:league.created_at,now,apply:true});
-  assert.equal(sql.prepare('SELECT COUNT(*) n FROM fantasy_leagues').get().n,beforeLeagues);
-  assert.equal(sql.prepare('SELECT COUNT(*) n FROM fantasy_members').get().n,beforeMembers);
+  await resetLeague({db,leagueId:id,confirm:(remove?'ELIMINAR ':'REINICIAR ')+league.name,expectedCreatedAt:league.created_at,now,apply:true,remove});
+  assert.equal(sql.prepare('SELECT COUNT(*) n FROM fantasy_leagues').get().n,beforeLeagues-(remove?1:0));
+  assert.equal(sql.prepare('SELECT COUNT(*) n FROM fantasy_members').get().n,beforeMembers-(remove?preview.membersPreserved:0));
   assert.equal(sql.prepare('SELECT COUNT(*) n FROM fantasy_roster WHERE league_id!=?').get(id).n,beforeOther);
   assert.equal(sql.prepare('SELECT COUNT(*) n FROM fantasy_roster WHERE league_id=?').get(id).n,0);
   const violations=sql.prepare('PRAGMA foreign_key_check').all();
   if(violations.length)throw Error('Foreign key violations on isolated copy: '+violations.length);
-  console.log('Copia aislada: liga '+(index+1)+' de '+leagues.length+' ensayada correctamente. No se alteró producción.');
+  console.log((remove?'Eliminación':'Reinicio')+' en copia aislada: liga '+(index+1)+' de '+leagues.length+' ensayada correctamente. No se alteró producción.');
  } catch(error) {
   // Never print private row values or exported SQL in CI logs.
-  throw Error('Reinicio en copia aislada falló para liga '+(index+1)+' de '+leagues.length+': '+error.message);
+  throw Error((remove?'Eliminación':'Reinicio')+' en copia aislada falló para liga '+(index+1)+' de '+leagues.length+': '+error.message);
  } finally {sql.close()}
 }
 console.log('Todas las ligas ensayadas de forma aislada. No se ha alterado producción.');

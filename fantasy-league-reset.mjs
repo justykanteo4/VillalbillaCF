@@ -8,7 +8,7 @@ const preserved = new Set(['fantasy_leagues','fantasy_members','fantasy_league_g
  'fantasy_wallets','fantasy_season_archives','fantasy_messages','fantasy_message_reads']);
 const walletFields = [['fantasy_wallet_cents','delta_cents'],['fantasy_wallet_values','delta_tenths'],['fantasy_wallets','delta_units']];
 const rows=async statement=>(await statement.all()).results;
-export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,apply=false}){
+export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,apply=false,remove=false}){
  if(!/^[a-zA-Z0-9-]{1,80}$/.test(leagueId))throw Object.assign(Error('Liga no válida.'),{status:400});
  const league=await db.prepare('SELECT id,name,created_at FROM fantasy_leagues WHERE id=?').bind(leagueId).first();
  if(!league)throw Object.assign(Error('Liga no encontrada.'),{status:404});
@@ -22,7 +22,7 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
    membersPreserved:memberCount,rowsToClear:{fantasy_roster:rosterCount},
    instructions:'Se conservan los participantes, la configuración y los mensajes. El reinicio elimina las operaciones de juego de esta liga y restablece sus saldos.'};
  }
- if(confirm!=='REINICIAR '+league.name||expectedCreatedAt!==league.created_at||!Number.isSafeInteger(now)||now<=league.created_at)
+ if(confirm!==(remove?'ELIMINAR ':'REINICIAR ')+league.name||expectedCreatedAt!==league.created_at||!Number.isSafeInteger(now)||now<=league.created_at)
   throw Object.assign(Error('Confirmación no válida o la liga ha cambiado.'),{status:409});
 
  // One D1 query instead of 2 PRAGMA calls per Fantasy table. On Workers
@@ -41,13 +41,13 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  // directly scoped Fantasy table. Build those associations without touching
  // global statistics, other leagues, identities or public club data.
  const scoped=new Map();
- for(const [name,table] of byName)if(table.columns.some(c=>c.name==='league_id')&&!preserved.has(name))
+ for(const [name,table] of byName)if(table.columns.some(c=>c.name==='league_id')&&(remove||!preserved.has(name)))
   scoped.set(name,{where:identifier(name)+'."league_id"=?',joins:0});
  let changed=true;
  for(let pass=0;pass<byName.size&&changed;pass++){
   changed=false;
   for(const [name,table] of byName){
-   if(scoped.has(name)||preserved.has(name))continue;
+   if(scoped.has(name)||(!remove&&preserved.has(name))||name==='fantasy_leagues')continue;
    const groups=new Map();
    for(const fk of table.foreign){
     if(!groups.has(fk.id))groups.set(fk.id,[]);
@@ -115,10 +115,11 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  for(const name of order){
   // Avoid needless DELETE queries on empty league-scoped tables. This reduces
   // transaction work and D1 row scans while preserving the same result.
-  if(!counts[name])continue;
+  // Delete even previously empty tables to avoid a count/delete race.
   const {where}=scoped.get(name);
   statements.push(db.prepare('DELETE FROM '+identifier(name)+' WHERE '+where).bind(leagueId));
  }
+ if(remove){statements.push(db.prepare('DELETE FROM fantasy_leagues WHERE id=? AND created_at=?').bind(leagueId,league.created_at));await db.batch(statements);return {deleted:true,leagueId};}
  for(const [name,col] of walletFields)
   if(byName.has(name))statements.push(db.prepare('UPDATE '+identifier(name)+' SET "'+col+'"=0 WHERE league_id=?').bind(leagueId));
  statements.push(db.prepare('UPDATE fantasy_members SET joined_at=? WHERE league_id=?').bind(now,leagueId));

@@ -8,13 +8,16 @@ test('los intervalos Fantasy elegidos son específicos por categoría',()=>{
  const cases={
   '/inbox':2*minute,
   '/leagues/liga1/market':2*minute,
-  '/leagues/liga1/search?position=DEF':2*minute,
+  '/leagues/liga1/search?position=DEF':10*minute,
   '/leagues/liga1/alerts':2*minute,
   '/leagues/liga1/squad':5*minute,
   '/leagues/liga1/lineup':5*minute,
   '/leagues/liga1/transactions':5*minute,
-  '/leagues/liga1/table':10*minute,
+  '/leagues/liga1/table':30*minute,
   '/leagues/liga1/rivals':15*minute,
+  '/leagues/liga1/players':30*minute,
+  '/leagues/liga1/coaches':60*minute,
+  '/leagues/liga1/market-history':60*minute,
   '/preview':15000,
   '/leagues':15000
  };

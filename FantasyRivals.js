@@ -131,10 +131,11 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
    </View>)}
   </View>}
   {(data?.rivals||[]).map(rival=><View key={rival.id} style={panel}>
-   <Pressable accessibilityRole="button" accessibilityLabel={'Ver plantilla de '+rival.name} accessibilityState={{expanded:expanded===rival.id}} onPress={()=>setExpanded(expanded===rival.id?null:rival.id)} style={{flexDirection:'row',alignItems:'center',gap:12,paddingVertical:6}}>
+   <Pressable accessibilityRole="button" accessibilityLabel={'Ver plantilla de '+rival.name} accessibilityState={{expanded:expanded===rival.id}} onPress={()=>{const opening=expanded!==rival.id;setExpanded(opening?rival.id:null);if(opening)void refresh(true)}} style={{flexDirection:'row',alignItems:'center',gap:12,paddingVertical:6}}>
     <FantasyTeamPhoto photo={rival.photo} size={52}/><View style={{flex:1,gap:4}}>
      <Text style={{...title,fontSize:19}}>{rival.name}</Text>
      <Text style={{...text,color:theme.muted,fontSize:13}}>{rival.players.length} jugadores en plantilla</Text>
+     {rival.players.some(p=>p.forSale&&p.expiresAt>Date.now())&&<Text style={{...text,color:theme.accent,fontWeight:'800',fontSize:12}}>🏷️ {rival.players.filter(p=>p.forSale&&p.expiresAt>Date.now()).length} en venta</Text>}
     </View>
     <Text style={{...title,color:theme.accent}}>{expanded===rival.id?'−':'+'}</Text>
    </Pressable>
@@ -147,6 +148,7 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
       <View style={{flex:1,gap:4}}>
        <Text style={{...text,fontWeight:'800'}}>{player.name}</Text>
        <FantasyPlayerPosition player={player} compact/>
+       {player.forSale&&player.expiresAt>Date.now()&&<Text style={{...text,color:theme.accent,fontWeight:'900',fontSize:12}}>🏷️ EN VENTA · Desde {million(player.minPrice)}</Text>}
       </View>
       <View style={{alignItems:'flex-end'}}>
        <Text style={{...text,fontWeight:'900',color:theme.accent}}>{player.fantasyPoints??0} pts</Text>

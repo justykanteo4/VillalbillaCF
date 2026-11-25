@@ -1,27 +1,27 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {fantasyRefreshAge}=require('./fantasy-refresh-policy.cjs');
+const {fantasyRefreshAge,fantasyCacheFresh}=require('./fantasy-refresh-policy.cjs');
 const {createFantasyCache}=require('./fantasy-device-cache.cjs');
 
 test('los intervalos Fantasy elegidos son específicos por categoría',()=>{
  const minute=60000;
  const cases={
   '/inbox':2*minute,
-  '/leagues/liga1/market':2*minute,
-  '/leagues/liga1/search?position=DEF':10*minute,
+  '/leagues/liga1/market':1440*minute,
+  '/leagues/liga1/search?position=DEF':1440*minute,
   '/leagues/liga1/alerts':2*minute,
   '/leagues/liga1/squad':5*minute,
   '/leagues/liga1/lineup':5*minute,
   '/leagues/liga1/transactions':5*minute,
-  '/leagues/liga1/table':30*minute,
+  '/leagues/liga1/table':1440*minute,
   '/leagues/liga1/rivals':15*minute,
-  '/leagues/liga1/players':30*minute,
-  '/leagues/liga1/coaches':60*minute,
-  '/leagues/liga1/market-history':60*minute,
+  '/leagues/liga1/players':1440*minute,
+  '/leagues/liga1/coaches':1440*minute,
+  '/leagues/liga1/market-history':1440*minute,
   '/preview':15000,
   '/leagues':15000
  };
- for(const [path,age] of Object.entries(cases))assert.equal(fantasyRefreshAge(path),age,path);
+ for(const [path,age] of Object.entries(cases))assert.equal(fantasyRefreshAge(path,Date.parse('2026-11-25T12:00:00Z')),age,path);
 });
 
 test('mantiene los datos hasta el intervalo y vuelve a consultar después',async()=>{
@@ -38,7 +38,7 @@ test('mantiene los datos hasta el intervalo y vuelve a consultar después',async
  clock+=60000;
  assert.equal((await get()).version,1);
  assert.equal(calls,1);
- clock+=60001;
+ clock+=86400001;
  assert.equal((await get()).version,2);
  assert.equal(calls,2);
 });
@@ -96,3 +96,5 @@ test('Rivales evita que una respuesta anterior sobrescriba una actualización ex
  clock+=30000;
  assert.equal((await cache('user',path,{cache:'reload'},fetcher)).owner,'nuevo');
 });
+
+test('mercado caduca a medianoche de Madrid y clasificación acelera el fin de semana',()=>{const a=Date.parse('2026-11-27T22:59:00Z'),b=Date.parse('2026-11-27T23:00:00Z');assert.equal(fantasyCacheFresh('/leagues/liga1/market',a,b),false);assert.equal(fantasyCacheFresh('/leagues/liga1/market',a,a+1000),true);assert.equal(fantasyRefreshAge('/leagues/liga1/table',b),300000);assert.equal(fantasyRefreshAge('/leagues/liga1/coaches',b),900000);});

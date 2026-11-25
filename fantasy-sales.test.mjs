@@ -68,3 +68,20 @@ test('cotización explica cesión activa y mínimo necesario para devolverla',as
  assert.equal(rejected.status,409);
  assert.equal(f.sql.prepare('SELECT COUNT(*) n FROM fantasy_player_sales').get().n,0);
 });
+
+test('venta directa limpia anuncio contradictorio sin pujas y abona una sola vez',async t=>{
+ const f=fixture(t),id=await f.enter(),p=f.sql.prepare("SELECT player_id FROM fantasy_roster WHERE uid='a' LIMIT 1").get().player_id;
+ const now=Date.parse('2026-11-16T10:00Z'),day=Math.floor(now/86400000);
+ f.sql.prepare('INSERT INTO fantasy_market_listings(id,league_id,player_id,listed_day,slot) VALUES(?,?,?,?,?)').run('stale-sale-listing',id,p,day-8,99);
+ const q=await f.quote(id,p);assert.equal(q.canSell,true);
+ f.sql.exec("CREATE TRIGGER sale_test_failure BEFORE UPDATE ON fantasy_wallet_cents BEGIN SELECT RAISE(ABORT,'SIMULATED_FAILURE');END;");
+ assert.equal((await f.sell(id,q)).status,503);
+ assert.equal(f.sql.prepare("SELECT retired_day FROM fantasy_market_listings WHERE id='stale-sale-listing'").get().retired_day,null);
+ assert.equal(f.sql.prepare("SELECT count(*) n FROM fantasy_roster WHERE uid='a'").get().n,14);
+ f.sql.exec('DROP TRIGGER sale_test_failure');
+ await f.json(f.sell(id,q));await f.json(f.sell(id,q));
+ assert.notEqual(f.sql.prepare("SELECT retired_day FROM fantasy_market_listings WHERE id='stale-sale-listing'").get().retired_day,null);
+ assert.equal(f.sql.prepare('SELECT COUNT(*) n FROM fantasy_player_sales').get().n,1);
+ assert.equal(f.sql.prepare("SELECT delta_cents FROM fantasy_wallet_cents WHERE uid='a'").get().delta_cents,q.amountCents);
+ assert.equal(f.sql.prepare('SELECT COUNT(*) n FROM fantasy_market_listings WHERE league_id=? AND player_id=? AND retired_day IS NULL').get(id,p).n,1);
+});

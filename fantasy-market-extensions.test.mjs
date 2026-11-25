@@ -124,14 +124,13 @@ test('el rival puede hacer oferta directa durante una venta; aceptarla retira el
  assert.equal(f.sql.prepare('SELECT retired_day FROM fantasy_market_listings WHERE id=?').get(sale.listingId).retired_day!=null,true);
  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM fantasy_roster WHERE league_id=? AND player_id=?').get('league','seller-0').n,1);
 });
-test('retirar anuncio solo a partir de 48 horas, sin transferir al jugador',async t=>{
+test('retirar anuncio inmediatamente, sin transferir al jugador',async t=>{
  const f=fixture(t);
  const sale=await managerListingRoute({db:f.db,league:f.league,uid:'seller',now:f.now,method:'POST',readBody:async()=>({playerId:'seller-0',ownershipId:'own-seller-0',minPrice:14,requestId:'sale-hold-123456'})});
  const cancel=(now,id)=>managerListingRoute({db:f.db,league:f.league,uid:'seller',now,method:'POST',readBody:async()=>({playerId:'seller-0',ownershipId:'own-seller-0',cancel:true,requestId:id})});
- const quote=await managerListingRoute({db:f.db,league:f.league,uid:'seller',now:f.now+47*3600000,method:'GET',playerId:'seller-0'});
- assert.equal(quote.listing.canWithdraw,false);
- await assert.rejects(()=>cancel(f.now+47*3600000,'cancel-47hours'),/48 horas/);
- const late=await cancel(f.now+48*3600000,'cancel-48hours');
+ const quote=await managerListingRoute({db:f.db,league:f.league,uid:'seller',now:f.now,method:'GET',playerId:'seller-0'});
+ assert.equal(quote.listing.canWithdraw,true);
+ const late=await cancel(f.now,'cancel-immediate');
  assert.equal(late.cancelled,true);
  assert.equal(f.sql.prepare('SELECT retired_day FROM fantasy_market_listings WHERE id=?').get(sale.listingId).retired_day!=null,true);
  assert.equal(f.sql.prepare('SELECT uid FROM fantasy_roster WHERE player_id=?').get('seller-0').uid,'seller');

@@ -1,22 +1,23 @@
-// Intervalos elegidos para las lecturas de Villalbilla Fantasy (issue #22).
-// La caché solo evita consultas repetidas: operaciones, permisos y saldo efectivo
-// siguen validándose en el servidor. No se ejecuta polling en segundo plano.
-const MINUTE=60*1000;
-const SECOND=1000;
-const HOUR=60*MINUTE;
-function fantasyRefreshAge(path){
- const pathname=String(path||'').split('?')[0];
- if(pathname==='/preview'||pathname==='/leagues')return 15*SECOND;
+// Calendar-aware private cache; all mutations are still validated by the server.
+const MINUTE=60000,HOUR=60*MINUTE,DAY=24*HOUR;
+const madrid=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'});
+function dayInfo(at){const parts=madrid.formatToParts(new Date(at));return {key:parts.filter(p=>['year','month','day'].includes(p.type)).map(p=>p.value).join('-'),weekend:parts.some(p=>p.type==='weekday'&&['Sat','Sun'].includes(p.value))}}
+function fantasyRefreshAge(path,at=Date.now()){
+ const pathname=String(path||'').split('?')[0],weekend=dayInfo(at).weekend;
+ if(pathname==='/preview'||pathname==='/leagues')return 15000;
  if(pathname==='/inbox')return 2*MINUTE;
- if(/^\/leagues\/[^/]+\/market$/.test(pathname))return 2*MINUTE;
- if(/^\/leagues\/[^/]+\/search$/.test(pathname))return 10*MINUTE;
- if(/^\/leagues\/[^/]+\/(exchanges|loans)$/.test(pathname))return 2*MINUTE;
- if(/^\/leagues\/[^/]+\/alerts$/.test(pathname))return 2*MINUTE;
+ if(/^\/leagues\/[^/]+\/(market|search|market-history)$/.test(pathname))return DAY;
+ if(/^\/leagues\/[^/]+\/(exchanges|loans|alerts)$/.test(pathname))return 2*MINUTE;
  if(/^\/leagues\/[^/]+\/rivals$/.test(pathname))return 15*MINUTE;
- if(/^\/leagues\/[^/]+\/table$/.test(pathname))return 30*MINUTE;
+ if(/^\/leagues\/[^/]+\/(table|players)$/.test(pathname))return weekend?5*MINUTE:DAY;
+ if(/^\/leagues\/[^/]+\/coaches$/.test(pathname))return weekend?15*MINUTE:DAY;
  if(/^\/leagues\/[^/]+\/(squad|lineup|transactions)$/.test(pathname))return 5*MINUTE;
- if(/^\/leagues\/[^/]+\/(coaches|market-history)$/.test(pathname))return HOUR;
- if(/^\/leagues\/[^/]+\/players$/.test(pathname))return 30*MINUTE;
- return 15*SECOND;
+ return 15000;
 }
-module.exports={fantasyRefreshAge};
+function fantasyCacheFresh(path,savedAt,at=Date.now()){
+ const age=at-savedAt;if(!Number.isFinite(age)||age<0)return false;
+ const pathname=String(path||'').split('?')[0];
+ if(/^\/leagues\/[^/]+\/(market|search|market-history)$/.test(pathname))return dayInfo(savedAt).key===dayInfo(at).key;
+ return age<fantasyRefreshAge(path,at);
+}
+module.exports={fantasyRefreshAge,fantasyCacheFresh};

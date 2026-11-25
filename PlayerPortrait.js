@@ -5,11 +5,12 @@ import {getPlayerPhoto} from './player-photos';
 import seed from './players-seed.json';
 
 const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').replace(/[^a-z0-9]+/g,' ').trim();
+const photoIndex=new Map();
+for(const team of seed.teams)for(const player of team.players){const key=normalize(player.name);if(!key)continue;const entries=photoIndex.get(key)||[];entries.push({id:player.id,teamId:player.teamId||team.id});photoIndex.set(key,entries)}
 const photoIdFor=(name,teamId)=>{
   const wanted=normalize(name);
   if(!wanted)return null;
-  const players=seed.teams.flatMap(team=>team.players.map(player=>({...player,teamId:player.teamId||team.id})));
-  const exact=players.filter(player=>normalize(player.name)===wanted);
+  const exact=photoIndex.get(wanted)||[];
   return (exact.find(player=>String(player.teamId)===String(teamId))||exact[0])?.id||null;
 };
 

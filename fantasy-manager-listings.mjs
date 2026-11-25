@@ -28,6 +28,21 @@ export async function managerListingRoute({db,league,uid,now,method,readBody,pla
   .bind(league.id,own.id,now).first();
  if(method==='GET')return {playerId:id,ownershipId:own.id,listing:listed?{listingId:listed.listing_id,minCents:listed.min_cents,expiresAt:listed.expires_at,canWithdrawAt:listed.expires_at-7*86400000,canWithdraw:true,gameOffer:gameOfferForListing(listed,players?.find(p=>p.id===id),now)}:null};
  if(value.ownershipId!==own.id)throw fail('El jugador ha cambiado de propietario.');
+ if(value?.acceptGame===true){
+  const offer=gameOfferForListing(listed,players?.find(p=>p.id===id),getNow());
+  if(!offer||value.listingId!==listed.listing_id||value.amountCents!==offer.amountCents||value.day!==offer.day)throw fail('La oferta del juego ha cambiado. Vuelve a abrir el anuncio.');
+  const at=getNow(),saleId=crypto.randomUUID(),key='game-'+listed.listing_id;
+  const revision=players.find(p=>p.id===id)?.priceRevision||0;
+  try{
+   await db.batch([
+    db.prepare("UPDATE fantasy_market_listings SET retired_day=? WHERE id=? AND league_id=? AND retired_day IS NULL AND NOT EXISTS(SELECT 1 FROM fantasy_auction_rounds r WHERE r.league_id=? AND r.listing_id=? AND r.status='open' AND (r.lease_until>? OR r.closes_at<=?))").bind(policy.madridDay(at),listed.listing_id,league.id,league.id,listed.listing_id,at,at),
+    db.prepare("UPDATE fantasy_auction_rounds SET status='closed',lease_until=0 WHERE league_id=? AND listing_id=? AND status='open' AND EXISTS(SELECT 1 FROM fantasy_market_listings WHERE id=? AND retired_day IS NOT NULL)").bind(league.id,listed.listing_id,listed.listing_id),
+    db.prepare("UPDATE fantasy_auction_bids SET status='cancelled',updated_at=? WHERE league_id=? AND listing_id=? AND status='active' AND EXISTS(SELECT 1 FROM fantasy_market_listings WHERE id=? AND retired_day IS NOT NULL)").bind(at,league.id,listed.listing_id,listed.listing_id),
+    db.prepare("INSERT INTO fantasy_player_sales(id,league_id,uid,player_id,ownership_id,request_id,market_cents,amount_cents,price_revision,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(saleId,league.id,uid,id,own.id,key,offer.marketCents,offer.amountCents,revision,at)
+   ]);
+  }catch(e){console.error('Game offer settlement failed',String(e.message||e).slice(0,300));throw fail('No se ha podido aceptar la oferta. Actualiza el anuncio y comprueba tu plantilla.');}
+  return {saved:true,sold:true,amountCents:offer.amountCents};
+ }
  const prior=await db.prepare('SELECT * FROM fantasy_manager_listings WHERE league_id=? AND uid=? AND request_id=?').bind(league.id,uid,value.requestId).first();
  if(prior&&value.cancel!==true){
   if(prior.ownership_id!==own.id)throw fail('Solicitud utilizada con otro jugador.');

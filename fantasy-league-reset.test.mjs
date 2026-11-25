@@ -9,7 +9,7 @@ function fixture(t){
  const sql=new DatabaseSync(':memory:');
  for(const file of files)sql.exec(readFileSync(file,'utf8'));
  t.after(()=>sql.close());
- const prepare=(q,args=[])=>({bind:(...v)=>prepare(q,v),first:async()=>sql.prepare(q).get(...args),all:async()=>({results:sql.prepare(q).all(...args)}),run:()=>({meta:{changes:Number(sql.prepare(q).run(...args).changes)}})});
+ const prepare=(q,args=[])=>({bind:(...v)=>prepare(q,v),first:async()=>sql.prepare(q).get(...args),all:async()=>({results:sql.prepare(q).all(...args)}),run:()=>/^PRAGMA /i.test(q)?{results:sql.prepare(q).all(...args)}:({meta:{changes:Number(sql.prepare(q).run(...args).changes)}})});
  const db={prepare,batch:async statements=>{sql.exec('BEGIN');try{const results=[];for(const s of statements)results.push(await s.run());sql.exec('COMMIT');return results}catch(error){sql.exec('ROLLBACK');throw error}}};
  const createdAt=Date.parse('2026-11-01T10:00:00Z');
  const add=(id,uid)=>{sql.prepare("INSERT INTO fantasy_leagues VALUES(?,?,?,?,?,?,?,?,?,?)").run(id,uid,id,'fingerprint','Liga '+id,'custom','{"type":"club"}','{"budget":52,"maxMembers":15}',id+'ABCDEFG',createdAt);sql.prepare("INSERT INTO fantasy_members VALUES(?,?,?,?)").run(id,uid,'Jugador '+uid,createdAt)};

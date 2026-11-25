@@ -33,6 +33,9 @@ on:
       - 'fantasy-jobs.mjs'
       - 'fantasy-refresh-policy.cjs'
       - 'fantasy-refresh-policy.test.cjs'
+      - 'fantasy-sale-rate-migration.sql'
+      - 'fantasy-sales.mjs'
+      - 'fantasy-manager-listings.mjs'
       - 'fantasy-service.mjs'
       - 'fantasy-service.test.mjs'
       - 'fantasy-economy.test.mjs'
@@ -266,41 +269,46 @@ jobs:
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-loans-schema.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name='fantasy_player_loans';"
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT COUNT(*) AS loan_count FROM fantasy_player_loans;"
-      - name: Diagnose direct sale using isolated production backup (no live transactions)
+      - name: Verify and migrate historical sale rate without replaying payments
         shell: bash
         run: |
           set -euo pipefail
+          test -s /tmp/fantasy-backup-before-photos.sql
           python3 - <<'PY'
           import sqlite3, time, uuid
           db=sqlite3.connect(':memory:')
           db.executescript(open('/tmp/fantasy-backup-before-photos.sql').read())
           db.execute('PRAGMA foreign_keys=ON')
+          snapshots={t:db.execute('SELECT * FROM '+t+' ORDER BY 1,2').fetchall() for t in ('fantasy_player_sales','fantasy_resale_listings','fantasy_roster','fantasy_wallet_cents','fantasy_wallet_values','fantasy_wallets')}
+          db.executescript(open('fantasy-sale-rate-migration.sql').read())
+          for t,rows in snapshots.items():
+              assert rows==db.execute('SELECT * FROM '+t+' ORDER BY 1,2').fetchall(), 'Migration changed '+t
+          assert not db.execute('PRAGMA foreign_key_check').fetchall(), 'Foreign key check failed'
           rows=db.execute("""SELECT r.id,r.league_id,r.uid,r.player_id,COALESCE(p.revision,0),COALESCE(p.price_cents,819)
           FROM fantasy_roster r JOIN fantasy_managers m ON m.league_id=r.league_id AND m.uid=r.uid
           LEFT JOIN fantasy_player_cents p ON p.player_id=r.player_id
           WHERE (SELECT COUNT(*) FROM fantasy_roster x WHERE x.league_id=r.league_id AND x.uid=r.uid)>12
+          AND NOT EXISTS(SELECT 1 FROM fantasy_market_listings l WHERE l.league_id=r.league_id AND l.player_id=r.player_id AND l.retired_day IS NULL)
           LIMIT 30""").fetchall()
+          ok=0
           for own,league,uid,player,revision,price in rows:
               db.execute('SAVEPOINT sale_probe')
               try:
-                  now=int(time.time()*1000)
-                  db.execute("""UPDATE fantasy_market_listings SET retired_day=? WHERE league_id=? AND player_id=? AND retired_day IS NULL AND NOT EXISTS(SELECT 1 FROM fantasy_manager_listings m WHERE m.listing_id=fantasy_market_listings.id AND m.expires_at>?) AND NOT EXISTS(SELECT 1 FROM fantasy_auction_rounds r WHERE r.league_id=fantasy_market_listings.league_id AND r.listing_id=fantasy_market_listings.id AND r.status='open') AND NOT EXISTS(SELECT 1 FROM fantasy_auction_bids b WHERE b.league_id=fantasy_market_listings.league_id AND b.listing_id=fantasy_market_listings.id AND b.status='active')""",(now//86400000,league,player,now))
-                  db.execute('INSERT INTO fantasy_player_sales VALUES(?,?,?,?,?,?,?,?,?,?)',(str(uuid.uuid4()),league,uid,player,own,str(uuid.uuid4()),price,(price*60+50)//100,revision,now))
-                  print('Sale probe: OK')
+                  before=db.execute('SELECT delta_cents FROM fantasy_wallet_cents WHERE league_id=? AND uid=?',(league,uid)).fetchone()[0]
+                  amount=(price*60+50)//100
+                  db.execute('INSERT INTO fantasy_player_sales VALUES(?,?,?,?,?,?,?,?,?,?)',(str(uuid.uuid4()),league,uid,player,own,str(uuid.uuid4()),price,amount,revision,int(time.time()*1000)))
+                  assert db.execute('SELECT delta_cents FROM fantasy_wallet_cents WHERE league_id=? AND uid=?',(league,uid)).fetchone()[0]==before+amount
+                  assert not db.execute('SELECT 1 FROM fantasy_roster WHERE id=?',(own,)).fetchone()
+                  ok+=1
               except sqlite3.Error as exc:
-                  print('Sale probe:',str(exc))
+                  if not any(x in str(exc) for x in ('FANTASY_LOAN_PLAYER_LOCKED','FANTASY_LOAN_BORROWER_MIN')): raise
               finally:
                   db.execute('ROLLBACK TO sale_probe')
                   db.execute('RELEASE sale_probe')
+          assert ok>0, 'No successful production-copy sale probe'
+          print('Production copy verified; successful 60 percent sale probes:',ok)
           PY
-      - name: Verify and repair direct sale settlement after D1 backup
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s /tmp/fantasy-backup-before-photos.sql
-          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-sales-schema.sql
-          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-resale-schema.sql
-          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-sale-settlement-migration.sql
+          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-sale-rate-migration.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE name IN ('fantasy_player_sales','fantasy_sale_settle','fantasy_sale_relist','fantasy_resale_register');"
       - name: Migrate Fantasy season archives after verified backup
         shell: bash

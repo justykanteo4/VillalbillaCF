@@ -23,9 +23,8 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
    const apply=value=>{if(alive.current&&generation===sequence.current)setData(value)};
    const next=await request('/leagues/'+leagueId+'/rivals',{...(force?{cache:'reload'}:{}),onCached:apply});
    apply(next);
-   const operations=await request('/leagues/'+leagueId+'/exchanges',{cache:'reload'});
+   const [operations,loanData]=await Promise.all([request('/leagues/'+leagueId+'/exchanges',{...(force?{cache:'reload'}:{})}),request('/leagues/'+leagueId+'/loans',{...(force?{cache:'reload'}:{})})]);
    if(alive.current&&generation===sequence.current)setExchanges(operations.exchanges||[]);
-   const loanData=await request('/leagues/'+leagueId+'/loans',{cache:'reload'});
    if(alive.current&&generation===sequence.current)setLoans(loanData.loans||[]);
   }catch(e){if(alive.current&&generation===sequence.current)setError(e.message||'No se pudieron consultar las plantillas.')}
   finally{if(alive.current&&generation===sequence.current)setLoading(false)}

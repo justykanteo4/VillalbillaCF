@@ -4,6 +4,16 @@ const fail=(message,status=409)=>Object.assign(Error(message),{status});
 const validId=id=>typeof id==='string'&&/^[A-Za-z0-9-]{1,80}$/.test(id);
 const requestId=id=>typeof id==='string'&&/^[A-Za-z0-9_-]{8,80}$/.test(id);
 
+// Three offers based on elapsed 24-hour periods, never an automatic transfer.
+export function gameOfferForListing(listing,player,now){
+ if(!listing||!player||listing.expires_at<=now)return null;
+ const day=Math.floor((now-(listing.expires_at-7*86400000))/86400000)+1;
+ if(day<1||day>3)return null;
+ const percent=[60,75,90][day-1],marketCents=Math.round(player.price*100);
+ if(!Number.isSafeInteger(marketCents)||marketCents<=0)return null;
+ return {day,percent,marketCents,amountCents:Math.round(marketCents*percent/100),expiresAt:listing.expires_at-7*86400000+day*86400000};
+}
+
 export async function managerListingRoute({db,league,uid,now,method,readBody,playerId=null,players,getNow=()=>now}){
  await settleAuctions(db,league,now,{limit:20});
  await db.prepare("UPDATE fantasy_market_listings SET retired_day=? WHERE league_id=? AND retired_day IS NULL AND id IN(SELECT listing_id FROM fantasy_manager_listings WHERE league_id=? AND expires_at<=?) AND NOT EXISTS(SELECT 1 FROM fantasy_auction_rounds r WHERE r.league_id=fantasy_market_listings.league_id AND r.listing_id=fantasy_market_listings.id AND r.status='open')").bind(policy.madridDay(now),league.id,league.id,now).run();
@@ -16,7 +26,7 @@ export async function managerListingRoute({db,league,uid,now,method,readBody,pla
  if(!own)throw fail('Este jugador ya no está en tu plantilla.',404);
  const listed=await db.prepare('SELECT m.*,l.retired_day FROM fantasy_manager_listings m JOIN fantasy_market_listings l ON l.id=m.listing_id WHERE m.league_id=? AND m.ownership_id=? AND l.retired_day IS NULL AND m.expires_at>? ORDER BY m.expires_at DESC LIMIT 1')
   .bind(league.id,own.id,now).first();
- if(method==='GET')return {playerId:id,ownershipId:own.id,listing:listed?{listingId:listed.listing_id,minCents:listed.min_cents,expiresAt:listed.expires_at,canWithdrawAt:listed.expires_at-7*86400000,canWithdraw:true}:null};
+ if(method==='GET')return {playerId:id,ownershipId:own.id,listing:listed?{listingId:listed.listing_id,minCents:listed.min_cents,expiresAt:listed.expires_at,canWithdrawAt:listed.expires_at-7*86400000,canWithdraw:true,gameOffer:gameOfferForListing(listed,players?.find(p=>p.id===id),now)}:null};
  if(value.ownershipId!==own.id)throw fail('El jugador ha cambiado de propietario.');
  const prior=await db.prepare('SELECT * FROM fantasy_manager_listings WHERE league_id=? AND uid=? AND request_id=?').bind(league.id,uid,value.requestId).first();
  if(prior&&value.cancel!==true){

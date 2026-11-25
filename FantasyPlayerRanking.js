@@ -13,7 +13,7 @@ export default function FantasyPlayerRanking({leagueId,request}){
  const [order,setOrder]=useState('points');
  const [record,setRecord]=useState(null),[error,setError]=useState(''),[retry,setRetry]=useState(0),[loading,setLoading]=useState(false),[query,setQuery]=useState(''),[limit,setLimit]=useState(30),[selected,setSelected]=useState(null);
  const data=record?.leagueId===leagueId?record.data:null;
- useEffect(()=>{let active=true;setError('');setLoading(true);const apply=data=>{if(active)setRecord({leagueId,data})};request('/leagues/'+leagueId+'/players',{cache:undefined,onCached:apply}).then(apply).catch(e=>{if(active)setError(e.message)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[leagueId,retry]);
+ useEffect(()=>{let active=true;setError('');setLoading(true);const apply=data=>{if(active)setRecord({leagueId,data})};request('/leagues/'+leagueId+'/players',{cache:'reload',onCached:apply}).then(apply).catch(e=>{if(active)setError(e.message)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[leagueId,retry]);
  useEffect(()=>setSelected(null),[leagueId]);
  useEffect(()=>{const timer=setInterval(()=>{if(AppState.currentState==='active')setRetry(n=>n+1)},300000),sub=AppState.addEventListener('change',s=>{if(s==='active')setRetry(n=>n+1)});return()=>{clearInterval(timer);sub.remove()}},[leagueId]);
  const ranked=useMemo(()=>rankFantasyPlayers(data?.players||[]),[data?.players]),rows=useMemo(()=>ranked.filter(p=>normal(p.name+' '+p.teams?.map(t=>t.category).join(' ')).includes(normal(query))),[ranked,query]);

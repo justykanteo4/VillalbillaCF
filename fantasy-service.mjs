@@ -719,13 +719,13 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   await ensureManager(db,data.league,uid);
   return reply(await roundPlayerBreakdown(db,data.league,breakdownMatch[3],Number(breakdownMatch[2]),currentTime));
  }
- const game=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(squad|coaches|coach|presentation|search|favourites|alerts|lineup|table|transactions)$/);if(game){const data=await detail(db,game[1],uid,currentTime,await allowedTeams());return reply(await gameRoute({db,league:data.league,uid,now:currentTime,action:game[2],getNow:clock,targetNext:url.searchParams.get('next')==='1',method:request.method,readBody:()=>body(request),players:['table','alerts','presentation','coaches'].includes(game[2])?[]:await prices(db,data.league.pool,data.league.settings.points)}))}
+ const game=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(squad|coaches|coach|presentation|search|favourites|alerts|lineup|table|transactions)$/);if(game){const data=await detail(db,game[1],uid,currentTime,await allowedTeams());const snapshot={},players=['table','alerts','presentation','coaches'].includes(game[2])?[]:await prices(db,data.league.pool,data.league.settings.points,snapshot);return reply(await gameRoute({db,league:data.league,uid,now:currentTime,action:game[2],getNow:clock,targetNext:url.searchParams.get('next')==='1',method:request.method,readBody:()=>body(request),players,sportsSnapshot:snapshot.live}))}
  const clause=path.match(/^\/api\/fantasy\/leagues\/([a-zA-Z0-9-]{1,80})\/(clause(?:\/boost)?)$/);
  if(clause){
   const data=await detail(db,clause[1],uid,currentTime,await allowedTeams());
   await ensureManager(db,data.league,uid);
   if(request.method==='POST')await assertMarketOpen(data.league.id);
-  const [allPlayers,live]=await Promise.all([prices(db,data.league.pool,data.league.settings.points),sports(db)]);
+  const snapshot={},allPlayers=await prices(db,data.league.pool,data.league.settings.points,snapshot),live=snapshot.live;
   return reply(await clauseRoute({db,league:data.league,uid,now:currentTime,
     action:clause[2],method:request.method,readBody:()=>body(request),
     ownershipId:url.searchParams.get('ownershipId'),players:allPlayers,

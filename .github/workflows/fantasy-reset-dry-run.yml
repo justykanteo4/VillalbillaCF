@@ -1,5 +1,11 @@
 name: Fantasy league reset dry run on isolated D1 snapshot
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fantasy-reset-dry-run.yml'
+      - 'fantasy-league-reset.mjs'
+      - 'scripts/test-fantasy-reset-export.mjs'
   pull_request:
     paths:
       - '.github/workflows/fantasy-reset-dry-run.yml'
@@ -9,7 +15,7 @@ permissions:
   contents: read
 jobs:
   dry-run:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

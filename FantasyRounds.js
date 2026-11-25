@@ -7,7 +7,7 @@ import {roundTables} from './fantasy-round-tables.cjs';
 import {Button,ErrorText,panel,text,title,theme} from './FantasyUI';
 export default function FantasyRounds({leagueId,request,teamId}){
  const [details,setDetails]=useState({}),[detailOpen,setDetailOpen]=useState(null),[detailLoading,setDetailLoading]=useState(null),[detailError,setDetailError]=useState(''),[record,setRecord]=useState(null),[selectedSeason,setSelectedSeason]=useState(null),[showSeasonRanking,setShowSeasonRanking]=useState(false),[open,setOpen]=useState(undefined),[error,setError]=useState(''),[loading,setLoading]=useState(false),[retry,setRetry]=useState(0);
- useEffect(()=>{let current=true;setLoading(true);setError('');const apply=data=>{if(current)setRecord({leagueId,data})};request('/leagues/'+leagueId+'/table',{cache:retry?'reload':undefined,onCached:apply}).then(apply).catch(e=>{if(current)setError(e.message)}).finally(()=>{if(current)setLoading(false)});const refresh=()=>setRetry(n=>n+1),timer=setInterval(()=>{if(AppState.currentState==='active')refresh()},1800000),sub=AppState.addEventListener('change',s=>{if(s==='active')refresh()});return()=>{current=false;clearInterval(timer);sub.remove()}},[leagueId,retry]);
+ useEffect(()=>{let current=true;setLoading(true);setError('');const apply=data=>{if(current)setRecord({leagueId,data})};request('/leagues/'+leagueId+'/table',{cache:undefined,onCached:apply}).then(apply).catch(e=>{if(current)setError(e.message)}).finally(()=>{if(current)setLoading(false)});const refresh=()=>request('/leagues/'+leagueId+'/table',{onCached:apply}).then(apply).catch(()=>{}),timer=setInterval(()=>{if(AppState.currentState==='active')refresh()},300000),sub=AppState.addEventListener('change',s=>{if(s==='active')refresh()});return()=>{current=false;clearInterval(timer);sub.remove()}},[leagueId,retry]);
  useEffect(()=>{setOpen(undefined);setSelectedSeason(null);setShowSeasonRanking(false);setDetails({});setDetailOpen(null);setDetailError('')},[leagueId]);
  async function showParticipant(round,row){
   if(!row.memberId)return;
@@ -59,5 +59,5 @@ export default function FantasyRounds({leagueId,request,teamId}){
    </>}
   </View>}
  </View>;
-})}</View>)}<FantasyOfficialMatches teamId={teamId}/><FantasyArchivedSeasons leagueId={leagueId} request={request}/><ErrorText>{error}</ErrorText><Button secondary disabled={loading} onPress={()=>setRetry(n=>n+1)}>{loading?'Actualizando jornadas…':'Actualizar jornadas'}</Button></View>;
+})}</View>)}<FantasyOfficialMatches teamId={teamId}/><FantasyArchivedSeasons leagueId={leagueId} request={request}/><ErrorText>{error}</ErrorText><Button secondary disabled={loading} onPress={()=>{setRetry(n=>n+1);request('/leagues/'+leagueId+'/table',{cache:'reload'}).then(data=>setRecord({leagueId,data})).catch(e=>setError(e.message))}}>{loading?'Actualizando jornadas…':'Actualizar jornadas'}</Button></View>;
 }

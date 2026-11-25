@@ -494,12 +494,12 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
    throw fail('El propietario o el equipo ha cambiado, o el traspaso superaría los límites de 12 a 16 jugadores. Actualiza la selección.',409);
   return reply({saved:true});
  }
- const resetMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/reset$/);
+ const resetMatch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/(reset|delete)$/);
  if(resetMatch){
    if(request.method==='GET')return reply(await resetLeague({db,leagueId:resetMatch[1]}));
    if(request.method!=='POST')throw fail('Método no permitido.',405);
    const value=await body(request);
-   return reply(await resetLeague({db,leagueId:resetMatch[1],confirm:value?.confirmation,
+   return reply(await resetLeague({db,leagueId:resetMatch[1],remove:resetMatch[2]==='delete',confirm:value?.confirmation,
       expectedCreatedAt:value?.expectedCreatedAt,now:currentTime,apply:true}));
  }
  const clauseSwitch=path.match(/^\/api\/fantasy\/admin\/leagues\/([a-zA-Z0-9-]{1,80})\/clauses$/);

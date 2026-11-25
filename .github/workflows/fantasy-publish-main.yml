@@ -204,7 +204,11 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
           test -s /tmp/fantasy-backup-before-photos.sql
           pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --file fantasy-player-blocks-schema.sql
-          pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name='fantasy_player_blocks';"
+          for attempt in 1 2 3 4 5; do
+            if pnpm exec wrangler d1 execute villalbilla-chats --remote --yes --command "SELECT name FROM sqlite_master WHERE type='table' AND name='fantasy_player_blocks';"; then break; fi
+            if [ "$attempt" = 5 ]; then exit 1; fi
+            sleep $((attempt * 10))
+          done
       - name: Configure optional Fantasy market dates after verified backup
         shell: bash
         run: |

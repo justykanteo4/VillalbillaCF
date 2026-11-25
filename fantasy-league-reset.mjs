@@ -68,17 +68,7 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  }
  // Any new scoped table participates in the reset through its league ID.
  // Explicitly protect the league definition and its member accounts.
- const dataTables=[...scoped.keys()];
- const counts={};
- if(dataTables.length){
-  // Count all scoped rows in one statement, not one D1 subrequest per table.
-  const sql=dataTables.map(name=>"SELECT '"+name.replace(/'/g,"''")+"' AS name, COUNT(*) AS n FROM "+identifier(name)+' WHERE '+scoped.get(name).where).join(' UNION ALL ');
-  const totals=await rows(db.prepare(sql).bind(...dataTables.map(()=>leagueId)));
-  for(const {name,n} of totals)counts[name]=n;
- }
- const preview={leagueId,name:league.name,createdAt:league.created_at,membersPreserved:memberCount,rowsToClear:counts,
-    instructions:'Se mantienen la liga, sus participantes, la configuración, los mensajes y los precios globales. Se borran plantillas, saldos de prueba, operaciones, pujas, alineaciones y premios.'};
-
+ 
  // Remove children before parents, and managers before roster, to preserve
  // the roster-minimum trigger while wiping a test squad.
  const dependencies=new Map([...scoped.keys()].map(name=>[name,new Set()]));
@@ -110,7 +100,7 @@ export async function resetLeague({db,leagueId,confirm,expectedCreatedAt,now,app
  ];
  for(const [child,key,parent,parentKey] of orphanJobs){
   const childTable=byName.get(child),parentTable=byName.get(parent);
-  if(!childTable||!parentTable||!scoped.has(parent)||!counts[parent])continue;
+  if(!childTable||!parentTable||!scoped.has(parent))continue;
   if(!childTable.columns.some(c=>c.name===key)||!parentTable.columns.some(c=>c.name===parentKey))continue;
   const parentScope=scoped.get(parent).where;
   statements.push(db.prepare('DELETE FROM '+identifier(child)+' WHERE "'+key+'" IN (SELECT "'+parentKey+'" FROM '+identifier(parent)+' WHERE '+parentScope+')').bind(leagueId));

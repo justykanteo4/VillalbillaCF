@@ -110,6 +110,8 @@ jobs:
           pnpm run check:release
       - name: Verify frozen Fantasy styles
         run: node --test fantasy-style-render.test.cjs
+      - name: Verify Fantasy player display names
+        run: node --test fantasy-display-names.test.cjs
       - name: Export all three app bundles
         run: pnpm exec expo export --platform all --output-dir work/verify-release
       - name: Package prepared public data

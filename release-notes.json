@@ -1,8 +1,9 @@
 {
-  "id": "2026.11.25.ventas-estables",
+  "id": "2026.11.25.nombres",
   "date": "2026-11-25",
-  "title": "Fantasy: ventas y comprobación de operaciones",
+  "title": "Fantasy: nombre y apellidos",
   "changes": [
+    "Los jugadores y entrenadores se muestran con el nombre primero y los apellidos después, incluidas las cartas y los movimientos.",
     "Corregida la venta directa de jugadores alineados cuando el administrador ha bloqueado el once. El saldo se abona una sola vez y el once bloqueado se conserva.",
     "Las ventas muestran el motivo concreto cuando el jugador está cedido, anunciado o debe conservarse por el mínimo de plantilla.",
     "Puedes ordenar por más puntos o por nombre en Clasificación, Jugadores, Plantilla, Rivales y Mercado.",

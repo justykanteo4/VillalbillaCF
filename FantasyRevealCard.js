@@ -1,3 +1,4 @@
+import {displayPersonName} from './name-search.cjs';
 import React from 'react';
 import {Animated,Image,StyleSheet,Text,View} from 'react-native';
 import PlayerPortrait from './PlayerPortrait';
@@ -27,11 +28,11 @@ export default function FantasyRevealCard({player,progress,opened,reduced,width,
     <View style={[styles.card,{width,height:width*4/3}]}>
       <Image source={artwork} resizeMode="stretch" style={{position:'absolute',top:0,left:0,width,height:width*4/3}} accessible={false}/>
       <View style={styles.portrait}>
-        <PlayerPortrait playerId={player.id||player.playerId} teamId={player.teamId} name={player.name} photo={player.photo} size={Math.round(width*.42)} style={styles.photo}/>
+        <PlayerPortrait playerId={player.id||player.playerId} teamId={player.teamId} name={displayPersonName(player.name)} photo={player.photo} size={Math.round(width*.42)} style={styles.photo}/>
       </View>
       <View style={styles.position}><FantasyPlayerPosition player={player} compact/></View>
       <View style={styles.nameBand}>
-        <Text accessibilityRole="header" numberOfLines={2} adjustsFontSizeToFit minimumFontScale={.7} style={[styles.name,{fontSize:Math.round(width*.064)}]}>{player.name}</Text>
+        <Text accessibilityRole="header" numberOfLines={2} adjustsFontSizeToFit minimumFontScale={.7} style={[styles.name,{fontSize:Math.round(width*.064)}]}>{displayPersonName(player.name)}</Text>
       </View>
       <View style={styles.metrics}>
         {metrics.map(([label,value])=><View key={label} style={styles.metric}>

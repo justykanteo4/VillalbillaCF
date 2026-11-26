@@ -30,8 +30,8 @@ async function fetchBaseApi(path,options={}){
  if(cached&&Platform.OS==='web'&&globalThis.navigator?.onLine===false)return {...limitData(path,cached.data),error:true,offline:true,savedAt:cached.savedAt};
  const teamIdForCache=new URL(path,'https://local').searchParams.get('team');
  const prepared=cacheable&&cached?(await readCopy(teamIdForCache?'offline-team-pack.v2.'+teamIdForCache:'offline-library.v2').catch(()=>null))?.data?.prepared:false;
- const revision=prepared?(await readCopy(teamIdForCache?'sports-revision.v1.'+teamIdForCache:'sports-club-revision.v1').catch(()=>null))?.data:null;
- const officialSchedule=/^\/api\/(news|team-calendar|standings|match|players|team-roster|team-staff|team-ranking)(?:\?|$)/.test(path);
+ const revision=cacheable&&cached?(await readCopy(teamIdForCache?'sports-revision.v1.'+teamIdForCache:'sports-club-revision.v1').catch(()=>null))?.data:null;
+ const officialSchedule=/^\/api\/(news|team-calendar|standings|scorers|league-scorers|match|players|team-roster|team-staff|team-ranking)(?:\?|$)/.test(path);
  const maxAge=(prepared||officialSchedule)?policyAge(path,cached,prepared,revision):MAX_AGE;
  const forceNetwork=['reload','no-store'].includes(cacheMode)||/[?&]refresh=1(?:&|$)/.test(path);
  if(cached&&!forceNetwork){

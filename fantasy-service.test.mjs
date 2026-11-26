@@ -150,7 +150,9 @@ test('el club activa ligas nuevas, los usuarios crean ligas independientes y al 
  const created=(await reply.json()).league;
  assert.equal(created.name,'Los Galácticos');
  assert.equal(created.mode,'custom');
- assert.equal(created.teamId,'680163');
+ assert.equal(created.teamId,'private-invitation');
+ assert.equal(created.privateLeague,true);
+ assert.equal(created.settings.maxMembers,15);
  const again=await (await handleFantasy(request('/leagues',payload),e,owner)).json();
  assert.equal(again.league.id,created.id,'idempotency prevents duplicate leagues');
  assert.equal(sql.prepare('SELECT COUNT(*) n FROM fantasy_leagues WHERE owner_uid=? AND request_id=?').get('owner-uid',payload.requestId).n,1);
@@ -615,3 +617,5 @@ test('Jornadas especiales: solo Club activa x2 antes del partido, sin duplicar p
 });
 
 test('official league is offered before creation and after deletion, only to eligible team members',async t=>{const {env:e,sql}=env(t),opts={...owner,getTeams:async()=>['680163']},get=async()=>{const r=await handleFantasy(request('/leagues'),e,opts);assert.equal(r.status,200);return r.json()};const first=await get(),choice=first.availableLeagues.find(l=>l.teamId==='680163');assert(choice?.canStart);assert.equal(sql.prepare('SELECT COUNT(*) n FROM fantasy_leagues').get().n,0);const join=async()=>{const r=await handleFantasy(request('/team-league',{teamId:choice.teamId,leagueId:choice.id,nickname:'Jugador'}),e,opts);assert.equal(r.status,200,JSON.stringify(await r.clone().json()));return r.json()};const created=await join();assert.equal(created.league.id,choice.id);assert(!(await get()).availableLeagues.some(l=>l.teamId==='680163'));/* Simulate a deleted official league without altering production. */sql.exec('PRAGMA foreign_keys=OFF');sql.prepare('DELETE FROM fantasy_official_leagues WHERE team_id=?').run(choice.teamId);sql.prepare('DELETE FROM fantasy_members WHERE league_id=?').run(choice.id);sql.prepare('DELETE FROM fantasy_league_groups WHERE league_id=?').run(choice.id);sql.prepare('DELETE FROM fantasy_leagues WHERE id=?').run(choice.id);assert((await get()).availableLeagues.some(l=>l.id===choice.id&&l.canStart));});
+
+ test('private invitation leagues accept verified users without a real team and enforce 15 members',async t=>{const {env:e,sql}=env(t);sql.exec('UPDATE fantasy_league_creation_settings SET enabled=1');const opts=uid=>({authorize:async()=>uid,getTeams:async()=>[]});const created=await handleFantasy(request('/leagues',{name:'Amigos Fantasy',nickname:'Creador',requestId:'private-no-team-1'}),e,opts('creator'));assert.equal(created.status,201,await created.clone().text());const {league}=await created.json();assert.equal(league.settings.maxMembers,15);assert.equal((await handleFantasy(request('/leagues/'+league.id),e,opts('outsider'))).status,404);for(let i=0;i<14;i++){const r=await handleFantasy(request('/join',{code:league.code,nickname:'Invitado '+i}),e,opts('guest-'+i));assert.equal(r.status,200,await r.clone().text());}assert.equal((await handleFantasy(request('/join',{code:league.code,nickname:'Extra'}),e,opts('extra'))).status,409);assert.equal((await handleFantasy(request('/team-league',{teamId:'680163',nickname:'Invitado'}),e,opts('extra'))).status,403);const list=await(await handleFantasy(request('/leagues'),e,opts('guest-0'))).json();assert(list.leagues.some(l=>l.id===league.id));});

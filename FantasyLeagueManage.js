@@ -7,6 +7,7 @@ export default function FantasyLeagueManage({request}){
  const [list,setList]=useState(null),[current,setCurrent]=useState(null),[history,setHistory]=useState(null),[inscriptions,setInscriptions]=useState(null),[visibility,setVisibility]=useState(null),[lineupLock,setLineupLock]=useState(null);
  const [name,setName]=useState(''),[limit,setLimit]=useState(''),[lifecycle,setLifecycle]=useState(null),[archiveConfirm,setArchiveConfirm]=useState('');
  const [copyOpen,setCopyOpen]=useState(false),[copyName,setCopyName]=useState(''),[copyNickname,setCopyNickname]=useState('');
+ const [participants,setParticipants]=useState(null);
  const requestId=useRef(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const lock=useRef(false);
@@ -24,7 +25,7 @@ export default function FantasyLeagueManage({request}){
    request('/admin/leagues/'+encodeURIComponent(id)+'/lineup-lock',{cache:'reload'}),
    request('/admin/leagues/'+encodeURIComponent(id)+'/lifecycle',{cache:'reload'})
   ]);
-  setInscriptions(enrollment);setVisibility(appearance);setLineupLock(lineup);setLifecycle(lifecycleState);setArchiveConfirm('');setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);setCopyOpen(false);setCopyName(result.name+' - copia');setCopyNickname('Club');requestId.current=null;
+  setInscriptions(enrollment);setVisibility(appearance);setLineupLock(lineup);setLifecycle(lifecycleState);setArchiveConfirm('');setCurrent(result);setName(result.name);setLimit(String(result.maxMembers));setNotice('');setHistory(null);setParticipants(null);setCopyOpen(false);setCopyName(result.name+' - copia');setCopyNickname('Club');requestId.current=null;
  })}
  async function save(){if(!current||lock.current)return;await run(async()=>{
   const next=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/settings',{
@@ -84,6 +85,10 @@ export default function FantasyLeagueManage({request}){
    const result=await request('/admin/leagues/reset',{cache:'reload'});setList(result.leagues||[]);
   });
  }
+ async function loadParticipants(){
+  if(!current)return;
+  await run(async()=>{const result=await request('/admin/leagues/'+encodeURIComponent(current.id)+'/participants',{cache:'reload'});setParticipants(result)});
+ }
  async function loadHistory(){
   if(!current)return;
   await run(async()=>{const result=await request('/admin/leagues/history?league='+encodeURIComponent(current.id),{cache:'reload'});setHistory(result.events||[])});
@@ -96,6 +101,17 @@ export default function FantasyLeagueManage({request}){
   {list?.map(league=><Button key={league.id} secondary disabled={busy} onPress={()=>choose(league.id)}>{current?.id===league.id?'● ':''}{league.name}</Button>)}
   {current&&<View style={{gap:10,padding:12,backgroundColor:theme.header,borderRadius:10}}>
    <Text style={text}>Liga: {current.name}</Text>
+   <Button secondary disabled={busy} onPress={loadParticipants}>{participants?'Actualizar participantes':'Ver participantes'}</Button>
+   {participants&&<View style={{gap:8,padding:10,borderWidth:1,borderColor:theme.border,borderRadius:8}}>
+    <Text style={{...text,fontWeight:'800'}}>Participantes: {participants.memberCount}/{participants.maxMembers}</Text>
+    <Text style={{...text,color:theme.muted}}>Plazas libres: {Math.max(0,participants.maxMembers-participants.memberCount)}</Text>
+    {participants.members.length===0&&<Text style={text}>No hay participantes inscritos.</Text>}
+    {participants.members.map((member,index)=><View key={index} style={{gap:4,paddingVertical:8,borderBottomWidth:1,borderColor:theme.border}}>
+     <Text style={{...text,fontWeight:'800'}}>{index+1}. {member.nickname}{member.creator?' · Creador':''}</Text>
+     <Text style={{...text,color:theme.muted}}>{member.excluded?'Acceso desactivado':'Acceso activo'} · Inscrito: {new Date(member.joinedAt).toLocaleDateString('es-ES')}</Text>
+    </View>)}
+    <Button secondary onPress={()=>setParticipants(null)}>Ocultar participantes</Button>
+   </View>}
    <Text style={text}>Nuevo nombre</Text>
    <TextInput accessibilityLabel="Nombre de liga" value={name} onChangeText={setName} editable={!busy} maxLength={60} style={{padding:12,borderWidth:1,borderColor:theme.border,borderRadius:8,color:theme.text}}/>
    <Text style={text}>Máximo de participantes (2 a 15)</Text>

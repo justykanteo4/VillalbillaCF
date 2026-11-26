@@ -59,6 +59,8 @@ on:
       - 'fantasy-special-rounds-schema.sql'
       - 'FantasySpecialRounds.js'
       - 'fantasy-weekly-prizes.mjs'
+      - 'fantasy-award-settlement.mjs'
+      - 'fantasy-ideal-cash.mjs'
       - 'FantasyTeamIdentity.js'
       - 'FantasyMarketSlots.js'
       - 'fantasy-market-window-policy.cjs'

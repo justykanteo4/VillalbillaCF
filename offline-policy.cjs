@@ -6,7 +6,7 @@ function policyAge(path,cached,prepared,revision,now=Date.now()){
  const localDay=new Date(new Date(now).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'})+'T12:00:00Z').getUTCDay();
  const weekend=localDay===0||localDay===6;
  if(p==='/api/news'||p==='/api/team-calendar')return weekend?1800000:Infinity;
- if(p==='/api/standings')return saved<(revision?.changedAt||0)?0:weekend?900000:Infinity;
+ if(['/api/standings','/api/scorers','/api/league-scorers'].includes(p))return saved<(revision?.changedAt||0)?0:weekend?900000:Infinity;
  if(p==='/api/match')return weekend?900000:Infinity;
  if(p==='/api/players'||p==='/api/team-roster'||p==='/api/team-staff'||p==='/api/team-ranking')return saved<(revision?.changedAt||0)||monday(cached.savedAt)!==monday(now)?0:Infinity;
  if(!prepared)return 60000;if(p==='/api/notifications')return 60000;if(p==='/api/weather')return 1800000;if(p==='/api/instagram')return 900000;if(p==='/api/news'||p==='/api/team-calendar')return 60000;if(p==='/api/players'||p==='/api/team-ranking')return Date.parse(cached.savedAt)<(revision?.changedAt||0)||monday(cached.savedAt)!==monday(now)?0:300000;if(p==='/api/field')return monday(cached.savedAt)===monday(now)?Infinity:0;if(!/^\/api\/(players|team-roster|team-staff|standings|team-ranking|scorers|league-scorers|club-stats|sanctions|player-minutes|goalkeepers|team-minutes)$/.test(p))return 60000;if(Date.parse(cached.savedAt)<(revision?.changedAt||0)||monday(cached.savedAt)!==monday(now))return 0;if(p==='/api/sanctions'){const day=new Date(new Date(now).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'})+'T12:00:00Z').getUTCDay();if(day===4||day===5)return 3600000}return Infinity}

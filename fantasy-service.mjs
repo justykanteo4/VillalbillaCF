@@ -41,7 +41,7 @@ const reply=(value,status=200)=>Response.json(value,{status,headers:{'Cache-Cont
 async function verifyFantasyUser(request){const uid=await verifyAccessUser(request);if(!verification.verifiedClaims(decodeJwt(request.headers.get('Authorization').slice(7))))throw fail('Verifica tu cuenta para jugar en Fantasy.',403);return uid}
 function randomCode(){const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from(crypto.getRandomValues(new Uint8Array(8)),n=>alphabet[n%32]).join('')}
 async function body(request,maxLength=6000){const text=await request.text();if(text.length>maxLength)throw fail('Solicitud demasiado grande.',413);try{return JSON.parse(text)}catch{throw fail('Datos no válidos.')}}
-function publicLeague(row,uid,now,economy){const stored=JSON.parse(row.settings_json),settings={...stored,...(row.mode==='classic'?{budget:52}:{}),weeklyIncome:(economy?.weeklyIncomeCents??200)/100,...(economy?{weeklyChange:economy}:{})};const finance=leaguePolicy.weeklyBudget(settings,row.joinedAt,now);finance.tradingDelta=(row.delta_cents||0)/100;finance.cashBalance=Math.round((finance.balance+finance.tradingDelta)*100)/100;finance.reservedBids=(row.reserved_cents||0)/100;finance.balance=Math.round((finance.cashBalance-finance.reservedBids)*100)/100;return {id:row.id,name:row.mode==='classic'?leaguePolicy.classicLeagueName(teams.find(t=>t.id===row.group_team_id)):row.name,mode:row.mode,pool:{type:'club'},teamId:row.group_team_id,teamName:leaguePolicy.classicLeagueName(teams.find(t=>t.id===row.group_team_id)).replace('Liga de ',''),settings,finance,code:row.code,createdAt:row.created_at,isOwner:row.owner_uid===uid,memberCount:row.memberCount||0}}
+function publicLeague(row,uid,now,economy){const stored=JSON.parse(row.settings_json),settings={...stored,...(row.mode==='classic'?{budget:52}:{}),weeklyIncome:(economy?.weeklyIncomeCents??200)/100,...(economy?{weeklyChange:economy}:{})};const finance=leaguePolicy.weeklyBudget(settings,row.joinedAt,now);finance.tradingDelta=(row.delta_cents||0)/100;finance.cashBalance=Math.round((finance.balance+finance.tradingDelta)*100)/100;finance.reservedBids=(row.reserved_cents||0)/100;finance.balance=Math.round((finance.cashBalance-finance.reservedBids)*100)/100;return {id:row.id,name:row.mode==='classic'?leaguePolicy.classicLeagueName(teams.find(t=>t.id===row.group_team_id)):row.name,mode:row.mode,pool:{type:'club'},teamId:row.group_team_id,teamName:row.group_team_id==='private-invitation'?'Liga privada':leaguePolicy.classicLeagueName(teams.find(t=>t.id===row.group_team_id)).replace('Liga de ',''),privateLeague:row.group_team_id==='private-invitation',settings,finance,code:row.code,createdAt:row.created_at,isOwner:row.owner_uid===uid,memberCount:row.memberCount||0}}
 async function detail(db,id,uid,now,allowed){const row=await db.prepare('SELECT l.*,COALESCE(v.delta_cents,ROUND(w.delta_units*50),0) AS delta_cents,COALESCE(g.team_id,json_extract(l.pool_json,\'$.teamId\')) AS group_team_id,m.joined_at AS joinedAt FROM fantasy_leagues l JOIN fantasy_members m ON m.league_id=l.id LEFT JOIN fantasy_wallets w ON w.league_id=l.id AND w.uid=m.uid LEFT JOIN fantasy_wallet_cents v ON v.league_id=l.id AND v.uid=m.uid LEFT JOIN fantasy_league_groups g ON g.league_id=l.id WHERE l.id=? AND m.uid=?').bind(id,uid).first();if(!row)throw fail('Liga no encontrada o no perteneces a ella.',404);if(!allowed.includes(row.group_team_id))throw fail('Esta liga está reservada a compañeros del mismo equipo aprobado.',403);const lifecycle=await db.prepare('SELECT state FROM fantasy_league_lifecycle WHERE league_id=?').bind(id).first();if(!lifecycle||lifecycle.state==='active'){await settleSalaries(db,id,now);await settleIdealCash(db,id,now);const prizeState=await db.prepare('SELECT next_at FROM fantasy_prize_state WHERE league_id=?').bind(id).first();if(!prizeState||prizeState.next_at<=now)await settleWeeklyPrizes(db,id,now);}const [wallet,held,members,economy]=await Promise.all([db.prepare('SELECT delta_cents FROM fantasy_wallet_cents WHERE league_id=? AND uid=?').bind(id,uid).first(),reservedBids(db,id,uid),db.prepare('SELECT nickname,joined_at AS joinedAt,CASE WHEN uid=? THEN 1 ELSE 0 END AS me,CASE WHEN uid=? THEN 1 ELSE 0 END AS creator FROM fantasy_members WHERE league_id=? ORDER BY joined_at,nickname').bind(uid,row.owner_uid,id).all(),economyPolicy(db)]);row.delta_cents=wallet?.delta_cents||0;row.reserved_cents=held;return {league:{...publicLeague(row,uid,now,economy),memberCount:members.results.length,lifecycleState:lifecycle?.state||'active'},members:members.results.map(m=>({...m,me:!!m.me,creator:!!m.creator}))}}
 // Only club sporting data and pricing inputs, never ownership, balances, tokens or member records.
 // Reuse computed values only when every scoring input matches; live reads remain authoritative.
@@ -152,8 +152,8 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
  return reply({disabled:!!saved.disabled,revision:saved.revision,updatedAt:saved.updated_at});
  }
  if(accessSettings.disabled&&!admin){if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path))return reply({rules:config.rules,canPlay:false,isAdmin:false,disabled:true,features:{leagues:false,prices:false,market:false,offers:false,play:false}});throw fail('Fantasy está deshabilitado temporalmente. Acceso reservado a administradores.',403)}
- const allowedTeams=async()=>{if(allowed)return allowed;allowed=(await getTeams(request,uid,{isAdmin:admin})).filter(id=>teams.some(t=>t.id===id));if(db)await db.batch([db.prepare('DELETE FROM fantasy_participant_teams WHERE uid=?').bind(uid),db.prepare('INSERT INTO fantasy_participant_teams SELECT ?,CAST(value AS TEXT),? FROM json_each(?) WHERE NOT EXISTS(SELECT 1 FROM fantasy_excluded_users WHERE uid=?)').bind(uid,currentTime,JSON.stringify(allowed),uid)]);return allowed};
- if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path)){if(admin)await scheduleVoteCleanup(request,env,uid,async()=>uid,ctx);return reply({rules:config.rules,canPlay:(await allowedTeams()).length>0,isAdmin:admin,disabled:accessSettings.disabled,features:{leagues:false,prices:true,market:true,offers:true,play:false}})}
+ const allowedTeams=async()=>{if(allowed)return allowed;allowed=[...(await getTeams(request,uid,{isAdmin:admin})).filter(id=>teams.some(t=>t.id===id)),'private-invitation'];if(db)await db.batch([db.prepare('DELETE FROM fantasy_participant_teams WHERE uid=?').bind(uid),db.prepare('INSERT INTO fantasy_participant_teams SELECT ?,CAST(value AS TEXT),? FROM json_each(?) WHERE NOT EXISTS(SELECT 1 FROM fantasy_excluded_users WHERE uid=?)').bind(uid,currentTime,JSON.stringify(allowed),uid)]);return allowed};
+ if(request.method==='GET'&&['/api/fantasy','/api/fantasy/preview'].includes(path)){if(admin)await scheduleVoteCleanup(request,env,uid,async()=>uid,ctx);return reply({rules:config.rules,canPlay:(await allowedTeams()).some(id=>id!=='private-invitation'),canJoinPrivate:true,isAdmin:admin,disabled:accessSettings.disabled,features:{leagues:false,prices:true,market:true,offers:true,play:false}})}
  if(!['GET','POST'].includes(request.method))return reply({error:'Método no permitido.'},405);
  if(!db)throw fail('No se pudo conectar con las ligas.',503);
  if(path.startsWith('/api/fantasy/admin/')&&!admin)throw fail('Acceso reservado a administradores.',403);
@@ -373,7 +373,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   const previous=await db.prepare('SELECT id,name FROM fantasy_leagues WHERE owner_uid=? AND request_id=?').bind(uid,value.requestId).first();
   if(previous)return reply({saved:true,alreadyCreated:true,id:previous.id,name:previous.name});
   const source=await db.prepare('SELECT l.id,l.settings_json,l.pool_json,COALESCE(g.team_id,json_extract(l.pool_json,\'$.teamId\')) AS team_id FROM fantasy_leagues l LEFT JOIN fantasy_league_groups g ON g.league_id=l.id WHERE l.id=?').bind(sourceId).first();
-  if(!source||!teams.some(t=>t.id===source.team_id))throw fail('Liga de origen no encontrada.',404);
+  if(!source||!(source.team_id==='private-invitation'||teams.some(t=>t.id===source.team_id)))throw fail('Liga de origen no encontrada.',404);
   const newId=crypto.randomUUID(),code=makeCode();
   await db.batch([
    db.prepare('INSERT INTO fantasy_leagues(id,owner_uid,request_id,fingerprint,name,mode,pool_json,settings_json,code,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)')
@@ -409,6 +409,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   if(row.mode!=='custom')throw fail('Solo se puede cambiar la visibilidad de ligas personalizadas.');
   if(typeof value?.public!=='boolean'||typeof value?.expectedPublic!=='boolean')throw fail('Indica la visibilidad y el estado consultado.');
   if(value.expectedPublic!==isPublic)throw fail('La visibilidad ha cambiado. Actualiza.',409);
+  if(settings.privateInvitation===true&&value.public)throw fail('Las ligas privadas requieren invitación.');
   const next=JSON.stringify({...settings,publicLeague:value.public});
   const result=await db.prepare('UPDATE fantasy_leagues SET settings_json=? WHERE id=? AND settings_json=? RETURNING id').bind(next,leagueId,row.settings_json).first();
   if(!result)throw fail('La liga ha cambiado. Actualiza antes de guardar.',409);
@@ -454,6 +455,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   const value=await body(request);
   const name=typeof value?.name==='string'?value.name.trim():'';
   const limit=value?.maxMembers;
+  if(settings.privateInvitation===true&&limit!==15)throw fail('Las ligas privadas tienen un máximo fijo de 15 participantes.');
   if(name.length<3||name.length>60||/[\u0000-\u001f\u007f<>]/.test(name))throw fail('El nombre debe tener entre 3 y 60 caracteres, sin símbolos prohibidos.');
   if(!Number.isInteger(limit)||limit<2||limit>15)throw fail('El límite debe estar entre 2 y 15 participantes.');
   if(row.mode==='classic'&&limit!==settings.maxMembers)throw fail('El límite de una liga clásica es fijo. Para modificarlo crea una liga personalizada.');
@@ -564,9 +566,8 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
   const toggle=await db.prepare('SELECT enabled FROM fantasy_league_creation_settings WHERE id=1').first();
   if(toggle?.enabled!==1)throw fail('La creación de nuevas ligas está desactivada por el club.',403);
   const value=await body(request);
-  const selected=String(value?.teamId||'');
+  const selected='private-invitation';
   const eligible=await allowedTeams();
-  if(!eligible.includes(selected))throw fail('Solo puedes crear ligas para tu equipo confirmado.',403);
   const name=String(value?.name||'').trim().replace(/\s+/g,' ');
   const nickname=String(value?.nickname||'').trim().replace(/\s+/g,' ');
   if(name.length<3||name.length>60||/[\x00-\x1f\x7f<>]/.test(name))throw fail('El nombre de la liga debe tener entre 3 y 60 caracteres.',400);
@@ -574,7 +575,7 @@ export async function handleFantasy(request,env,{authorize=verifyFantasyUser,adm
     if(!/^[a-zA-Z0-9_-]{8,80}$/.test(value?.requestId||''))throw fail('Solicitud de creación no válida.',400);
   const previous=await db.prepare('SELECT id FROM fantasy_leagues WHERE owner_uid=? AND request_id=?').bind(uid,value.requestId).first();
   if(previous)return reply(await detail(db,previous.id,uid,currentTime,eligible));
-  const id=crypto.randomUUID(),code=makeCode(),settings=JSON.stringify({...leaguePolicy.classicSettings,points:JSON.parse((await db.prepare('SELECT points_json FROM fantasy_point_settings WHERE id=1').first())?.points_json||JSON.stringify(leaguePolicy.classicSettings.points))});
+  const id=crypto.randomUUID(),code=makeCode(),settings=JSON.stringify({...leaguePolicy.classicSettings,privateInvitation:true,maxMembers:15,publicLeague:false,points:JSON.parse((await db.prepare('SELECT points_json FROM fantasy_point_settings WHERE id=1').first())?.points_json||JSON.stringify(leaguePolicy.classicSettings.points))});
   await db.batch([
    db.prepare('INSERT OR IGNORE INTO fantasy_leagues(id,owner_uid,request_id,fingerprint,name,mode,pool_json,settings_json,code,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,uid,value.requestId,'user-created-v1',name,'custom',JSON.stringify({type:'club'}),settings,code,currentTime),
    db.prepare('INSERT OR IGNORE INTO fantasy_league_groups(league_id,team_id) VALUES(?,?)').bind(id,selected),

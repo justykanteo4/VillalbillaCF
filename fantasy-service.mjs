@@ -54,14 +54,19 @@ async function manageFantasyUsers(db,request,url,adminUid,now){
   const query=(url.searchParams.get('q')||'').trim().slice(0,80);
   const after=(url.searchParams.get('after')||'').slice(0,128);
   const {results}=await db.prepare(`
-   SELECT m.uid,MIN(m.nickname) AS nickname,COUNT(*) AS leagues,
+   WITH users AS (
+    SELECT uid FROM fantasy_members UNION SELECT uid FROM fantasy_excluded_users
+    UNION SELECT uid FROM fantasy_participant_teams
+   )
+   SELECT u.uid,COALESCE(MIN(m.nickname),u.uid) AS nickname,COUNT(m.uid) AS leagues,
           x.excluded_at AS excludedAt
-   FROM fantasy_members m
-   LEFT JOIN fantasy_excluded_users x ON x.uid=m.uid
-   WHERE m.uid>? AND m.uid<>?
-   GROUP BY m.uid
-   HAVING ?='' OR MAX(INSTR(LOWER(m.nickname),LOWER(?)))>0 OR INSTR(m.uid,?)>0
-   ORDER BY m.uid LIMIT 31
+   FROM users u
+   LEFT JOIN fantasy_members m ON m.uid=u.uid
+   LEFT JOIN fantasy_excluded_users x ON x.uid=u.uid
+   WHERE u.uid>? AND u.uid<>?
+   GROUP BY u.uid
+   HAVING ?='' OR MAX(INSTR(LOWER(m.nickname),LOWER(?)))>0 OR INSTR(u.uid,?)>0
+   ORDER BY u.uid LIMIT 31
   `).bind(after,adminUid,query,query,query).all();
   const users=results.slice(0,30);
   return reply({users,next:results.length>30?users[users.length-1].uid:null});
@@ -70,7 +75,7 @@ async function manageFantasyUsers(db,request,url,adminUid,now){
  const value=await body(request),target=value?.uid;
  if(typeof target!=='string'||!target.trim()||target.length>128||typeof value.excluded!=='boolean')throw fail('Usuario o acción no válidos.');
  if(target===adminUid)throw fail('No puedes cambiar tu propio acceso desde aquí.');
- if(!await db.prepare('SELECT 1 FROM fantasy_members WHERE uid=? LIMIT 1').bind(target).first())throw fail('No se encontró al usuario en Fantasy.',404);
+ if(!await db.prepare('SELECT 1 FROM fantasy_members WHERE uid=? UNION SELECT 1 FROM fantasy_excluded_users WHERE uid=? UNION SELECT 1 FROM fantasy_participant_teams WHERE uid=? LIMIT 1').bind(target,target,target).first())throw fail('No se encontró al usuario en Fantasy.',404);
  if(value.excluded){
   await db.batch([
    db.prepare('INSERT OR IGNORE INTO fantasy_excluded_users(uid,excluded_at,excluded_by) VALUES(?,?,?)').bind(target,now,adminUid),

@@ -31,17 +31,19 @@ export default function FantasyUserSettings({request}){
   finally{locked.current=false;if(active.current)setBusy(false)}
  }
  return <View style={panel}>
-  <Text accessibilityRole="header" style={title}>Usuarios de Fantasy</Text>
-  {!open?<Button secondary onPress={()=>{setOpen(true);load('')}}>Gestionar usuarios</Button>:<>
+  <Text accessibilityRole="header" style={title}>Gestión de accesos a Fantasy</Text>
+  {!open?<Button secondary onPress={()=>{setOpen(true);load('')}}>Gestionar y recuperar accesos</Button>:<>
    <Field label="Buscar por nombre o ID" value={query} onChange={setQuery}/>
    <Button secondary disabled={busy} onPress={()=>load(query)}>Buscar usuarios</Button>
+   <Button secondary disabled={busy} onPress={()=>{setQuery('');load('')}}>Mostrar todos los usuarios</Button>
+   <Text style={text}>Los usuarios bloqueados sin liga también aparecen. Si no tienen nombre guardado, se identifican por su ID.</Text>
    <ErrorText>{error}</ErrorText>
    {!!notice&&<Text accessibilityRole="alert" style={text}>{notice}</Text>}
    {busy&&<Text style={text}>Consultando Fantasy…</Text>}
    {!!page&&!page.users.length&&<Text style={text}>No se encontraron usuarios.</Text>}
    {page?.users.map(user=><View key={user.uid} style={{gap:6,borderTopWidth:1,borderColor:theme.border,paddingTop:10}}>
     <Text style={{...text,fontWeight:'800'}}>{user.nickname}</Text>
-    <Text style={{...text,color:theme.muted}}>{user.uid} · {user.leagues} {user.leagues===1?'liga':'ligas'}</Text>
+    <Text style={{...text,color:theme.muted}}>{user.excludedAt!=null?'Acceso desactivado':'Acceso activo'} · {user.uid} · {user.leagues} {user.leagues===1?'liga':'ligas'}</Text>
     {user.excludedAt!=null?<Button secondary disabled={busy} onPress={()=>change(user,false)}>Restaurar acceso</Button>:
      selected===user.uid?<>
       <Text style={text}>Se retirará su acceso a todas las ligas de Fantasy. Se conservarán su cuenta y su historial.</Text>

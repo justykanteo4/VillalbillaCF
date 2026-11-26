@@ -1,9 +1,10 @@
 import {weekKey} from './fantasy-game-policy.cjs';
 import {IDEAL_CASH_FROM_WEEK} from './fantasy-award-policy.cjs';
 const all=async q=>(await q.all()).results;
+const monday=now=>new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',weekday:'short'}).format(new Date(now))==='Mon';
 // Awards edits invalidate next_at immediately; routine checks need not run every minute.
 const RECHECK_MS=15*60*1000;
-export async function settleIdealCash(db,leagueId,now=Date.now(),{force=false}={}){
+export async function settleIdealCash(db,leagueId,now=Date.now(),{force=false}={}){if(!force&&!monday(now))return {deferred:true};
  const state=await db.prepare('SELECT next_at,lease_until FROM fantasy_ideal_reward_state WHERE league_id=?').bind(leagueId).first();
  if(state&&!force&&state.next_at>now)return {unchanged:true};
  if(state&&state.lease_until>now)return {busy:true};
@@ -13,4 +14,4 @@ export async function settleIdealCash(db,leagueId,now=Date.now(),{force=false}={
  for(const old of previous){const key=[old.uid,old.week,old.player_id].join(':'),ideal=weeks.get(old.week)||[],pending=ideal.length>0&&(ideal.length!==11||new Set(ideal.map(a=>a.player_id)).size!==11);if(!targets.has(key))targets.set(key,{uid:old.uid,week:old.week,playerId:old.player_id,amount:pending?old.amount_cents:0,captain:pending?old.captain:0})}const statements=[];if(targets.size)statements.push(db.prepare("INSERT INTO fantasy_ideal_rewards SELECT ?,json_extract(value,'$.uid'),json_extract(value,'$.week'),json_extract(value,'$.playerId'),json_extract(value,'$.amount'),json_extract(value,'$.captain'),? FROM json_each(?) WHERE 1 ON CONFLICT(league_id,uid,week,player_id) DO UPDATE SET amount_cents=excluded.amount_cents,captain=excluded.captain,updated_at=excluded.updated_at WHERE fantasy_ideal_rewards.amount_cents!=excluded.amount_cents").bind(leagueId,now,JSON.stringify([...targets.values()])));statements.push(db.prepare('UPDATE fantasy_ideal_reward_state SET lease_until=0,next_at=?,fingerprint=? WHERE league_id=?').bind(now+RECHECK_MS,fingerprint,leagueId));await db.batch(statements);return {settled:true};
  }catch(e){await db.prepare('UPDATE fantasy_ideal_reward_state SET lease_until=0,next_at=? WHERE league_id=?').bind(now+60000,leagueId).run();throw e}
 }
-export async function scheduledIdealCash(env,{now=Date.now()}={}){if(!env.CHAT_DB)return;const db=env.CHAT_DB,row=await db.prepare('SELECT l.league_id FROM fantasy_lineups l LEFT JOIN fantasy_ideal_reward_state s ON s.league_id=l.league_id WHERE COALESCE(s.lease_until,0)<=? AND COALESCE(s.next_at,0)<=? GROUP BY l.league_id ORDER BY COALESCE(s.next_at,0),l.league_id LIMIT 1').bind(now,now).first();if(row)await settleIdealCash(db,row.league_id,now)}
+export async function scheduledIdealCash(env,{now=Date.now()}={}){if(!monday(now))return;if(!env.CHAT_DB)return;const db=env.CHAT_DB,row=await db.prepare('SELECT l.league_id FROM fantasy_lineups l LEFT JOIN fantasy_ideal_reward_state s ON s.league_id=l.league_id WHERE COALESCE(s.lease_until,0)<=? AND COALESCE(s.next_at,0)<=? GROUP BY l.league_id ORDER BY COALESCE(s.next_at,0),l.league_id LIMIT 1').bind(now,now).first();if(row)await settleIdealCash(db,row.league_id,now)}

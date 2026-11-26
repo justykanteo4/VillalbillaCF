@@ -43,6 +43,8 @@ on:
       - 'fantasy-style-render.test.cjs'
       - 'settings-upgrade-catalog.test.cjs'
       - 'FantasySettings.js'
+      - 'FantasyUserSettings.js'
+      - 'FantasyAccessSettings.js'
       - 'FantasyLeagueManage.js'
       - 'FantasyLeagueReset.js'
       - 'fantasy-league-admin-history-schema.sql'

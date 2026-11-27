@@ -1,8 +1,11 @@
 {
-  "id": "2026.11.25.nombres",
-  "date": "2026-11-25",
-  "title": "Fantasy: nombre y apellidos",
+  "id": "2026.11.27.plantilla",
+  "date": "2026-11-27",
+  "title": "Plantilla del club más compacta",
   "changes": [
+    "Las sanciones y avisos de acumulación de amarillas aparecen primero cuando hay datos.",
+    "Se muestra un solo próximo partido y los tres siguientes rivales con nombre y posición; sus estadísticas se abren al pulsar.",
+    "La plantilla queda más arriba, sin cambiar las reglas de Fantasy.",
     "Los jugadores y entrenadores se muestran con el nombre primero y los apellidos después, incluidas las cartas y los movimientos.",
     "Corregida la venta directa de jugadores alineados cuando el administrador ha bloqueado el once. El saldo se abona una sola vez y el once bloqueado se conserva.",
     "Las ventas muestran el motivo concreto cuando el jugador está cedido, anunciado o debe conservarse por el mínimo de plantilla.",

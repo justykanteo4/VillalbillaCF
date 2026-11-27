@@ -40,9 +40,9 @@ test('una recarga explícita y las actas en directo esperan el resultado nuevo',
  assert.equal(cached[0].score,1);assert.equal(cached[0].fromCache,true);assert.equal(result.score,2);
 });
 test('una actualización antigua no sobrescribe una recarga más reciente', {timeout:3000},async t=>{
- const old=deferred(),fresh=deferred(),started=deferred(),updated=deferred();let calls=0;
- const {api,copies}=await client(t,()=>{if(++calls===1)return old.promise;started.resolve();return fresh.promise},[['/api/scorers',stale({rows:[{goals:1}]})]]);
- await api('/api/scorers',{onUpdate:updated.resolve});
+ const old=deferred(),fresh=deferred(),firstStarted=deferred(),started=deferred(),updated=deferred();let calls=0;
+ const {api,copies}=await client(t,()=>{if(++calls===1){firstStarted.resolve();return old.promise}started.resolve();return fresh.promise},[['/api/scorers',stale({rows:[{goals:1}]})],['sports-club-revision.v1',{data:{changedAt:Date.now()}}]]);
+ await api('/api/scorers',{onUpdate:updated.resolve});await firstStarted.promise;
  const manual=api('/api/scorers',{cache:'reload'});await started.promise;
  fresh.resolve(response({rows:[{goals:3}]}));await manual;
  old.resolve(response({rows:[{goals:2}]}));

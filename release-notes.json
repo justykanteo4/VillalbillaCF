@@ -1,5 +1,5 @@
 {
-  "id": "2026.11.27.plantilla",
+  "id": "2026.11.27.plantilla.2",
   "date": "2026-11-27",
   "title": "Plantilla del club más compacta",
   "changes": [
@@ -11,6 +11,7 @@
     "Las ventas muestran el motivo concreto cuando el jugador está cedido, anunciado o debe conservarse por el mínimo de plantilla.",
     "Puedes ordenar por más puntos o por nombre en Clasificación, Jugadores, Plantilla, Rivales y Mercado.",
     "Los entrenadores que son jugadores reutilizan la ficha de jugador.",
-    "Los administradores pueden gestionar fotos del cuerpo técnico y los entrenadores sin foto pueden añadir una voluntariamente durante el alta."
+    "Los administradores pueden gestionar fotos del cuerpo técnico y los entrenadores sin foto pueden añadir una voluntariamente durante el alta.",
+    "Corregida la prueba de recarga de goleadores para simular una revisión deportiva sin depender del día de la semana."
   ]
 }

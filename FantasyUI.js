@@ -3,16 +3,16 @@ import {View,Text,Pressable,TextInput} from 'react-native';
 import theme from './fantasy-theme.cjs';
 import FantasyAnimatedPressable from './FantasyAnimatedPressable';
 export {theme};
-export let text={color:theme.text,lineHeight:22},panel={paddingVertical:14,paddingHorizontal:8,gap:12,borderRadius:0,backgroundColor:'#000',borderTopWidth:1,borderBottomWidth:1,borderColor:'#303030'},title={...text,fontSize:22,fontWeight:'900'},input={padding:12,borderRadius:8,borderWidth:1,borderColor:'#454545',color:theme.text,backgroundColor:'#000'};
+export let text={color:theme.text,lineHeight:20},panel={paddingVertical:10,paddingHorizontal:10,gap:9,borderRadius:10,backgroundColor:theme.panel,borderWidth:1,borderColor:theme.border},title={...text,fontSize:20,fontWeight:'800'},input={padding:12,borderRadius:8,borderWidth:1,borderColor:'#454545',color:theme.text,backgroundColor:'#000'};
 export function applyFantasyPalette(palette){
  Object.assign(theme,palette);
  text={...text,color:theme.text};
- panel={...panel,backgroundColor:'#000',borderColor:'#303030'};
+ panel={...panel,backgroundColor:theme.panel,borderColor:theme.border};
  title={...title,color:theme.text};
  input={...input,borderColor:'#454545',color:theme.text,backgroundColor:'#000'};
 }
 export const money=cents=>(cents/100).toLocaleString('es-ES',{maximumFractionDigits:2})+' M';
-export function Button({children,onPress,disabled=false,secondary=false}){return <FantasyAnimatedPressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={{padding:12,borderRadius:10,backgroundColor:secondary?'#171717':theme.button,opacity:disabled?0.45:1,borderWidth:secondary?1:0,borderColor:theme.border}}><Text style={{...text,textAlign:'center',fontWeight:'800',color:secondary?theme.text:theme.buttonText}}>{children}</Text></FantasyAnimatedPressable>}
+export function Button({children,onPress,disabled=false,secondary=false}){return <FantasyAnimatedPressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={{paddingVertical:10,paddingHorizontal:12,borderRadius:9,backgroundColor:secondary?theme.header:theme.button,opacity:disabled?0.45:1,borderWidth:secondary?1:0,borderColor:theme.border}}><Text style={{...text,textAlign:'center',fontWeight:'800',color:secondary?theme.text:theme.buttonText}}>{children}</Text></FantasyAnimatedPressable>}
 export function ErrorText({children}){return children?<Text accessibilityRole="alert" style={{...text,color:theme.negative}}>{children}</Text>:null}
 export function Field({label,value,onChange,number=false}){return <View style={{gap:5}}><Text style={text}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChange} keyboardType={number?'decimal-pad':'default'} placeholderTextColor={theme.muted} style={input}/></View>}
 const rules = [
@@ -53,7 +53,7 @@ const rules = [
 ];
 
 export function FantasyRules({request}){
-  const [points,setPoints]=useState(null);
+  const [points,setPoints]=useState(null),[expanded,setExpanded]=useState({});
   useEffect(()=>{if(!request)return;let active=true;request('/leagues',{cache:'reload'}).then(data=>{if(active)setPoints(data.leagues?.[0]?.settings?.points||null)}).catch(()=>{});return()=>{active=false}},[request]);
   const sections=rules.map(([heading,items])=>{
    if(!points)return [heading,items];
@@ -68,8 +68,8 @@ export function FantasyRules({request}){
   return <View style={panel}>
     <Text accessibilityRole="header" style={title}>Reglas de VillalbillaFantasy</Text>
     {sections.map(([heading,items])=><View key={heading} style={{gap:7,borderTopWidth:1,borderColor:theme.border,paddingTop:12}}>
-      <Text accessibilityRole="header" style={{...text,color:theme.accent,fontSize:16,fontWeight:'800'}}>{heading}</Text>
-      {items.map(item=><View key={item} style={{flexDirection:'row',gap:8}}>
+      <Pressable accessibilityRole="button" accessibilityState={{expanded:!!expanded[heading]}} onPress={()=>setExpanded(v=>({...v,[heading]:!v[heading]}))}><Text style={{...text,color:theme.accent,fontSize:16,fontWeight:'800'}}>{heading} {expanded[heading]?'−':'+'}</Text></Pressable>
+      {expanded[heading]&&items.map(item=><View key={item} style={{flexDirection:'row',gap:8}}>
         <Text style={{...text,color:theme.accent}}>•</Text>
         <Text style={{...text,flex:1}}>{item}</Text>
       </View>)}

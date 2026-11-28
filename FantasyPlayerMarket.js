@@ -31,16 +31,16 @@ export default function FantasyPlayerMarket({leagueId,player,request,onUpdated=(
  }
  const price=Number(amount.replace(',','.')),valid=Number.isFinite(price)&&price>=1&&price<=1000&&Math.abs(price*100-Math.round(price*100))<1e-6;
  return <>
-  <Button secondary disabled={rosterCount<=12&&!player.forSale} onPress={show}>{player.forSale?'Ver anuncio y ofertas del juego':'🏷️ Poner en el mercado'}</Button>
+  <Button secondary disabled={rosterCount<=12&&!player.forSale} onPress={show}>{player.forSale?'Ver anuncio y ofertas':'🏷️ Poner en el mercado'}</Button>
   <Modal visible={open} transparent animationType="fade" onRequestClose={()=>{if(!busy)setOpen(false)}}>
    <View style={{flex:1,justifyContent:'center',padding:18,backgroundColor:'#000b'}}>
-    <View style={{...panel,gap:12}}>
+    <View style={{...panel,gap:14,padding:18,borderRadius:20,borderWidth:1,borderColor:theme.accent,maxHeight:'90%'}}>
      <Text style={title}>{quote?.listing?'Anuncio en el mercado':'Poner jugador en el mercado'}</Text>
-     <Text style={text}>{player.name}</Text>
-     {quote?.listing?<><Text style={text}>Precio de salida: {money(quote.listing.minCents)}</Text><Text style={text}>El jugador sigue en tu plantilla mientras esté en venta. Los rivales pueden hacer ofertas directas y pujar por él.</Text><Text style={{...text,color:theme.accent}}>{quote.listing.canWithdraw?'Ya puedes retirar el anuncio. Las pujas pendientes se cancelarán y los importes se liberarán.':'Podrás retirar el anuncio a partir del '+new Date(quote.listing.canWithdrawAt).toLocaleString('es-ES')+', si el jugador no se ha vendido.'}</Text>{quote.listing.gameOffer&&<View style={{gap:8,padding:10,borderWidth:1,borderColor:theme.accent,borderRadius:10}}><Text style={title}>Oferta del juego · Día {quote.listing.gameOffer.day}</Text><Text style={text}>{quote.listing.gameOffer.percent}% del valor · {money(quote.listing.gameOffer.amountCents)}</Text><Text style={text}>Válida hasta {new Date(quote.listing.gameOffer.expiresAt).toLocaleString('es-ES')}. Si la aceptas, venderás al jugador y se cancelarán las pujas pendientes.</Text><Button disabled={busy||rosterCount<=12} onPress={()=>execute(false,true)}>Aceptar oferta y vender</Button><Button secondary disabled={busy} onPress={()=>setOpen(false)}>No aceptar ahora</Button></View>}<Button secondary disabled={busy||!quote.listing.canWithdraw} onPress={()=>execute(true)}>Retirar del mercado y mantener en plantilla</Button></>:quote&&<>
-      <Text style={text}>Elige el precio mínimo de salida en millones:</Text>
+     <Text style={{...text,fontSize:19,fontWeight:'800',lineHeight:26}}>{player.name}</Text>
+     {quote?.listing?<><Text style={{...text,color:theme.muted}}>Precio de salida: {money(quote.listing.minCents)}</Text>{!quote.listing.canWithdraw&&<Text style={{...text,color:theme.muted,fontSize:12}}>Retirada disponible: {new Date(quote.listing.canWithdrawAt).toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'})}</Text>}{quote.listing.gameOffer&&<View style={{gap:10,padding:16,borderWidth:1,borderColor:theme.accent,borderRadius:14,backgroundColor:theme.header}}><Text style={{...text,textAlign:'center',color:theme.muted,fontSize:13}}>OFERTA DEL JUEGO</Text><Text style={{...title,textAlign:'center',color:theme.accent,fontSize:32,lineHeight:40}}>{money(quote.listing.gameOffer.amountCents)}</Text><Text style={{...text,textAlign:'center',color:theme.muted,fontSize:12}}>Válida hasta {new Date(quote.listing.gameOffer.expiresAt).toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'})}</Text><Button disabled={busy||rosterCount<=12} onPress={()=>execute(false,true)}>Aceptar y vender</Button><Button secondary disabled={busy} onPress={()=>setOpen(false)}>No aceptar ahora</Button></View>}<Button secondary disabled={busy||!quote.listing.canWithdraw} onPress={()=>execute(true)}>Retirar del mercado</Button></>:quote&&<>
+      <Text style={text}>Precio de salida</Text>
       <Text style={{...title,textAlign:'center',color:theme.accent}}>{price.toLocaleString('es-ES',{maximumFractionDigits:2})} M</Text>
-      <Text style={{...text,color:theme.muted,textAlign:'center',fontSize:12}}>Desliza la ruleta para aumentar el precio de salida</Text>
+      <Text style={{...text,color:theme.muted,textAlign:'center',fontSize:12}}>Desliza para ajustar el precio</Text>
       <View onLayout={event=>setWheelWidth(event.nativeEvent.layout.width)} style={{borderRadius:12,overflow:'hidden',borderWidth:1,borderColor:theme.border,backgroundColor:theme.header}}>
        <View pointerEvents="none" style={{position:'absolute',alignSelf:'center',width:70,height:'100%',borderColor:theme.accent,borderWidth:2,borderRadius:10,zIndex:1}}/>
        <ScrollView horizontal ref={wheel} snapToInterval={stepWidth} decelerationRate="fast" showsHorizontalScrollIndicator={false}
@@ -51,10 +51,10 @@ export default function FantasyPlayerMarket({leagueId,player,request,onUpdated=(
         </Pressable>)}
        </ScrollView>
       </View>
-      <Text style={{...text,color:theme.muted,fontSize:12}}>También puedes escribir un precio exacto (con decimales):</Text>
+      <Text style={{...text,color:theme.muted,fontSize:12}}>O introduce el precio:</Text>
       <TextInput accessibilityLabel="Precio de salida de subasta" keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={input}/>
       {valid&&<Text style={{...text,color:theme.accent,fontWeight:'900'}}>Precio de salida: {price.toLocaleString('es-ES',{maximumFractionDigits:2})} M</Text>}
-      <Text style={{...text,color:theme.muted}}>El jugador seguirá siendo tuyo hasta que finalice una puja adjudicada. Puedes retirar el anuncio en cualquier momento antes de la adjudicación. La plantilla debe mantener al menos 12 jugadores.</Text>
+      <Text style={{...text,color:theme.muted}}>El jugador sigue en tu plantilla hasta la venta. Mínimo 12 jugadores.</Text>
       <Button disabled={busy||!valid} onPress={()=>execute(false)}>Confirmar anuncio</Button>
      </>}
      <ErrorText>{error}</ErrorText>

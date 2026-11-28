@@ -85,28 +85,30 @@ export function watchProfile(user, callback, onError) {
  return()=>{active=false;stopProfile();stopAdmin()};
 }
 
-export function watchProfiles(callback, onError) {
+export function watchProfiles(callback, onError, includeAdmins=false) {
   if (!db) return () => {};
   return onSnapshot(collection(db, 'trainerProfiles'), async snapshot => {
     let currentAdmins = ADMIN_EMAILS;
     try { currentAdmins = [...new Set([...ADMIN_EMAILS, ...(await listClubAdmins(false)).map(admin => admin.email)])]; } catch {}
     const profiles = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
-      .filter(profile => !currentAdmins.includes((profile.email || '').trim().toLowerCase()));
+      .map(profile=>({...profile,isClubAdmin:currentAdmins.includes((profile.email||'').trim().toLowerCase())}))
+      .filter(profile => includeAdmins || !profile.isClubAdmin);
     profiles.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
     callback(profiles);
   }, onError);
 }
 
-export async function getProfiles() {
+export async function getProfiles(includeAdmins=false) {
   if (!db) throw Error('Firebase todavía no está conectado.');
   const [snapshot, admins] = await Promise.all([
     getDocs(collection(db, 'trainerProfiles')),
     listClubAdmins(false),
   ]);
-  const adminEmailsSet = new Set(admins.map(admin => admin.email));
+  const adminEmailsSet = new Set([...ADMIN_EMAILS,...admins.map(admin => admin.email)]);
   return snapshot.docs
     .map(item => ({ id: item.id, ...item.data() }))
-    .filter(profile => !adminEmailsSet.has((profile.email || '').trim().toLowerCase()))
+    .map(profile=>({...profile,isClubAdmin:adminEmailsSet.has((profile.email||'').trim().toLowerCase())}))
+    .filter(profile => includeAdmins || !profile.isClubAdmin)
     .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
 }
 

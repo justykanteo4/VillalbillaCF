@@ -106,12 +106,12 @@ export default function FantasyRivals({leagueId,request,onUpdated=()=>{}}){
  const offerValue=Number(amount.replace(',','.')),offerValid=amount.trim()!==''&&Number.isFinite(offerValue)&&offerValue>=1&&offerValue<=1000&&Math.abs(offerValue*100-Math.round(offerValue*100))<1e-6;
  return <View style={{gap:14}}>
   <Text accessibilityRole="header" style={{...title,fontSize:25}}>Rivales</Text>
-  <Text style={{...text,color:theme.muted}}>Consulta las plantillas, haz ofertas, intercambia futbolistas y propón cesiones temporales.</Text>
+  
   <ErrorText>{error}</ErrorText>
   {!!notice&&<Text accessibilityRole="alert" style={{...text,color:theme.accent}}>{notice}</Text>}
   {loading&&!data&&<Text style={text}>Cargando las plantillas…</Text>}
   {data?.offline&&<Text style={{...text,color:theme.accent}}>Mostrando la última copia guardada. Para fichar necesitas conexión.</Text>}
-  {data?.rivals?.length===0&&<Text style={text}>Todavía no hay otros participantes en esta liga.</Text>}
+  {data?.rivals?.length===0&&<Text style={text}>Sin rivales todavía.</Text>}
   {!!loans.length&&<View style={panel}>
    <Text style={{...title,fontSize:19}}>Cesiones</Text>
    {loans.map(l=><View key={l.id} style={{gap:7,borderTopWidth:1,borderColor:theme.border,paddingTop:10}}>
